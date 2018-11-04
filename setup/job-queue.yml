@@ -2,29 +2,25 @@
 - name: Set up the job queue host
   roles:
     - job_queue
-  hosts: cvmfs_notify_hosts
+  hosts: cvmfs_publisher_hosts
   remote_user: root
   become: yes
   tags: rabbitmq
   tasks:
-    - name: Install prerequisites
-      yum: name="wget,unzip"
+    #- name: Install prerequisites
+    #  yum: name="wget,unzip"
 
     - name: Install Erlang from the RabbitMQ repository
-      yum: name="https://bintray.com/rabbitmq/rpm/download_file?file_path=erlang%2F21%2Fel%2F7%2Fx86_64%2Ferlang-21.0.9-1.el7.centos.x86_64.rpm"
+      yum: name="https://bintray.com/rabbitmq/rpm/download_file?file_path=erlang%2F21%2Fel%2F7%2Fx86_64%2Ferlang-21.1.1-1.el7.centos.x86_64.rpm"
 
     - name: Install RabbitMQ
       yum: name="https://dl.bintray.com/rabbitmq/all/rabbitmq-server/3.7.8/rabbitmq-server-3.7.8-1.el7.noarch.rpm"
 
     - name: Start Firewalld
       service: name=firewalld enabled=yes state=started
-    - name: Open firewall port tcp:80 for Websockets
-      firewalld: service=http permanent=true state=enabled
-    - name: Open firewall ports 5671 and 5672
-      firewalld: port=5671-5672/tcp permanent=true state=enabled
-    - name: Open firewall port 4930
-      firewalld: port=4930/tcp permanent=true state=enabled
-    - name: Open firewall ports 15672 for the management console
+    - name: Open firewall port 5672 for TCP
+      firewalld: port=5672/tcp permanent=true state=enabled
+    - name: Open firewall port 15672 for the management console
       firewalld: port=15672/tcp permanent=true state=enabled
     - name: Reload Firewalld
       service: name=firewalld enabled=yes state=reloaded
@@ -32,16 +28,8 @@
     - name: Start RabbitMQ server
       systemd: name=rabbitmq-server enabled=yes state=started
 
-    - name: Create plugin directory for RabbitMQ
-      file: path=/usr/lib/rabbitmq/plugins state=directory
-    - name: Install the Last-Value-Cache plugin
-      unarchive:
-        src: https://dl.bintray.com/rabbitmq/community-plugins/3.7.x/rabbitmq_lvc_exchange/rabbitmq_lvc_exchange-20171201-3.7.x.zip
-        dest: /usr/lib/rabbitmq/plugins
-        remote_src: yes
-
-    - name: Configure RabbitMQ - vhost, users, enable plugins
-      script: configure_rabbitmq.sh {{ admin_user }} {{ admin_pass }} {{ publisher_user }} {{ publisher_pass }} {{ subscriber_user }} {{ subscriber_pass }}
+    - name: Configure RabbitMQ
+      script: configure_rabbitmq.sh {{ admin_user }} {{ admin_pass }} {{ producer_user }} {{ producer_pass }} {{ consumer_user }} {{ consumer_pass }}
 
     - name: Configure RabbitMQ - send configuration file
       copy: src="rabbitmq.conf" dest="/etc/rabbitmq/rabbitmq.conf"
@@ -57,4 +45,3 @@
 
     - name: Restart RabbitMQ server
       systemd: name=rabbitmq-server enabled=yes daemon_reload=yes state=restarted
-

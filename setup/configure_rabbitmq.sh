@@ -9,7 +9,7 @@ consumer_pass=$6
 
 vhost_name="/cvmfs"
 
-# Enable management and last-value-cache exchange plugins
+# Enable management plugin
 rabbitmq-plugins enable rabbitmq_management
 
 # Delete default guest user
