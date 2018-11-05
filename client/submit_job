@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+import sys
+import pika
+
+credentials = pika.PlainCredentials('producer', 'password')
+connection = pika.BlockingConnection(pika.ConnectionParameters('cvmfs-publisher-test.cern.ch',
+                                                               5672, '/cvmfs', credentials))
+channel = connection.channel()
+
+message = ' '.join(sys.argv[1:]) or "Hello world!"
+
+channel.exchange_declare(exchange='jobs', exchange_type='direct', durable=True)
+
+channel.basic_publish(exchange='jobs',
+                      routing_key='jobs.new',
+                      body=message,
+                      properties=pika.BasicProperties(delivery_mode=2))
+
+print(" [x] Send %r" % message)

@@ -32,7 +32,7 @@ fi
 # Add and configure the publisher user
 if [ x"$(rabbitmqctl list_users | grep '^${producer_user}' | wc -l)" = x"0" ]; then
     rabbitmqctl add_user ${producer_user} ${producer_pass}
-    rabbitmqctl set_permissions -p $vhost_name ${producer_user} "^(amq\.gen.*)$" "^(amq\.gen.*)$" ".*"
+    rabbitmqctl set_permissions -p $vhost_name ${producer_user} "^(amq\.gen.*)$" "^(amq\.gen.*|jobs)$" ".*"
 fi
 
 # Add and configure the subscriber user

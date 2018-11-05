@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+
+import pika
+import time
+
+def callback(ch, method, properties, body):
+    print(" [x] Received %r" % body)
+    time.sleep(body.count(b'.'))
+    print(" [x] Done")
+    ch.basic_ack(delivery_tag = method.delivery_tag)
+
+credentials = pika.PlainCredentials('consumer', 'password')
+connection = pika.BlockingConnection(pika.ConnectionParameters('cvmfs-publisher-test.cern.ch',
+                                                               5672, '/cvmfs', credentials))
+channel = connection.channel()
+channel.basic_qos(prefetch_count=1)
+
+result = channel.queue_declare(queue='jobs.new')
+queue = result.method.queue
+channel.queue_bind(exchange='jobs', queue=queue, routing_key='jobs.new')
+channel.basic_consume(callback,
+                      queue=queue,
+                      no_ack=False)
+
+print(' [*] Waiting for messages. To exit, press Ctrl-C')
+channel.start_consuming()
