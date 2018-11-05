@@ -1,20 +1,63 @@
 #!/usr/bin/env python3
 
-import sys
+import argparse
+import json
 import pika
+import sys
+import uuid
 
-credentials = pika.PlainCredentials('producer', 'password')
-connection = pika.BlockingConnection(pika.ConnectionParameters('cvmfs-publisher-test.cern.ch',
-                                                               5672, '/cvmfs', credentials))
-channel = connection.channel()
+from common import get_rmq_creds
 
-message = ' '.join(sys.argv[1:]) or "Hello world!"
+# Constant values
+job_exchange = 'jobs.new'
+job_routing_key = ''
 
-channel.exchange_declare(exchange='jobs', exchange_type='direct', durable=True)
 
-channel.basic_publish(exchange='jobs',
-                      routing_key='jobs.new',
-                      body=message,
-                      properties=pika.BasicProperties(delivery_mode=2))
+def parse_args():
+    parser = argparse.ArgumentParser(description='Submit a publishing job.')
+    parser.add_argument('repo', help='repository name')
+    parser.add_argument('payload', help='payload URL')
+    parser.add_argument('--script', help='script to run during transaction')
+    parser.add_argument('--script-args', help='arguments for the transaction script')
+    parser.add_argument(
+        '-d', '--deps', help='Comma-separated list of IDs of job dependencies')
+    return parser.parse_args()
 
-print(" [x] Send %r" % message)
+
+def main():
+    rmq_creds = get_rmq_creds()
+    if rmq_creds == None:
+        print('RabbitMQ credentials are not provided. '
+              'CVMFS_RMQ_URL, CVMFS_RMQ_USERNAME and CVMFS_RMQ_PASSWORD '
+              'should be defined.')
+        exit(1)
+
+    arguments = parse_args()
+
+    credentials = pika.PlainCredentials(rmq_creds['username'],
+                                        rmq_creds['password'])
+    parameters = pika.ConnectionParameters(
+        rmq_creds['url'], rmq_creds['port'], rmq_creds['vhost'], credentials)
+    connection = pika.BlockingConnection(parameters)
+    channel = connection.channel()
+
+    channel.exchange_declare(
+        exchange=job_exchange, exchange_type='direct', durable=True)
+
+    job_id = str(uuid.uuid1())
+    job_description = {'repo' : arguments.repo,
+                       'payload' : arguments.payload,
+                       'id' : job_id}
+    msg = json.dumps(job_description)
+
+    channel.basic_publish(exchange=job_exchange,
+                          routing_key=job_routing_key,
+                          body=msg,
+                          properties=pika.BasicProperties(delivery_mode=2))
+
+    result = {'status' : 'ok', 'job_id' : job_id}
+    print(json.dumps(result))
+
+
+if __name__ == '__main__':
+    main()
