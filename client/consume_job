@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import pika
 import time
 
-from common import read_config
+from common import cvmfs_transaction,read_config
 
 # Constant values
 job_exchange = 'jobs.new'
@@ -21,6 +22,11 @@ def parse_args():
 
 def callback(ch, method, properties, body):
     print(" [x] Received %r" % body)
+    job = json.loads(body)
+
+    with cvmfs_transaction(job) as t:
+        print("cvmfs_server publish {}".format(job['repo']))
+
     print(" [x] Done")
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
