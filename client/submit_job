@@ -4,9 +4,9 @@ import argparse
 import json
 import pika
 import sys
-import uuid
 
-from common import get_rmq_creds
+from common import read_config, create_job_description
+from pprint import pprint
 
 # Constant values
 job_exchange = 'jobs.new'
@@ -17,37 +17,46 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Submit a publishing job.')
     parser.add_argument('repo', help='repository name')
     parser.add_argument('payload', help='payload URL')
-    parser.add_argument('--script', help='script to run during transaction')
-    parser.add_argument('--script-args', help='arguments for the transaction script')
+    parser.add_argument(
+        '-c', '--config', default='/etc/cvmfs/publisher/config.json', help='config file')
+    parser.add_argument(
+        '-s', '--script', help='script to run during transaction')
+    parser.add_argument(
+        '--script-args', help='arguments for the transaction script')
+    parser.add_argument(
+        '--remote-script', action='store_true', help='transaction script is a remote file')
     parser.add_argument(
         '-d', '--deps', help='Comma-separated list of IDs of job dependencies')
     return parser.parse_args()
 
 
 def main():
-    rmq_creds = get_rmq_creds()
-    if rmq_creds == None:
-        print('RabbitMQ credentials are not provided. '
-              'CVMFS_RMQ_URL, CVMFS_RMQ_USERNAME and CVMFS_RMQ_PASSWORD '
-              'should be defined.')
-        exit(1)
-
     arguments = parse_args()
 
-    credentials = pika.PlainCredentials(rmq_creds['username'],
-                                        rmq_creds['password'])
+    config_file = arguments.config
+
+    config = read_config(config_file)
+    rmq_config = config['rabbitmq']
+
+    credentials = pika.PlainCredentials(rmq_config['username'],
+                                        rmq_config['password'])
+
     parameters = pika.ConnectionParameters(
-        rmq_creds['url'], rmq_creds['port'], rmq_creds['vhost'], credentials)
+        rmq_config['url'], rmq_config['port'], rmq_config['vhost'], credentials)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     channel.exchange_declare(
         exchange=job_exchange, exchange_type='direct', durable=True)
 
-    job_id = str(uuid.uuid1())
-    job_description = {'repo' : arguments.repo,
-                       'payload' : arguments.payload,
-                       'id' : job_id}
+    job_description = create_job_description(arguments.repo,
+                                             arguments.payload,
+                                             script=arguments.script,
+                                             script_args=arguments.script_args,       remote_script=arguments.remote_script,         deps=arguments.deps)
+
+    print('Job description:')
+    pprint(job_description)
+
     msg = json.dumps(job_description)
 
     channel.basic_publish(exchange=job_exchange,
@@ -55,7 +64,8 @@ def main():
                           body=msg,
                           properties=pika.BasicProperties(delivery_mode=2))
 
-    result = {'status' : 'ok', 'job_id' : job_id}
+    print('Result:')
+    result = {'status': 'ok', 'job_id': job_description['id']}
     print(json.dumps(result))
 
 

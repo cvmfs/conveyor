@@ -1,27 +1,37 @@
+import gzip
+import json
 import os
+import uuid
 
-def get_rmq_creds():
-    rmq_url = os.getenv('CVMFS_RMQ_URL')
-    rmq_username = os.getenv('CVMFS_RMQ_USERNAME')
-    rmq_password = os.getenv('CVMFS_RMQ_PASSWORD')
-    rmq_port = os.getenv('CVMFS_RMQ_PORT')
-    if rmq_port == None or rmq_port == '':
-        rmq_port = '5672'
+from base64 import b64encode
 
-    rmq_vhost = os.getenv('CVMFS_RMQ_VHOST')
-    if rmq_vhost == None or rmq_vhost == '':
-        rmq_vhost = '/cvmfs'
+def read_config(config_file):
+    with open(config_file) as f:
+        cfg = json.load(f)
 
-    if ((rmq_url == '') or
-        (rmq_url == None) or
-        (rmq_username == '') or
-        (rmq_username == None) or
-        (rmq_password == '') or
-        (rmq_password == None)):
-        return None
+    if 'port' not in cfg['rabbitmq']:
+        cfg['rabbitmq']['port'] = 5672
 
-    return {'url' : rmq_url,
-            'username' : rmq_username,
-            'password' : rmq_password,
-            'port' : int(rmq_port),
-            'vhost' : rmq_vhost}
+    if 'vhost' not in cfg['rabbitmq']:
+        cfg['rabbitmq']['vhost'] = '/cvmfs'
+
+    return cfg
+
+
+def create_job_description(repo, payload, **kwargs):
+    job_id = str(uuid.uuid1())
+    desc = {'repo': repo, 'payload': payload, 'id': job_id}
+
+    if 'script' in kwargs and kwargs['script'] is not None:
+        desc['remote_script'] = kwargs['remote_script']
+        if kwargs['remote_script']:
+            desc['script'] = kwargs['script']
+        else:
+            with open(kwargs['script'], 'rb') as f:
+                desc['script'] = b64encode(gzip.compress(f.read())).decode('utf-8')
+
+    if 'deps' in kwargs and kwargs['deps'] is not None:
+        deps = kwargs['deps'].split(',')
+        desc['deps'] = deps
+
+    return desc
