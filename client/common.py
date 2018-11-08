@@ -60,7 +60,7 @@ class CvmfsTransaction(ContextDecorator):
             subprocess.run(['cvmfs_server', 'publish', self.repo], check=True)
         else:
             print('-- Aborting CVMFS transaction for job {}'.format(self.job_id))
-            subprocess.run(['cvmfs_server', 'abort', self.repo], check=True)
+            subprocess.run(['cvmfs_server', 'abort', '-f', self.repo], check=True)
 
     def abort(self):
         raise RuntimeError('Aborting CVMFS transaction')
