@@ -1,6 +1,7 @@
 import gzip
 import json
 import os
+import subprocess
 import uuid
 
 from base64 import b64encode
@@ -48,14 +49,14 @@ class CvmfsTransaction(ContextDecorator):
             self.full_path += job['path']
 
     def __enter__(self):
-        print("cvmfs_server transaction {}".format(self.full_path))
+        subprocess.run(['cvmfs_server', 'transaction', self.full_path])
         return self
 
     def __exit__(self, *exc):
         if exc.count(None) == 3:
-            print('cvmfs_server publish {}'.format(self.repo))
+            subprocess.run(['cvmfs_server', 'publish', self.repo])
         else:
-            print('cvmfs_server abort {}'.format(self.repo))
+            subprocess.run(['cvmfs_server', 'abort', self.repo])
 
     def abort(self):
         raise RuntimeError('Aborting CVMFS transaction')
