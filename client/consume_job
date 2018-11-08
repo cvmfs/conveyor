@@ -3,22 +3,28 @@
 import argparse
 import json
 import pika
+import subprocess
 import time
 
 from common import CvmfsTransaction, read_config
+from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import urlretrieve
 
 # Constant values
 job_exchange = 'jobs.new'
 job_queue = 'jobs.new'
 job_routing_key = ''
 
+# Global values (should be constant during run time)
+temp_dir = '/tmp'
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument(
         '-c', '--config', default='/etc/cvmfs/publisher/config.json', help='config file')
     parser.add_argument(
-        '--tmp-dir', default='/tmp', help='temporary dir for use during CVMFS transaction'
+        '--temp-dir', default='/tmp', help='temporary dir for use during CVMFS transaction'
     )
     return parser.parse_args()
 
@@ -32,20 +38,29 @@ def callback(ch, method, properties, body):
         print('Exception raised during CVMFS transaction: {}'.format(e))
         # TODO: change the following to a resubmit with retry += 1
         ch.basic_nack(delivery_tag=method.delivery_tag,
-                      multiple=False, requeue=True)
+                      multiple=False, requeue=False)
 
 
 def run_cvmfs_transaction(job):
     print('Running CVMFS transaction for job {}'.format(job['id']))
     with CvmfsTransaction(job):
-        # cd to repository dir
+        # save payload into temp dir
+        url = urlparse(job['payload'])
+        payload_file_name = temp_dir + '/' + Path(url.path).name
+        payload_file_name, _ = urlretrieve(job['payload'], filename=payload_file_name)
+
         # untar payload into path dir
+        target_dir = '/cvmfs/' + job['repo'] + '/' + job['path']
+        subprocess.run(['tar', '-C', target_dir, '-xf', payload_file_name])
+
         # (optional) unpack transaction script into tmp dir
         # run transaction script
-        pass
 
 def main():
     arguments = parse_args()
+
+    global temp_dir
+    temp_dir = arguments.temp_dir
 
     config_file = arguments.config
 
