@@ -17,7 +17,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Submit a publishing job.')
     parser.add_argument('repo', help='repository name')
     parser.add_argument('payload', help='payload URL')
-    parser.add_argument('-p', '--path', default='/', help='target path in repository')
+    parser.add_argument('-p', '--path', default='/',
+                        help='target path in repository')
     parser.add_argument(
         '-c', '--config', default='/etc/cvmfs/publisher/config.json', help='config file')
     parser.add_argument(
@@ -54,7 +55,9 @@ def main():
                                              arguments.payload,
                                              arguments.path,
                                              script=arguments.script,
-                                             script_args=arguments.script_args,       remote_script=arguments.remote_script,         deps=arguments.deps)
+                                             script_args=arguments.script_args,
+                                             remote_script=arguments.remote_script,
+                                             deps=arguments.deps)
 
     print('Job description:')
     pprint(job_description)

@@ -4,7 +4,8 @@ import os
 import uuid
 
 from base64 import b64encode
-from contextlib import contextmanager
+from contextlib import ContextDecorator
+
 
 def read_config(config_file):
     with open(config_file) as f:
@@ -38,12 +39,21 @@ def create_job_description(repo, payload, path, **kwargs):
 
     return desc
 
-@contextmanager
-def cvmfs_transaction(job):
-    print(job)
-    full_path = job['repo']
-    if job['path'] != '/':
-        full_path += job['path']
-    print("cvmfs_server transaction {}".format(full_path))
-    yield full_path
-    print("cvmfs_server abort {}".format(job['repo']))
+
+class CvmfsTransaction(ContextDecorator):
+    def __init__(self, job):
+        self.repo = job['repo']
+        self.full_path = self.repo
+        if job['path'] != '/':
+            self.full_path += job['path']
+        self.noop = True
+
+    def __enter__(self):
+        print("cvmfs_server transaction {}".format(self.full_path))
+        return self
+
+    def __exit__(self, *exc):
+        if self.noop or exc.count(None) != 3:
+            print('cvmfs_server abort {}'.format(self.repo))
+        else:
+            print('cvmfs_server publish {}'.format(self.repo))
