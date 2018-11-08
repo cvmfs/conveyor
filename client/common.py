@@ -46,14 +46,16 @@ class CvmfsTransaction(ContextDecorator):
         self.full_path = self.repo
         if job['path'] != '/':
             self.full_path += job['path']
-        self.noop = True
 
     def __enter__(self):
         print("cvmfs_server transaction {}".format(self.full_path))
         return self
 
     def __exit__(self, *exc):
-        if self.noop or exc.count(None) != 3:
-            print('cvmfs_server abort {}'.format(self.repo))
-        else:
+        if exc.count(None) == 3:
             print('cvmfs_server publish {}'.format(self.repo))
+        else:
+            print('cvmfs_server abort {}'.format(self.repo))
+
+    def abort(self):
+        raise RuntimeError('Aborting CVMFS transaction')

@@ -37,9 +37,12 @@ def callback(ch, method, properties, body):
 
 def run_cvmfs_transaction(job):
     print('Running CVMFS transaction for job {}'.format(job['id']))
-    with CvmfsTransaction(job) as transaction:
-        transaction.noop = False
-
+    with CvmfsTransaction(job):
+        # cd to repository dir
+        # untar payload into path dir
+        # (optional) unpack transaction script into tmp dir
+        # run transaction script
+        pass
 
 def main():
     arguments = parse_args()
