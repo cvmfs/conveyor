@@ -9,6 +9,7 @@ import time
 
 from common import CvmfsTransaction, read_config
 from pathlib import Path
+from shutil import rmtree
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
@@ -18,14 +19,19 @@ job_queue = 'jobs.new'
 job_routing_key = ''
 
 # Global values (should be constant during run time)
-temp_dir = '/tmp'
+temp_dir = '/tmp/cvmfs-consumer'
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument(
-        '-c', '--config', default='/etc/cvmfs/publisher/config.json', help='config file')
+        '-c', '--config',
+        default='/etc/cvmfs/publisher/config.json',
+        help='config file')
     parser.add_argument(
-        '--temp-dir', default='/tmp', help='temporary dir for use during CVMFS transaction'
+        '--temp-dir',
+        default='/tmp/cvmfs-consumer',
+        help='temporary dir for use during CVMFS transaction'
     )
     return parser.parse_args()
 
@@ -50,13 +56,15 @@ def run_cvmfs_transaction(job):
     with CvmfsTransaction(job):
         # save payload into temp dir
         url = urlparse(job['payload'])
-        payload_file_name = temp_dir + '/' + Path(url.path).name
-        payload_file_name, _ = urlretrieve(job['payload'], filename=payload_file_name)
+        payload_file_name = os.path.join(temp_dir, Path(url.path).name)
+        payload_file_name, _ = urlretrieve(
+            job['payload'], filename=payload_file_name)
 
         # untar payload into path dir
         target_dir = '/cvmfs/' + job['repo'] + '/' + job['path']
         os.makedirs(target_dir, exist_ok=True)
-        subprocess.run(['tar', '-C', target_dir, '-xf', payload_file_name], check=True)
+        subprocess.run(['tar', '-C', target_dir, '-xf',
+                        payload_file_name], check=True)
 
         # (optional) unpack transaction script into tmp dir
         # run transaction script
@@ -66,35 +74,37 @@ def run_cvmfs_transaction(job):
 
 
 def main():
-    arguments = parse_args()
+    try:
+        arguments = parse_args()
 
-    global temp_dir
-    temp_dir = arguments.temp_dir
+        global temp_dir
+        temp_dir = arguments.temp_dir
+        os.makedirs(temp_dir, exist_ok=True)
 
-    config_file = arguments.config
+        config_file = arguments.config
 
-    config = read_config(config_file)
-    rmq_config = config['rabbitmq']
+        config = read_config(config_file)
+        rmq_config = config['rabbitmq']
 
-    credentials = pika.PlainCredentials(rmq_config['username'],
-                                        rmq_config['password'])
-    parameters = pika.ConnectionParameters(rmq_config['url'],
-                                           rmq_config['port'],
-                                           rmq_config['vhost'],
-                                           credentials)
-    connection = pika.BlockingConnection(parameters)
-    channel = connection.channel()
-    channel.basic_qos(prefetch_count=1)
+        credentials = pika.PlainCredentials(rmq_config['username'],
+                                            rmq_config['password'])
+        parameters = pika.ConnectionParameters(rmq_config['url'],
+                                               rmq_config['port'],
+                                               rmq_config['vhost'],
+                                               credentials)
+        connection = pika.BlockingConnection(parameters)
+        channel = connection.channel()
+        channel.basic_qos(prefetch_count=1)
 
-    result = channel.queue_declare(queue=job_queue)
-    queue = result.method.queue
-    channel.queue_bind(exchange=job_exchange, routing_key='', queue=queue)
-    channel.basic_consume(callback,
-                          queue=queue,
-                          no_ack=False)
+        result = channel.queue_declare(queue=job_queue)
+        queue = result.method.queue
+        channel.queue_bind(exchange=job_exchange, routing_key='', queue=queue)
+        channel.basic_consume(callback, queue=queue, no_ack=False)
 
-    print('-- Waiting for jobs. To exit, press Ctrl-C')
-    channel.start_consuming()
+        print('-- Waiting for jobs. To exit, press Ctrl-C')
+        channel.start_consuming()
+    finally:
+        rmtree(temp_dir)
 
 
 if __name__ == '__main__':
