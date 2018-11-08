@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import pika
 import subprocess
 import time
@@ -31,6 +32,8 @@ def parse_args():
 
 def callback(ch, method, properties, body):
     job = json.loads(body)
+    print('-- Start publishing job {}'.format(job['id']))
+
     try:
         run_cvmfs_transaction(job)
         ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -38,7 +41,9 @@ def callback(ch, method, properties, body):
         print('Exception raised during CVMFS transaction: {}'.format(e))
         # TODO: change the following to a resubmit with retry += 1
         ch.basic_nack(delivery_tag=method.delivery_tag,
-                      multiple=False, requeue=False)
+                      multiple=False, requeue=True)
+
+    print('-- Finished publishing job {}'.format(job['id']))
 
 
 def run_cvmfs_transaction(job):
@@ -54,6 +59,9 @@ def run_cvmfs_transaction(job):
 
         # (optional) unpack transaction script into tmp dir
         # run transaction script
+
+    # cleanup payload temp file
+    os.remove(payload_file_name)
 
 
 def main():
