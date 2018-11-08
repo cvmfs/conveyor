@@ -23,7 +23,10 @@ def read_config(config_file):
 
 def create_job_description(repo, payload, path, **kwargs):
     job_id = str(uuid.uuid1())
-    desc = {'repo': repo, 'payload': payload, 'path': path, 'id': job_id}
+    lease_path = path
+    if lease_path[0] != '/':
+        lease_path = '/' + lease_path
+    desc = {'repo': repo, 'payload': payload, 'path': lease_path, 'id': job_id}
 
     if 'script' in kwargs and kwargs['script'] is not None:
         desc['remote_script'] = kwargs['remote_script']
