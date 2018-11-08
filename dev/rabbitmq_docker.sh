@@ -6,4 +6,5 @@ docker run -it --rm -d \
     -e RABBITMQ_ERLANG_COOKIE='secret' \
     -e RABBITMQ_NODENAME=rabbit@my-rabbit \
     -p 8080:15672 \
+    -p 5672:5672 \
     rabbitmq:3-management
