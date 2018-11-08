@@ -42,7 +42,6 @@ def callback(ch, method, properties, body):
 
 
 def run_cvmfs_transaction(job):
-    print('Running CVMFS transaction for job {}'.format(job['id']))
     with CvmfsTransaction(job):
         # save payload into temp dir
         url = urlparse(job['payload'])
@@ -51,10 +50,11 @@ def run_cvmfs_transaction(job):
 
         # untar payload into path dir
         target_dir = '/cvmfs/' + job['repo'] + '/' + job['path']
-        subprocess.run(['tar', '-C', target_dir, '-xf', payload_file_name])
+        subprocess.run(['tar', '-C', target_dir, '-xf', payload_file_name], check=True)
 
         # (optional) unpack transaction script into tmp dir
         # run transaction script
+
 
 def main():
     arguments = parse_args()
@@ -84,7 +84,7 @@ def main():
                           queue=queue,
                           no_ack=False)
 
-    print(' [*] Waiting for messages. To exit, press Ctrl-C')
+    print('-- Waiting for jobs. To exit, press Ctrl-C')
     channel.start_consuming()
 
 

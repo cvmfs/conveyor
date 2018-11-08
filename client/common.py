@@ -44,19 +44,23 @@ def create_job_description(repo, payload, path, **kwargs):
 class CvmfsTransaction(ContextDecorator):
     def __init__(self, job):
         self.repo = job['repo']
+        self.job_id = job['id']
         self.full_path = self.repo
         if job['path'] != '/':
             self.full_path += job['path']
 
     def __enter__(self):
-        subprocess.run(['cvmfs_server', 'transaction', self.full_path])
+        print('-- Running CVMFS transaction for job {}'.format(self.job_id))
+        subprocess.run(['cvmfs_server', 'transaction', self.full_path], check=True)
         return self
 
     def __exit__(self, *exc):
         if exc.count(None) == 3:
-            subprocess.run(['cvmfs_server', 'publish', self.repo])
+            print('-- Publishing CVMFS transaction for job {}'.format(self.job_id))
+            subprocess.run(['cvmfs_server', 'publish', self.repo], check=True)
         else:
-            subprocess.run(['cvmfs_server', 'abort', self.repo])
+            print('-- Aborting CVMFS transaction for job {}'.format(self.job_id))
+            subprocess.run(['cvmfs_server', 'abort', self.repo], check=True)
 
     def abort(self):
         raise RuntimeError('Aborting CVMFS transaction')
