@@ -1,40 +1,31 @@
-#!/usr/bin/env python3
-
-import argparse
 import json
 import os
 import pika
 import subprocess
-import time
 
-from common import CvmfsTransaction, read_config
+from cvmfspubtools.config import constants, read_config
+from cvmfspubtools.transaction import Transaction
 from pathlib import Path
 from shutil import rmtree
 from urllib.parse import urlparse
 from urllib.request import urlretrieve
 
-# Constant values
-job_exchange = 'jobs.new'
-job_queue = 'jobs.new'
-job_routing_key = ''
-
 # Global values (should be constant during run time)
 temp_dir = '/tmp/cvmfs-consumer'
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument(
+def add_consume_arguments(subparsers):
+    consume_parser = subparsers.add_parser('consume', help='Consume jobs')
+
+    consume_parser.add_argument(
         '-c', '--config',
         default='/etc/cvmfs/publisher/config.json',
         help='config file')
-    parser.add_argument(
+    consume_parser.add_argument(
         '--temp-dir',
         default='/tmp/cvmfs-consumer',
         help='temporary dir for use during CVMFS transaction'
     )
-    return parser.parse_args()
-
 
 def callback(ch, method, properties, body):
     job = json.loads(body)
@@ -53,7 +44,7 @@ def callback(ch, method, properties, body):
 
 
 def run_cvmfs_transaction(job):
-    with CvmfsTransaction(job):
+    with Transaction(job):
         # save payload into temp dir
         url = urlparse(job['payload'])
         payload_file_name = os.path.join(temp_dir, Path(url.path).name)
@@ -73,39 +64,28 @@ def run_cvmfs_transaction(job):
     os.remove(payload_file_name)
 
 
-def main():
+def consume_jobs(rabbitmq_config, arguments):
     try:
-        arguments = parse_args()
-
         global temp_dir
         temp_dir = arguments.temp_dir
         os.makedirs(temp_dir, exist_ok=True)
 
-        config_file = arguments.config
-
-        config = read_config(config_file)
-        rmq_config = config['rabbitmq']
-
-        credentials = pika.PlainCredentials(rmq_config['username'],
-                                            rmq_config['password'])
-        parameters = pika.ConnectionParameters(rmq_config['url'],
-                                               rmq_config['port'],
-                                               rmq_config['vhost'],
-                                               credentials)
+        credentials = pika.PlainCredentials(rabbitmq_config['username'],
+                                            rabbitmq_config['password'])
+        parameters = pika.ConnectionParameters(rabbitmq_config['url'],
+                                                rabbitmq_config['port'],
+                                                rabbitmq_config['vhost'],
+                                                credentials)
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         channel.basic_qos(prefetch_count=1)
 
-        result = channel.queue_declare(queue=job_queue)
+        result = channel.queue_declare(queue=constants['new_job_queue'])
         queue = result.method.queue
-        channel.queue_bind(exchange=job_exchange, routing_key='', queue=queue)
+        channel.queue_bind(exchange=['exchange'], routing_key='', queue=queue)
         channel.basic_consume(callback, queue=queue, no_ack=False)
 
         print('-- Waiting for jobs. To exit, press Ctrl-C')
         channel.start_consuming()
     finally:
         rmtree(temp_dir)
-
-
-if __name__ == '__main__':
-    main()
