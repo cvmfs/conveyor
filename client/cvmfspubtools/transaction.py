@@ -1,3 +1,4 @@
+import logging
 import subprocess
 
 from contextlib import ContextDecorator
@@ -11,16 +12,16 @@ class Transaction(ContextDecorator):
             self.full_path += job['path']
 
     def __enter__(self):
-        print('-- Running CVMFS transaction for job {}'.format(self.job_id))
+        logging.info('Running CVMFS transaction for job {}'.format(self.job_id))
         subprocess.run(['cvmfs_server', 'transaction', self.full_path], check=True)
         return self
 
     def __exit__(self, *exc):
         if exc.count(None) == 3:
-            print('-- Publishing CVMFS transaction for job {}'.format(self.job_id))
+            logging.info('Publishing CVMFS transaction for job {}'.format(self.job_id))
             subprocess.run(['cvmfs_server', 'publish', self.repo], check=True)
         else:
-            print('-- Aborting CVMFS transaction for job {}'.format(self.job_id))
+            logging.error('Aborting CVMFS transaction for job {}'.format(self.job_id))
             subprocess.run(['cvmfs_server', 'abort', '-f', self.repo], check=True)
 
     def abort(self):

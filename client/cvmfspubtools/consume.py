@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pika
 import subprocess
@@ -29,18 +30,18 @@ def add_consume_arguments(subparsers):
 
 def callback(ch, method, properties, body):
     job = json.loads(body)
-    print('-- Start publishing job {}'.format(job['id']))
+    logging.info('Start publishing job {}'.format(job['id']))
 
     try:
         run_cvmfs_transaction(job)
         ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as e:
-        print('Exception raised during CVMFS transaction: {}'.format(e))
+        logging.error('Exception raised during CVMFS transaction: {}'.format(e))
         # TODO: change the following to a resubmit with retry += 1
         ch.basic_nack(delivery_tag=method.delivery_tag,
                       multiple=False, requeue=True)
 
-    print('-- Finished publishing job {}'.format(job['id']))
+    logging.info('Finished publishing job {}'.format(job['id']))
 
 
 def run_cvmfs_transaction(job):
@@ -85,7 +86,7 @@ def consume_jobs(rabbitmq_config, arguments):
         channel.queue_bind(exchange=constants['new_job_exchange'], routing_key='', queue=queue)
         channel.basic_consume(callback, queue=queue, no_ack=False)
 
-        print('-- Waiting for jobs. To exit, press Ctrl-C')
+        logging.info('Waiting for jobs. To exit, press Ctrl-C')
         channel.start_consuming()
     finally:
         rmtree(temp_dir)
