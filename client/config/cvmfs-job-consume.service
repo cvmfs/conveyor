@@ -3,9 +3,11 @@ Description=Consumer for CVMFS publisher jobs
 After=syslog.target network.target
 
 [Service]
-Type=forking
-ExecStart=/usr/local/bin/cvmfs_job consumer
+Type=simple
+ExecStart=/usr/local/bin/cvmfs_job consume
 PIDFile=/var/run/cvmfs-job-consume.pid
+Restart=always
+RestartSec=5
 User=root
 
 [Install]
