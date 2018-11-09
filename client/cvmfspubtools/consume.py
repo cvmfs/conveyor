@@ -86,7 +86,7 @@ def consume_jobs(rabbitmq_config, arguments):
         channel.queue_bind(exchange=constants['new_job_exchange'], routing_key='', queue=queue)
         channel.basic_consume(callback, queue=queue, no_ack=False)
 
-        logging.info('Waiting for jobs. To exit, press Ctrl-C')
+        logging.info('Waiting for jobs.')
         channel.start_consuming()
     finally:
         rmtree(temp_dir)
