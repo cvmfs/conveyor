@@ -7,14 +7,12 @@
   become: yes
   tags: rabbitmq
   tasks:
-    #- name: Install prerequisites
-    #  yum: name="wget,unzip"
-
-    - name: Install Erlang from the RabbitMQ repository
-      yum: name="https://bintray.com/rabbitmq/rpm/download_file?file_path=erlang%2F21%2Fel%2F7%2Fx86_64%2Ferlang-21.1.1-1.el7.centos.x86_64.rpm"
+    #- name: Install Erlang from the RabbitMQ repository
+    #  yum: name="https://bintray.com/rabbitmq/rpm/download_file?file_path=erlang%2F21%2Fel%2F7%2Fx86_64%2Ferlang-21.1.1-1.el7.centos.x86_64.rpm"
 
     - name: Install RabbitMQ
-      yum: name="https://dl.bintray.com/rabbitmq/all/rabbitmq-server/3.7.8/rabbitmq-server-3.7.8-1.el7.noarch.rpm"
+    #  yum: name="https://dl.bintray.com/rabbitmq/all/rabbitmq-server/3.7.8/rabbitmq-server-3.7.8-1.el7.noarch.rpm"
+      yum: name="rabbitmq-server"
 
     - name: Start Firewalld
       service: name=firewalld enabled=yes state=started
@@ -31,8 +29,8 @@
     - name: Configure RabbitMQ
       script: configure_rabbitmq.sh {{ admin_user }} {{ admin_pass }} {{ producer_user }} {{ producer_pass }} {{ consumer_user }} {{ consumer_pass }}
 
-    - name: Configure RabbitMQ - send configuration file
-      copy: src="rabbitmq.conf" dest="/etc/rabbitmq/rabbitmq.conf"
+    #- name: Configure RabbitMQ - send configuration file
+    #  copy: src="rabbitmq.conf" dest="/etc/rabbitmq/rabbitmq.conf"
 
     - name: Increase max number of open file descriptors for the rabbitmq user
       copy: src="20-nofile.conf" dest="/etc/security/limits.d/"

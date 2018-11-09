@@ -12,6 +12,9 @@ vhost_name="/cvmfs"
 # Enable management plugin
 rabbitmq-plugins enable rabbitmq_management
 
+# Set VM HWM
+rabbitmqctl set_vm_memory_high_watermark 0.9
+
 # Delete default guest user
 if [ x"$(rabbitmqctl list_users | grep 'guest' | wc -l)" != x"0" ]; then
     rabbitmqctl delete_user guest
@@ -32,12 +35,12 @@ fi
 # Add and configure the publisher user
 if [ x"$(rabbitmqctl list_users | grep '^${producer_user}' | wc -l)" = x"0" ]; then
     rabbitmqctl add_user ${producer_user} ${producer_pass}
-    rabbitmqctl set_permissions -p $vhost_name ${producer_user} "^(amq\.gen.*)$" "^(amq\.gen.*|jobs)$" ".*"
+    rabbitmqctl set_permissions -p $vhost_name ${producer_user} "^(amq\.gen.*|jobs\.new)$" "^(amq\.gen.*|jobs\.new)$" ".*"
 fi
 
 # Add and configure the subscriber user
 if [ x"$(rabbitmqctl list_users | grep '^${consumer_user}' | wc -l)" = x"0" ]; then
     rabbitmqctl add_user ${consumer_user} ${consumer_pass}
-    rabbitmqctl set_permissions -p $vhost_name ${consumer_user} "^(amq\.gen.*)$" "^(amq\.gen.*)$" ".*"
+    rabbitmqctl set_permissions -p $vhost_name ${consumer_user} "^(amq\.gen.*|jobs\.new)$" "^(amq\.gen.*|jobs\.new)$" ".*"
 fi
 
