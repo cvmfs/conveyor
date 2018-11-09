@@ -1,0 +1,9 @@
+{
+    "rabbitmq" : {
+        "username" : "producer",
+        "password" : "SET PASSWORD HERE",
+        "url" : "cvmfs-publisher-test.cern.ch",
+        "port" : 5672,
+        "vhost" : "/cvmfs"
+    }
+}
