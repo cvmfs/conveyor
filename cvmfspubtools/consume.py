@@ -82,7 +82,7 @@ def consume_jobs(rabbitmq_config, arguments):
 
         result = channel.queue_declare(queue=constants['new_job_queue'])
         queue = result.method.queue
-        channel.queue_bind(exchange=['exchange'], routing_key='', queue=queue)
+        channel.queue_bind(exchange=constants['new_job_exchange'], routing_key='', queue=queue)
         channel.basic_consume(callback, queue=queue, no_ack=False)
 
         print('-- Waiting for jobs. To exit, press Ctrl-C')
