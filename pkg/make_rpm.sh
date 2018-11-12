@@ -52,6 +52,7 @@ cd ${TOGO_PROJECT}
 
 mkdir -p ${TOGO_PROJECT}/root/etc/systemd/system
 cp -v ${SCRIPT_LOCATION}/cvmfs-job-consume.service ${TOGO_PROJECT}/root/etc/systemd/system/
+togo file flag config-nr root/etc/systemd/system/cvmfs-job-consume.service
 togo file exclude root/etc/systemd/system
 
 
