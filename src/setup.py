@@ -11,6 +11,6 @@ setup(
 
     author='Radu Popescu',
     author_email='radu.popescu@cern.ch',
-    description="CernVM-FS publisher client tools",
+    description="CernVM-FS publisher tools",
     license='BSD',
 )

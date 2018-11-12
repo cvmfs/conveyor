@@ -40,7 +40,7 @@ TOGO_PROJECT=${BUILD_LOCATION}/togo/cvmfs-publisher-tools
 
 ###  Install Python package to togo project root
 
-cd ${SCRIPT_LOCATION}/../client
+cd ${SCRIPT_LOCATION}/../src
 python3 setup.py install --root ${TOGO_PROJECT}/root
 
 
@@ -71,11 +71,10 @@ find ${TOGO_PROJECT}/root -name "*.pyo" -exec togo file unflag {} \;
 togo build package
 
 
-### Copy RPM and SRPM into place                                                                                                                                                    
-
-echo "Copying RPMs to output location"                                                                                                                                            
-mkdir -p $BUILD_LOCATION/RPMS                                                                                                                                                     
-cp -v ./rpms/*.rpm $BUILD_LOCATION/RPMS                                                                                                                                           
+### Copy RPM and SRPM into place
+echo "Copying RPMs to output location"
+mkdir -p $BUILD_LOCATION/RPMS
+cp -v ./rpms/*.rpm $BUILD_LOCATION/RPMS
 cp -v ./rpms/src/*.rpm $BUILD_LOCATION/RPMS
 
 
