@@ -4,7 +4,7 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/cvmfs_job consume
+ExecStart=/usr/bin/cvmfs_job consume
 PIDFile=/var/run/cvmfs-job-consume.pid
 StandardOutput=journal
 Restart=always

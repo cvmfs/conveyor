@@ -1,0 +1,5 @@
+%preun
+
+if [ "x$(systemctl list-unit-files | grep cvmfs-job-consume)" != "x" ]; then
+	systemctl stop cvmfs-job-consume
+fi
