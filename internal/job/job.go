@@ -1,6 +1,10 @@
 package job
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
+	"io/ioutil"
 	"strings"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
@@ -13,15 +17,15 @@ type Job struct {
 	Repo         string
 	Payload      string
 	Path         string
-	Script       *string  `json:",omitempty"`
-	ScriptArgs   *string  `json:",omitempty"`
+	Script       string   `json:",omitempty"`
+	ScriptArgs   string   `json:",omitempty"`
 	RemoteScript *bool    `json:",omitempty"`
 	Deps         []string `json:",omitempty"`
 }
 
 // CreateJob - create a new job struct with validated field values
 func CreateJob(repo string, payload string, path string,
-	script *string, scriptArgs *string, remoteScript bool,
+	script string, scriptArgs string, remoteScript bool,
 	deps string) (*Job, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
@@ -34,15 +38,52 @@ func CreateJob(repo string, payload string, path string,
 		leasePath = "/" + leasePath
 	}
 
+	dependencies := []string{}
+	if deps != "" {
+		dependencies = strings.Split(deps, ",")
+	}
 	job := &Job{
 		id,
 		repo,
 		payload,
 		leasePath,
-		script,
-		scriptArgs,
-		&remoteScript,
-		strings.Split(deps, ",")}
+		"", "", nil, dependencies}
+
+	if script != "" {
+		job.RemoteScript = &remoteScript
+		job.ScriptArgs = scriptArgs
+		if remoteScript {
+			job.Script = script
+		} else {
+			s, err := loadScript(script)
+			if err != nil {
+				log.Error.Println("Could not load script:", err)
+				return nil, err
+			}
+			job.Script = s
+		}
+	}
 
 	return job, nil
+}
+
+func loadScript(s string) (string, error) {
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+
+	data, err := ioutil.ReadFile(s)
+	if err != nil {
+		log.Error.Println("Could not read script file:", err)
+		return "", err
+	}
+	if _, err := gz.Write(data); err != nil {
+		log.Error.Println("Could not compress script:", err)
+		return "", err
+	}
+	if err := gz.Close(); err != nil {
+		log.Error.Println("Could not close gzip compressor:", err)
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
