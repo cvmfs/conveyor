@@ -2,11 +2,8 @@
 
 admin_user=$1
 admin_pass=$2
-producer_user=$3
-producer_pass=$4
-consumer_user=$5
-consumer_pass=$6
-
+worker_user=$3
+worker_pass=$4
 vhost_name="/cvmfs"
 
 # Enable management plugin
@@ -32,15 +29,9 @@ if [ x"$(rabbitmqctl list_users | grep '^${admin_user}' | wc -l)" = x"0" ]; then
     rabbitmqctl set_user_tags ${admin_user} administrator
 fi
 
-# Add and configure the publisher user
-if [ x"$(rabbitmqctl list_users | grep '^${producer_user}' | wc -l)" = x"0" ]; then
-    rabbitmqctl add_user ${producer_user} ${producer_pass}
-    rabbitmqctl set_permissions -p $vhost_name ${producer_user} "^(amq\.gen.*|jobs\.new)$" "^(amq\.gen.*|jobs\.new)$" ".*"
-fi
-
-# Add and configure the subscriber user
-if [ x"$(rabbitmqctl list_users | grep '^${consumer_user}' | wc -l)" = x"0" ]; then
-    rabbitmqctl add_user ${consumer_user} ${consumer_pass}
-    rabbitmqctl set_permissions -p $vhost_name ${consumer_user} "^(amq\.gen.*|jobs\.new)$" "^(amq\.gen.*|jobs\.new)$" ".*"
+# Add and configure the worker user
+if [ x"$(rabbitmqctl list_users | grep '^${worker_user}' | wc -l)" = x"0" ]; then
+    rabbitmqctl add_user ${worker_user} ${worker_pass}
+    rabbitmqctl set_permissions -p $vhost_name ${worker_user} "^(amq\.gen.*|jobs\.new)$" "^(amq\.gen.*|jobs\.new)$" ".*"
 fi
 

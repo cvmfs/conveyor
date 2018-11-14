@@ -27,7 +27,7 @@
       systemd: name=rabbitmq-server enabled=yes state=started
 
     - name: Configure RabbitMQ
-      script: configure_rabbitmq.sh {{ admin_user }} {{ admin_pass }} {{ producer_user }} {{ producer_pass }} {{ consumer_user }} {{ consumer_pass }}
+      script: configure_rabbitmq.sh {{ admin_user }} {{ admin_pass }} {{ worker_user }} {{ worker_pass }}
 
     #- name: Configure RabbitMQ - send configuration file
     #  copy: src="rabbitmq.conf" dest="/etc/rabbitmq/rabbitmq.conf"

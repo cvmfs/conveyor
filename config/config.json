@@ -1,6 +1,6 @@
 {
     "rabbitmq" : {
-        "username" : "producer",
+        "username" : "worker",
         "password" : "SET PASSWORD HERE",
         "url" : "cvmfs-publisher-test.cern.ch",
         "port" : 5672,
