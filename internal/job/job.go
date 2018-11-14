@@ -11,8 +11,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Job - parameters of a job
-type Job struct {
+// Description - parameters of a job
+type Description struct {
 	ID           uuid.UUID
 	Repo         string
 	Payload      string
@@ -26,7 +26,7 @@ type Job struct {
 // CreateJob - create a new job struct with validated field values
 func CreateJob(repo string, payload string, path string,
 	script string, scriptArgs string, remoteScript bool,
-	deps string) (*Job, error) {
+	deps string) (*Description, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
 		log.Error.Println("Could not generate UUID:", err)
@@ -42,7 +42,7 @@ func CreateJob(repo string, payload string, path string,
 	if deps != "" {
 		dependencies = strings.Split(deps, ",")
 	}
-	job := &Job{
+	job := &Description{
 		id,
 		repo,
 		payload,

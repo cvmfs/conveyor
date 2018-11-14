@@ -24,6 +24,7 @@ func init() {
 		"config",
 		"/etc/cvmfs/publisher/config.json",
 		"config file")
+	rootCmd.AddCommand(consumeCmd)
 	rootCmd.AddCommand(submitCmd)
 }
 
