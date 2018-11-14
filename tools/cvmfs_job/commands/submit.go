@@ -43,12 +43,12 @@ func init() {
 }
 
 func runSubmit(cmd *cobra.Command, args []string) {
-	conn, err := queue.NewConnection(
-		viper.GetString("rabbitmq.username"),
-		viper.GetString("rabbitmq.password"),
-		viper.GetString("rabbitmq.url"),
-		viper.GetString("rabbitmq.vhost"),
-		viper.GetInt("rabbitmq.port"))
+	var params queue.Parameters
+	if err := viper.Sub("rabbitmq").Unmarshal(&params); err != nil {
+		log.Error.Println("Could not read RabbitMQ creds")
+		os.Exit(1)
+	}
+	conn, err := queue.NewConnection(params)
 	if err != nil {
 		log.Error.Println("Could not create job queue connection:", err)
 		os.Exit(1)

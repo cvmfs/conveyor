@@ -14,7 +14,18 @@ const (
 	NewJobQueue string = "jobs.new"
 	// RoutingKey - routing key used when publishing jobs
 	RoutingKey string = ""
+	// ConsumerName - name to identify the consumer
+	ConsumerName string = "cvmfs_job"
 )
+
+// Parameters - connection parameters for the job queue
+type Parameters struct {
+	Username string
+	Password string
+	Host     string
+	VHost    string
+	Port     int
+}
 
 // Connection - encapsulates the AMQP connection and channel
 type Connection struct {
@@ -24,9 +35,10 @@ type Connection struct {
 
 // NewConnection - create a new connection to the job queue
 func NewConnection(
-	username string, password string, host string,
-	vhost string, port int) (*Connection, error) {
-	dialStr := createConnectionURL(username, password, host, vhost, port)
+	params Parameters) (*Connection, error) {
+	dialStr := createConnectionURL(
+		params.Username, params.Password, params.Host,
+		params.VHost, params.Port)
 	connection, err := amqp.Dial(dialStr)
 	if err != nil {
 		log.Error.Println("Could not open AMQP connection:", err)
