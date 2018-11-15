@@ -12,7 +12,7 @@ import (
 )
 
 // Run - runs the job consumer
-func Run(params queue.Parameters, tempDir string) {
+func Run(qcfg queue.Config, tempDir string) {
 	// Create temporary dir
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		log.Error.Println("Could not create temp dir:", err)
@@ -20,7 +20,7 @@ func Run(params queue.Parameters, tempDir string) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	conn, err := queue.NewConnection(params)
+	conn, err := queue.NewConnection(qcfg)
 	if err != nil {
 		log.Error.Println("Could not create job queue connection:", err)
 		os.Exit(1)

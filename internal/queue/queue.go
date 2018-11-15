@@ -18,8 +18,8 @@ const (
 	ConsumerName string = "cvmfs_job"
 )
 
-// Parameters - connection parameters for the job queue
-type Parameters struct {
+// Config - configuration of the job queue
+type Config struct {
 	Username string
 	Password string
 	Host     string
@@ -35,11 +35,9 @@ type Connection struct {
 }
 
 // NewConnection - create a new connection to the job queue
-func NewConnection(
-	params Parameters) (*Connection, error) {
+func NewConnection(cfg Config) (*Connection, error) {
 	dialStr := createConnectionURL(
-		params.Username, params.Password, params.Host,
-		params.VHost, params.Port)
+		cfg.Username, cfg.Password, cfg.Host, cfg.VHost, cfg.Port)
 	connection, err := amqp.Dial(dialStr)
 	if err != nil {
 		log.Error.Println("Could not open AMQP connection:", err)

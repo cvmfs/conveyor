@@ -10,47 +10,41 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Description - parameters of a job
-type Description struct {
-	ID           uuid.UUID
+// Parameters - job submission parameters
+type Parameters struct {
 	Repo         string
 	Payload      string
 	Path         string
-	Script       string   `json:",omitempty"`
-	ScriptArgs   string   `json:",omitempty"`
-	RemoteScript *bool    `json:",omitempty"`
-	Deps         []string `json:",omitempty"`
+	Script       string
+	ScriptArgs   string
+	RemoteScript bool
+	Deps         []string
+}
+
+// Description - parameters of a job
+type Description struct {
+	ID uuid.UUID
+	Parameters
 }
 
 // CreateJob - create a new job struct with validated field values
-func CreateJob(repo string, payload string, path string,
-	script string, scriptArgs string, remoteScript bool,
-	deps []string) (*Description, error) {
+func CreateJob(params Parameters) (*Description, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
 		log.Error.Println("Could not generate UUID:", err)
 		return nil, err
 	}
 
-	leasePath := path
+	leasePath := params.Path
 	if leasePath[0] != '/' {
 		leasePath = "/" + leasePath
 	}
 
-	job := &Description{
-		id,
-		repo,
-		payload,
-		leasePath,
-		"", "", nil, deps}
+	job := &Description{id, params}
 
-	if script != "" {
-		job.RemoteScript = &remoteScript
-		job.ScriptArgs = scriptArgs
-		if remoteScript {
-			job.Script = script
-		} else {
-			s, err := loadScript(script)
+	if params.Script != "" {
+		if !params.RemoteScript {
+			s, err := loadScript(params.Script)
 			if err != nil {
 				log.Error.Println("Could not load script:", err)
 				return nil, err

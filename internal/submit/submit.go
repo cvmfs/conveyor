@@ -13,10 +13,8 @@ import (
 )
 
 // Run - runs the new job submission process
-func Run(repo string, payload string, path string,
-	script string, scriptArgs string, remoteScript bool,
-	deps []string, params queue.Parameters) {
-	conn, err := queue.NewConnection(params)
+func Run(jparams job.Parameters, qcfg queue.Config) {
+	conn, err := queue.NewConnection(qcfg)
 	if err != nil {
 		log.Error.Println("Could not create job queue connection:", err)
 		os.Exit(1)
@@ -28,9 +26,7 @@ func Run(repo string, payload string, path string,
 		os.Exit(1)
 	}
 
-	job, err := job.CreateJob(
-		repo, payload, path,
-		script, scriptArgs, remoteScript, deps)
+	job, err := job.CreateJob(jparams)
 	if err != nil {
 		log.Error.Println("Could not create job object:", err)
 		os.Exit(1)

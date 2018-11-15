@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/submit"
@@ -24,12 +25,16 @@ var submitCmd = &cobra.Command{
 	Long:  "Submit a publishing job to a queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var params queue.Parameters
-		if err := viper.Sub("rabbitmq").Unmarshal(&params); err != nil {
+		var qcfg queue.Config
+		if err := viper.Sub("rabbitmq").Unmarshal(&qcfg); err != nil {
 			log.Error.Println("Could not read RabbitMQ creds")
 			os.Exit(1)
 		}
-		submit.Run(repo, payload, path, script, scriptArgs, *remoteScript, *deps, params)
+		jparams := job.Parameters{
+			Repo: repo, Payload: payload, Path: path,
+			Script: script, ScriptArgs: scriptArgs, RemoteScript: *remoteScript,
+			Deps: *deps}
+		submit.Run(jparams, qcfg)
 	},
 }
 

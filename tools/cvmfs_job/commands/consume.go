@@ -18,12 +18,12 @@ var consumeCmd = &cobra.Command{
 	Long:  "Consume publishing jobs from the queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var params queue.Parameters
-		if err := viper.Sub("rabbitmq").Unmarshal(&params); err != nil {
+		var qcfg queue.Config
+		if err := viper.Sub("rabbitmq").Unmarshal(&qcfg); err != nil {
 			log.Error.Println("Could not read RabbitMQ creds")
 			os.Exit(1)
 		}
-		consume.Run(params, tempDir)
+		consume.Run(qcfg, tempDir)
 	},
 }
 
