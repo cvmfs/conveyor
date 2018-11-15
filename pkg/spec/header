@@ -1,5 +1,3 @@
-%define __python %{__python3}
-
 # The name of your package
 Name: cvmfs-publisher-tools
 
@@ -22,7 +20,7 @@ Group: Applications/System
 Packager: Radu Popescu <radu.popescu@cern.ch>
 
 # The build architecture of this RPM (noarch/x86_64/i386/etc)
-Buildarch: noarch
+Buildarch: x86_64
 
 # You generally should not need to mess with this setting
 Buildroot: %{_tmppath}/%{name}
@@ -37,7 +35,7 @@ Source0: %{name}.tar
 
 # If this package has prerequisites, uncomment this line and
 #  list them here - examples are already listed
-Requires: python34-pika
+# Requires: 
 
 # A more verbose description of your package
 %description

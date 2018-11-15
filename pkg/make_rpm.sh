@@ -28,32 +28,48 @@ echo "Version: $VERSION"
 echo "Release: $RELEASE"
 
 
+###  Build package (with GOPATH inside project)
+
+echo "Building package"
+mkdir -p ${BUILD_LOCATION}/gopath/src/github.com/cvmfs
+ln -s ${BUILD_LOCATION} ${BUILD_LOCATION}/gopath/src/github.com/cvmfs/${PROJECT_NAME}
+export GOPATH="${BUILD_LOCATION}/gopath"
+cd ${BUILD_LOCATION}
+make clean && make
+
+
 ### Create togo project
 
 echo "Creating togo project"
+PROJECT_NAME=cvmfs-publisher-tools
 cd $BUILD_LOCATION
 mkdir -p togo
 cd togo
-togo project create cvmfs-publisher-tools
-TOGO_PROJECT=${BUILD_LOCATION}/togo/cvmfs-publisher-tools
-
-
-###  Install Python package to togo project root
-
-cd ${SCRIPT_LOCATION}/../src
-python3 setup.py install --root ${TOGO_PROJECT}/root
+togo project create ${PROJECT_NAME}
+TOGO_PROJECT=${BUILD_LOCATION}/togo/${PROJECT_NAME}
 
 
 ### Go into togo project root
 cd ${TOGO_PROJECT}
 
 
+### Install executable(s) to togo root
+mkdir -p root/usr/bin
+cp -v ${BUILD_LOCATION}/cvmfs_job root/usr/bin/
+togo file exclude root/usr/bin
+
+
 ### Add other files to togo project root
 
 mkdir -p ${TOGO_PROJECT}/root/etc/systemd/system
-cp -v ${SCRIPT_LOCATION}/cvmfs-job-consume.service ${TOGO_PROJECT}/root/etc/systemd/system/
+cp -v ${BUILD_LOCATION}/config/cvmfs-job-consume.service ${TOGO_PROJECT}/root/etc/systemd/system/
 togo file flag config-nr root/etc/systemd/system/cvmfs-job-consume.service
 togo file exclude root/etc/systemd/system
+
+mkdir -p ${TOGO_PROJECT}/root/etc/cvmfs/publisher
+cp -v ${BUILD_LOCATION}/config/config.json ${TOGO_PROJECT}/root/etc/cvmfs/publisher/
+togo file flag config-nr root/etc/cvmfs/publisher/config.json
+togo file exclude root/etc/cvmfs
 
 
 ### Configure the togo build
@@ -66,9 +82,6 @@ sed -i -e "s/<<CVMFS_PUBLISHER_TOOLS_RELEASE>>/$RELEASE/g" ${TOGO_PROJECT}/spec/
 ### Build the package
 
 echo "Building RPM"
-togo file exclude ${TOGO_PROJECT}/root/usr/bin
-togo file exclude ${TOGO_PROJECT}/root/usr/lib/python3.4/site-packages
-find ${TOGO_PROJECT}/root -name "*.pyo" -exec togo file unflag {} \;
 togo build package
 
 

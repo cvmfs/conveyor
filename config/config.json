@@ -1,9 +1,9 @@
 {
     "rabbitmq" : {
-        "username" : "worker",
-        "password" : "SET PASSWORD HERE",
-        "host" : "cvmfs-publisher-test.cern.ch",
+        "username" : "RABBITMQ USER NAME",
+        "password" : "PASSWORD USER PASSWORD",
+        "host" : "RABBITMQ HOST NAME",
         "port" : 5672,
-        "vhost" : "/cvmfs"
+        "vhost" : "/"
     }
 }
