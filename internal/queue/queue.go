@@ -29,8 +29,9 @@ type Parameters struct {
 
 // Connection - encapsulates the AMQP connection and channel
 type Connection struct {
-	Conn *amqp.Connection
-	Chan *amqp.Channel
+	Conn  *amqp.Connection
+	Chan  *amqp.Channel
+	Queue *amqp.Queue
 }
 
 // NewConnection - create a new connection to the job queue
@@ -51,7 +52,37 @@ func NewConnection(
 		return nil, err
 	}
 
-	return &Connection{connection, channel}, nil
+	return &Connection{connection, channel, nil}, nil
+}
+
+// SetupTopology - declares and configures the RabbitMQ topology
+func (c *Connection) SetupTopology() error {
+	if err := c.Chan.Qos(1, 0, false); err != nil {
+		log.Error.Println("Could not set channel QoS:", err)
+		return err
+	}
+
+	if err := c.Chan.ExchangeDeclare(
+		NewJobExchange, "direct", true, false, false, false, nil); err != nil {
+		log.Error.Println("Could not create exchange:", err)
+		return err
+	}
+
+	q, err := c.Chan.QueueDeclare(NewJobQueue, true, false, false, false, nil)
+	if err != nil {
+		log.Error.Println("Could not declare job queue:", err)
+		return err
+	}
+
+	c.Queue = &q
+
+	if err := c.Chan.QueueBind(
+		q.Name, RoutingKey, NewJobExchange, false, nil); err != nil {
+		log.Error.Println("Could not bind job queue:", err)
+		return err
+	}
+
+	return nil
 }
 
 // Close - closes an established connection to the job queue

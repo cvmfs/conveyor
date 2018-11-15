@@ -55,9 +55,8 @@ func runSubmit(cmd *cobra.Command, args []string) {
 	}
 	defer conn.Close()
 
-	err = conn.Chan.ExchangeDeclare(queue.NewJobExchange, "direct", true, false, false, false, nil)
-	if err != nil {
-		log.Error.Println("Could not create exchange:", err)
+	if err := conn.SetupTopology(); err != nil {
+		log.Error.Println("Could not set up RabbitMQ topology:", err)
 		os.Exit(1)
 	}
 
@@ -83,7 +82,7 @@ func runSubmit(cmd *cobra.Command, args []string) {
 	}
 
 	err = conn.Chan.Publish(
-		queue.NewJobExchange, queue.RoutingKey, false, false, msg)
+		queue.NewJobExchange, queue.RoutingKey, true, false, msg)
 	if err != nil {
 		log.Error.Println("Could not publish job:", err)
 		os.Exit(1)

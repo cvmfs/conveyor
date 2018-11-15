@@ -49,25 +49,13 @@ func runConsume(cmd *cobra.Command, args []string) {
 	}
 	defer conn.Close()
 
-	if err := conn.Chan.Qos(1, 0, false); err != nil {
-		log.Error.Println("Could not set channel QoS:", err)
-		os.Exit(1)
-	}
-
-	q, err := conn.Chan.QueueDeclare(queue.NewJobQueue, true, false, false, false, nil)
-	if err != nil {
-		log.Error.Println("Could not declare job queue:", err)
-		os.Exit(1)
-	}
-
-	if err := conn.Chan.QueueBind(
-		q.Name, queue.RoutingKey, queue.NewJobExchange, false, nil); err != nil {
-		log.Error.Println("Could not bind job queue:", err)
+	if err := conn.SetupTopology(); err != nil {
+		log.Error.Println("Could not set up RabbitMQ topology:", err)
 		os.Exit(1)
 	}
 
 	jobs, err := conn.Chan.Consume(
-		q.Name, queue.ConsumerName, false, false, false, false, nil)
+		conn.Queue.Name, queue.ConsumerName, false, false, false, false, nil)
 	if err != nil {
 		log.Error.Println("Could not start consuming jobs:", err)
 		os.Exit(1)
