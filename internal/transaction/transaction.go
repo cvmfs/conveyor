@@ -1,14 +1,25 @@
 package transaction
 
 import (
+	"os"
 	"os/exec"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 )
 
+var mock bool
+
+func init() {
+	mock = false
+	v := os.Getenv("CVMFS_MOCKED_JOB_CONSUMER")
+	if v == "true" || v == "yes" || v == "on" {
+		mock = true
+	}
+}
+
 // Run - run the CVMFS transaction according to the job description
-func Run(desc job.Description, task func() error, mock bool) error {
+func Run(desc job.Description, task func() error) error {
 	fullPath := desc.Repo
 	if desc.Path != "/" {
 		fullPath += desc.Path
@@ -18,7 +29,7 @@ func Run(desc job.Description, task func() error, mock bool) error {
 
 	log.Info.Println("Running CVMFS transaction for job:", desc.ID.String())
 
-	if err := startTransaction(fullPath, mock); err != nil {
+	if err := startTransaction(fullPath); err != nil {
 		log.Error.Println("Error starting CVMFS transaction:", err)
 		return err
 	}
@@ -26,12 +37,12 @@ func Run(desc job.Description, task func() error, mock bool) error {
 	defer func() {
 		if ok {
 			log.Info.Println("Publishing CVMFS transaction for job:", desc.ID.String())
-			if err := commitTransaction(desc.Repo, mock); err != nil {
+			if err := commitTransaction(desc.Repo); err != nil {
 				log.Error.Println("Error committing CVMFS transaction:", err)
 			}
 		} else {
 			log.Error.Println("Aborting CVMFS transaction for job:", desc.ID.String())
-			if err := abortTransaction(desc.Repo, mock); err != nil {
+			if err := abortTransaction(desc.Repo); err != nil {
 				log.Error.Println("Error aborting CVMFS transaction:", err)
 			}
 		}
@@ -46,7 +57,7 @@ func Run(desc job.Description, task func() error, mock bool) error {
 	return nil
 }
 
-func startTransaction(path string, mock bool) error {
+func startTransaction(path string) error {
 	if !mock {
 		cmd := exec.Command("cvmfs_server", "transaction", path)
 		if err := cmd.Run(); err != nil {
@@ -57,7 +68,7 @@ func startTransaction(path string, mock bool) error {
 	return nil
 }
 
-func commitTransaction(repo string, mock bool) error {
+func commitTransaction(repo string) error {
 	if !mock {
 		cmd := exec.Command("cvmfs_server", "publish", repo)
 		if err := cmd.Run(); err != nil {
@@ -68,7 +79,7 @@ func commitTransaction(repo string, mock bool) error {
 	return nil
 }
 
-func abortTransaction(repo string, mock bool) error {
+func abortTransaction(repo string) error {
 	if !mock {
 		cmd := exec.Command("cvmfs_server", "abort", "-f", repo)
 		if err := cmd.Run(); err != nil {

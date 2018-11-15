@@ -76,7 +76,7 @@ func runConsume(cmd *cobra.Command, args []string) {
 			return nil
 		}
 
-		if err := transaction.Run(desc, task, true); err != nil {
+		if err := transaction.Run(desc, task); err != nil {
 			log.Error.Println("Could not run CVMFS transaction:", err)
 			j.Nack(false, true)
 			continue
