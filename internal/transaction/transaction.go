@@ -28,7 +28,7 @@ func Run(desc job.Description, task func() error) error {
 
 	ok := true
 
-	log.Info.Println("Running CVMFS transaction")
+	log.Info.Println("Opening CVMFS transaction for:", fullPath)
 
 	if err := startTransaction(fullPath); err != nil {
 		log.Error.Println("Error starting CVMFS transaction:", err)
