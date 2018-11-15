@@ -6,6 +6,7 @@ import (
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/transaction"
+	"github.com/streadway/amqp"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
@@ -60,6 +61,13 @@ func runConsume(cmd *cobra.Command, args []string) {
 		log.Error.Println("Could not start consuming jobs:", err)
 		os.Exit(1)
 	}
+
+	go func() {
+		ch := conn.Chan.NotifyClose(make(chan *amqp.Error))
+		err := <-ch
+		log.Error.Println("Connection to job queue closed:", err)
+		os.Exit(1)
+	}()
 
 	log.Info.Println("Waiting for jobs")
 
