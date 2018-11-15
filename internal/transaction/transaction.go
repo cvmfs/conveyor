@@ -3,6 +3,7 @@ package transaction
 import (
 	"os"
 	"os/exec"
+	"path"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
@@ -22,7 +23,7 @@ func init() {
 func Run(desc job.Description, task func() error) error {
 	fullPath := desc.Repo
 	if desc.Path != "/" {
-		fullPath += desc.Path
+		path.Join(fullPath, desc.Path)
 	}
 
 	ok := true
