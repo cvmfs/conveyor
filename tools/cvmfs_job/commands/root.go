@@ -17,6 +17,8 @@ var rootCmd = &cobra.Command{
 
 var cfgFile = "/etc/cvmfs/publisher/config.json"
 
+var logTimestamps *bool
+
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(
@@ -24,11 +26,19 @@ func init() {
 		"config",
 		"/etc/cvmfs/publisher/config.json",
 		"config file")
+	logTimestamps = rootCmd.PersistentFlags().Bool(
+		"log-timestamps",
+		false,
+		"include timestamps in logging output")
 	rootCmd.AddCommand(consumeCmd)
 	rootCmd.AddCommand(submitCmd)
+
+	viper.BindPFlag("log-timestamps", rootCmd.PersistentFlags().Lookup("log-timestamps"))
 }
 
 func initConfig() {
+	log.InitLogging(os.Stdout, os.Stderr, *logTimestamps)
+
 	viper.SetDefault("rabbitmq.port", 5672)
 	viper.SetDefault("rabbitmq.vhost", "/cvmfs")
 	viper.SetConfigFile(cfgFile)

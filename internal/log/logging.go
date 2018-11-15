@@ -3,7 +3,6 @@ package log
 import (
 	"io"
 	"log"
-	"os"
 )
 
 var (
@@ -14,19 +13,12 @@ var (
 )
 
 // InitLogging initializes the Info and Error loggers
-func InitLogging(
-	infoHandle io.Writer,
-	errorHandle io.Writer) {
+func InitLogging(infoHandle io.Writer, errorHandle io.Writer, logTimestamps bool) {
+	flags := 0
+	if logTimestamps {
+		flags = log.Ldate | log.Ltime
+	}
 
-	Info = log.New(infoHandle,
-		"INFO: ",
-		log.Ldate|log.Ltime)
-
-	Error = log.New(errorHandle,
-		"ERROR: ",
-		log.Ldate|log.Ltime)
-}
-
-func init() {
-	InitLogging(os.Stdout, os.Stderr)
+	Info = log.New(infoHandle, "INFO: ", flags)
+	Error = log.New(errorHandle, "ERROR: ", flags)
 }
