@@ -8,6 +8,7 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/transaction"
+	getter "github.com/hashicorp/go-getter"
 	"github.com/streadway/amqp"
 )
 
@@ -58,6 +59,15 @@ func Run(qcfg queue.Config, tempDir string) {
 		log.Info.Println("Start publishing job:", desc.ID.String())
 
 		task := func() error {
+			targetDir := "/cvmfs/" + desc.Repo + "/" + desc.Path
+			if err := os.MkdirAll(targetDir, 0755); err != nil {
+				log.Error.Println("Could not create target dir:", err)
+				return err
+			}
+			if err := getter.GetFile(targetDir, desc.Payload); err != nil {
+				log.Error.Println("Could not download payload:", err)
+				return err
+			}
 			return nil
 		}
 
