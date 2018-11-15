@@ -21,10 +21,7 @@ func init() {
 
 // Run - run the CVMFS transaction according to the job description
 func Run(desc job.Description, task func() error) error {
-	fullPath := desc.Repo
-	if desc.Path != "/" {
-		path.Join(fullPath, desc.Path)
-	}
+	fullPath := path.Join(desc.Repo, desc.Path)
 
 	ok := true
 
