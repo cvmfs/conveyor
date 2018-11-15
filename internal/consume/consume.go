@@ -3,6 +3,7 @@ package consume
 import (
 	"encoding/json"
 	"os"
+	"path"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
@@ -59,12 +60,12 @@ func Run(qcfg queue.Config, tempDir string) {
 		log.Info.Println("Start publishing job:", desc.ID.String())
 
 		task := func() error {
-			targetDir := "/cvmfs/" + desc.Repo + "/" + desc.Path
+			targetDir := path.Join("/cvmfs", desc.Repo, desc.Path)
 			if err := os.MkdirAll(targetDir, 0755); err != nil {
 				log.Error.Println("Could not create target dir:", err)
 				return err
 			}
-			if err := getter.GetFile(targetDir, desc.Payload); err != nil {
+			if err := getter.Get(targetDir, desc.Payload); err != nil {
 				log.Error.Println("Could not download payload:", err)
 				return err
 			}
