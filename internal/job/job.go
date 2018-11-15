@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"io/ioutil"
-	"strings"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	uuid "github.com/satori/go.uuid"
@@ -26,7 +25,7 @@ type Description struct {
 // CreateJob - create a new job struct with validated field values
 func CreateJob(repo string, payload string, path string,
 	script string, scriptArgs string, remoteScript bool,
-	deps string) (*Description, error) {
+	deps []string) (*Description, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
 		log.Error.Println("Could not generate UUID:", err)
@@ -38,16 +37,12 @@ func CreateJob(repo string, payload string, path string,
 		leasePath = "/" + leasePath
 	}
 
-	dependencies := []string{}
-	if deps != "" {
-		dependencies = strings.Split(deps, ",")
-	}
 	job := &Description{
 		id,
 		repo,
 		payload,
 		leasePath,
-		"", "", nil, dependencies}
+		"", "", nil, deps}
 
 	if script != "" {
 		job.RemoteScript = &remoteScript
