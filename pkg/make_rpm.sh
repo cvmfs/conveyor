@@ -32,7 +32,7 @@ echo "Release: $RELEASE"
 
 echo "Building package"
 mkdir -p ${BUILD_LOCATION}/gopath/src/github.com/cvmfs
-ln -s ${BUILD_LOCATION} ${BUILD_LOCATION}/gopath/src/github.com/cvmfs/${PROJECT_NAME}
+ln -fs ${BUILD_LOCATION} ${BUILD_LOCATION}/gopath/src/github.com/cvmfs/${PROJECT_NAME}
 export GOPATH="${BUILD_LOCATION}/gopath"
 cd ${BUILD_LOCATION}
 make clean && make
@@ -95,3 +95,4 @@ cp -v ./rpms/src/*.rpm $BUILD_LOCATION/RPMS
 ### Clean up
 
 rm -rf ${BUILD_LOCATION}/togo
+rm -rf ${BUILD_LOCATION}/gopath
