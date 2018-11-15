@@ -28,7 +28,7 @@ func Run(desc job.Description, task func() error) error {
 
 	ok := true
 
-	log.Info.Println("Running CVMFS transaction for job:", desc.ID.String())
+	log.Info.Println("Running CVMFS transaction")
 
 	if err := startTransaction(fullPath); err != nil {
 		log.Error.Println("Error starting CVMFS transaction:", err)
@@ -37,12 +37,12 @@ func Run(desc job.Description, task func() error) error {
 
 	defer func() {
 		if ok {
-			log.Info.Println("Publishing CVMFS transaction for job:", desc.ID.String())
+			log.Info.Println("Publishing CVMFS transaction")
 			if err := commitTransaction(desc.Repo); err != nil {
 				log.Error.Println("Error committing CVMFS transaction:", err)
 			}
 		} else {
-			log.Error.Println("Aborting CVMFS transaction for job:", desc.ID.String())
+			log.Error.Println("Aborting CVMFS transaction")
 			if err := abortTransaction(desc.Repo); err != nil {
 				log.Error.Println("Error aborting CVMFS transaction:", err)
 			}

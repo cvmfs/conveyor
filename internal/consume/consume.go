@@ -65,6 +65,7 @@ func Run(qcfg queue.Config, tempDir string) {
 				log.Error.Println("Could not create target dir:", err)
 				return err
 			}
+			log.Info.Println("Downloading payload:", desc.Payload)
 			if err := getter.Get(targetDir, desc.Payload); err != nil {
 				log.Error.Println("Could not download payload:", err)
 				return err
