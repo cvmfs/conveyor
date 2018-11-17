@@ -1,10 +1,10 @@
 #!/bin/sh
 
-docker run -it --rm -d \
-    --hostname my-rabbit \
-    --name some-rabbit \
+docker run -d \
+    --hostname rabbit00 \
+    --name rabbit00 \
     -e RABBITMQ_ERLANG_COOKIE='secret' \
-    -e RABBITMQ_NODENAME=rabbit@my-rabbit \
-    -p 8080:15672 \
+    -e RABBITMQ_NODENAME=rabbit@rabbit00 \
+    -p 15672:15672 \
     -p 5672:5672 \
     rabbitmq:3-management

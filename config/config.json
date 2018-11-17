@@ -5,5 +5,16 @@
         "host" : "RABBITMQ HOST NAME",
         "port" : 5672,
         "vhost" : "/"
+    },
+    "jobdb" : {
+        "host" : "JOB SERVICE HOST NAME",
+        "port" : 8080,
+        "backend" : {
+            "type" : "postgres | mysql | sqlite",
+            "username" : "DB_USERNAME",
+            "password" : "DB_PASSWORD",
+            "host" : "DB_HOST NAME",
+            "port" : 5432
+        }
     }
 }
