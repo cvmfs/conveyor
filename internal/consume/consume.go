@@ -8,10 +8,20 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/transaction"
 	getter "github.com/hashicorp/go-getter"
 	"github.com/streadway/amqp"
 )
+
+// Mock - enable mocking the CVMFS transaction
+var Mock bool
+
+func init() {
+	Mock = false
+	v := os.Getenv("CVMFS_MOCKED_JOB_CONSUMER")
+	if v == "true" || v == "yes" || v == "on" {
+		Mock = true
+	}
+}
 
 // Run - runs the job consumer
 func Run(qcfg queue.Config, tempDir string) {
@@ -73,7 +83,7 @@ func Run(qcfg queue.Config, tempDir string) {
 			return nil
 		}
 
-		if err := transaction.Run(desc, task); err != nil {
+		if err := RunTransaction(desc, task); err != nil {
 			log.Error.Println("Could not run CVMFS transaction:", err)
 			j.Nack(false, true)
 			continue

@@ -1,7 +1,6 @@
-package transaction
+package consume
 
 import (
-	"os"
 	"os/exec"
 	"path"
 
@@ -9,18 +8,8 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 )
 
-var mock bool
-
-func init() {
-	mock = false
-	v := os.Getenv("CVMFS_MOCKED_JOB_CONSUMER")
-	if v == "true" || v == "yes" || v == "on" {
-		mock = true
-	}
-}
-
-// Run - run the CVMFS transaction according to the job description
-func Run(desc job.Description, task func() error) error {
+// RunTransaction - run the CVMFS transaction according to the job description
+func RunTransaction(desc job.Description, task func() error) error {
 	fullPath := path.Join(desc.Repo, desc.Path)
 
 	ok := true
@@ -56,7 +45,7 @@ func Run(desc job.Description, task func() error) error {
 }
 
 func startTransaction(path string) error {
-	if !mock {
+	if !Mock {
 		cmd := exec.Command("cvmfs_server", "transaction", path)
 		if err := cmd.Run(); err != nil {
 			return err
@@ -67,7 +56,7 @@ func startTransaction(path string) error {
 }
 
 func commitTransaction(repo string) error {
-	if !mock {
+	if !Mock {
 		cmd := exec.Command("cvmfs_server", "publish", repo)
 		if err := cmd.Run(); err != nil {
 			return err
@@ -78,7 +67,7 @@ func commitTransaction(repo string) error {
 }
 
 func abortTransaction(repo string) error {
-	if !mock {
+	if !Mock {
 		cmd := exec.Command("cvmfs_server", "abort", "-f", repo)
 		if err := cmd.Run(); err != nil {
 			return err
