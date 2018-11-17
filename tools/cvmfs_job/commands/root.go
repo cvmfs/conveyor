@@ -9,7 +9,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     "cvmfs-job",
+	Use:     "cvmfs_job",
 	Short:   "CVMFS publishing tool",
 	Long:    "A tool for working with publishing jobs to CVMFS repositories",
 	Version: "0.9.0",
@@ -32,6 +32,7 @@ func init() {
 		"include timestamps in logging output")
 	rootCmd.AddCommand(consumeCmd)
 	rootCmd.AddCommand(submitCmd)
+	rootCmd.AddCommand(dbCmd)
 
 	viper.BindPFlag("log-timestamps", rootCmd.PersistentFlags().Lookup("log-timestamps"))
 }
@@ -41,10 +42,13 @@ func initConfig() {
 
 	viper.SetDefault("rabbitmq.port", 5672)
 	viper.SetDefault("rabbitmq.vhost", "/cvmfs")
+	viper.SetDefault("jobdb.port", 8080)
+	viper.SetDefault("jobdb.backend.port", 5432)
+
 	viper.SetConfigFile(cfgFile)
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Error.Println("Can't read config:", err)
+		log.Error.Println("Could not read config:", err)
 		os.Exit(1)
 	}
 }
