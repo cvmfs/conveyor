@@ -47,7 +47,7 @@ func RunTransaction(desc job.Description, task func() error) error {
 
 func startTransaction(path string) error {
 	if !mock {
-		cmd := exec.Command("cvmfs_server", "transaction", path)
+		cmd := exec.Command("cvmfs_server", "transaction", "-r", path)
 		if err := cmd.Run(); err != nil {
 			return err
 		}
