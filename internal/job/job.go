@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -31,8 +31,7 @@ type Description struct {
 func CreateJob(params Parameters) (*Description, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
-		log.Error.Println("Could not generate UUID:", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not generate UUID")
 	}
 
 	leasePath := params.Path
@@ -46,8 +45,7 @@ func CreateJob(params Parameters) (*Description, error) {
 		if !params.RemoteScript {
 			s, err := loadScript(params.Script)
 			if err != nil {
-				log.Error.Println("Could not load script:", err)
-				return nil, err
+				return nil, errors.Wrap(err, "could not load script")
 			}
 			job.Script = s
 		}
@@ -62,16 +60,13 @@ func loadScript(s string) (string, error) {
 
 	data, err := ioutil.ReadFile(s)
 	if err != nil {
-		log.Error.Println("Could not read script file:", err)
-		return "", err
+		return "", errors.Wrap(err, "could not read script file")
 	}
 	if _, err := gz.Write(data); err != nil {
-		log.Error.Println("Could not compress script:", err)
-		return "", err
+		return "", errors.Wrap(err, "could not compress script")
 	}
 	if err := gz.Close(); err != nil {
-		log.Error.Println("Could not close gzip compressor:", err)
-		return "", err
+		return "", errors.Wrap(err, "could not close gzip compressor")
 	}
 
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil

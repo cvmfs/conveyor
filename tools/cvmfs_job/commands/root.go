@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -48,7 +49,7 @@ func initConfig() {
 	viper.SetConfigFile(cfgFile)
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Error.Println("Could not read config:", err)
+		log.Error.Println(errors.Wrap(err, "could not read config"))
 		os.Exit(1)
 	}
 }

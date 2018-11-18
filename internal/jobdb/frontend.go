@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 var apiRoot = "/api/v1"
@@ -57,8 +57,7 @@ func startFrontEnd(port int) error {
 	}
 
 	if err := srv.ListenAndServe(); err != nil {
-		log.Error.Println("Front-end server error:", err)
-		return err
+		return errors.Wrap(err, "front-end server error")
 	}
 
 	return nil

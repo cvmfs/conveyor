@@ -3,7 +3,7 @@ package queue
 import (
 	"strconv"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 )
 
@@ -40,37 +40,31 @@ func NewConnection(cfg Config) (*Connection, error) {
 		cfg.Username, cfg.Password, cfg.Host, cfg.VHost, cfg.Port)
 	connection, err := amqp.Dial(dialStr)
 	if err != nil {
-		log.Error.Println("Could not open AMQP connection:", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not open AMQP connection")
 	}
 
 	channel, err := connection.Channel()
 	if err != nil {
-		log.Error.Println("Could not open AMQP channel:", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not open AMQP channel")
 	}
 
 	if err := channel.Qos(1, 0, false); err != nil {
-		log.Error.Println("Could not set channel QoS:", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not set channel QoS")
 	}
 
 	if err := channel.ExchangeDeclare(
 		NewJobExchange, "direct", true, false, false, false, nil); err != nil {
-		log.Error.Println("Could not create exchange:", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
 	q, err := channel.QueueDeclare(NewJobQueue, true, false, false, false, nil)
 	if err != nil {
-		log.Error.Println("Could not declare job queue:", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not declare job queue")
 	}
 
 	if err := channel.QueueBind(
 		q.Name, RoutingKey, NewJobExchange, false, nil); err != nil {
-		log.Error.Println("Could not bind job queue:", err)
-		return nil, err
+		return nil, errors.Wrap(err, "could not bind job queue")
 	}
 
 	return &Connection{connection, channel, &q}, nil

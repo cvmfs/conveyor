@@ -7,6 +7,7 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/submit"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -27,14 +28,18 @@ var submitCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var qcfg queue.Config
 		if err := viper.Sub("rabbitmq").Unmarshal(&qcfg); err != nil {
-			log.Error.Println("Could not read RabbitMQ creds")
+			log.Error.Println(
+				errors.Wrap(err, "Could not read RabbitMQ creds"))
 			os.Exit(1)
 		}
 		jparams := job.Parameters{
 			Repo: repo, Payload: payload, Path: path,
 			Script: script, ScriptArgs: scriptArgs, RemoteScript: *remoteScript,
 			Deps: *deps}
-		submit.Run(jparams, qcfg)
+		if err := submit.Run(jparams, qcfg); err != nil {
+			log.Error.Println(err)
+			os.Exit(1)
+		}
 	},
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/pkg/errors"
 )
 
 // RunTransaction - run the CVMFS transaction according to the job description
@@ -17,28 +18,28 @@ func RunTransaction(desc job.Description, task func() error) error {
 	log.Info.Println("Opening CVMFS transaction for:", fullPath)
 
 	if err := startTransaction(fullPath); err != nil {
-		log.Error.Println("Error starting CVMFS transaction:", err)
-		return err
+		return errors.Wrap(err, "could not start CVMFS transaction")
 	}
 
 	defer func() {
 		if ok {
 			log.Info.Println("Publishing CVMFS transaction")
 			if err := commitTransaction(desc.Repo); err != nil {
-				log.Error.Println("Error committing CVMFS transaction:", err)
+				log.Error.Println(
+					errors.Wrap(err, "could not commit CVMFS transaction"))
 			}
 		} else {
 			log.Error.Println("Aborting CVMFS transaction")
 			if err := abortTransaction(desc.Repo); err != nil {
-				log.Error.Println("Error aborting CVMFS transaction:", err)
+				log.Error.Println(
+					errors.Wrap(err, "could not abort CVMFS transaction"))
 			}
 		}
 	}()
 
 	if err := task(); err != nil {
-		log.Error.Println("Error running task during transaction:", err)
 		ok = false
-		return err
+		return errors.Wrap(err, "coult not run task during transaction")
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package jobdb
 
 import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/pkg/errors"
 )
 
 // BackendConfig - database backend configuration for the job db service
@@ -21,8 +22,12 @@ type Config struct {
 }
 
 // Run - run the job db service
-func Run(cfg Config) {
+func Run(cfg Config) error {
 	log.Info.Println("CVMFS job database service starting")
 
-	startFrontEnd(cfg.Port)
+	if err := startFrontEnd(cfg.Port); err != nil {
+		return errors.Wrap(err, "could not start service front-end")
+	}
+
+	return nil
 }
