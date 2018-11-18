@@ -11,6 +11,7 @@
         "port" : 8080,
         "backend" : {
             "type" : "postgres | mysql | sqlite",
+            "database" : "DevCVMFS",
             "username" : "DB_USERNAME",
             "password" : "DB_PASSWORD",
             "host" : "DB_HOST NAME",

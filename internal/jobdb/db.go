@@ -8,6 +8,7 @@ import (
 // BackendConfig - database backend configuration for the job db service
 type BackendConfig struct {
 	Type     string
+	Database string
 	Username string
 	Password string
 	Host     string
