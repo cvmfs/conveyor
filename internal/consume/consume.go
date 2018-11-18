@@ -17,7 +17,7 @@ var mock bool
 
 func init() {
 	mock = false
-	v := os.Getenv("CVMFS_MOCKED_JOB_CONSUMER")
+	v := os.Getenv("CVMFS_MOCK_JOB_CONSUMER")
 	if v == "true" || v == "yes" || v == "on" {
 		mock = true
 	}

@@ -38,9 +38,11 @@ func RunTransaction(desc job.Description, task func() error) error {
 		}
 	}()
 
-	if err := task(); err != nil {
-		ok = false
-		return errors.Wrap(err, "coult not run task during transaction")
+	if !mock {
+		if err := task(); err != nil {
+			ok = false
+			return errors.Wrap(err, "coult not run task during transaction")
+		}
 	}
 
 	return nil
