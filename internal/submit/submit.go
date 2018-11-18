@@ -21,11 +21,6 @@ func Run(jparams job.Parameters, qcfg queue.Config) {
 	}
 	defer conn.Close()
 
-	if err := conn.SetupTopology(); err != nil {
-		log.Error.Println("Could not set up RabbitMQ topology:", err)
-		os.Exit(1)
-	}
-
 	job, err := job.CreateJob(jparams)
 	if err != nil {
 		log.Error.Println("Could not create job object:", err)

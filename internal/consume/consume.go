@@ -39,11 +39,6 @@ func Run(qcfg queue.Config, tempDir string) {
 	}
 	defer conn.Close()
 
-	if err := conn.SetupTopology(); err != nil {
-		log.Error.Println("Could not set up RabbitMQ topology:", err)
-		os.Exit(1)
-	}
-
 	jobs, err := conn.Chan.Consume(
 		conn.Queue.Name, queue.ConsumerName, false, false, false, false, nil)
 	if err != nil {

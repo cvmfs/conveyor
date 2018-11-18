@@ -50,37 +50,30 @@ func NewConnection(cfg Config) (*Connection, error) {
 		return nil, err
 	}
 
-	return &Connection{connection, channel, nil}, nil
-}
-
-// SetupTopology - declares and configures the RabbitMQ topology
-func (c *Connection) SetupTopology() error {
-	if err := c.Chan.Qos(1, 0, false); err != nil {
+	if err := channel.Qos(1, 0, false); err != nil {
 		log.Error.Println("Could not set channel QoS:", err)
-		return err
+		return nil, err
 	}
 
-	if err := c.Chan.ExchangeDeclare(
+	if err := channel.ExchangeDeclare(
 		NewJobExchange, "direct", true, false, false, false, nil); err != nil {
 		log.Error.Println("Could not create exchange:", err)
-		return err
+		return nil, err
 	}
 
-	q, err := c.Chan.QueueDeclare(NewJobQueue, true, false, false, false, nil)
+	q, err := channel.QueueDeclare(NewJobQueue, true, false, false, false, nil)
 	if err != nil {
 		log.Error.Println("Could not declare job queue:", err)
-		return err
+		return nil, err
 	}
 
-	c.Queue = &q
-
-	if err := c.Chan.QueueBind(
+	if err := channel.QueueBind(
 		q.Name, RoutingKey, NewJobExchange, false, nil); err != nil {
 		log.Error.Println("Could not bind job queue:", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &Connection{connection, channel, &q}, nil
 }
 
 // Close - closes an established connection to the job queue
