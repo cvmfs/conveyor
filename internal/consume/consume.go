@@ -13,14 +13,13 @@ import (
 	"github.com/streadway/amqp"
 )
 
-// Mock - enable mocking the CVMFS transaction
-var Mock bool
+var mock bool
 
 func init() {
-	Mock = false
+	mock = false
 	v := os.Getenv("CVMFS_MOCKED_JOB_CONSUMER")
 	if v == "true" || v == "yes" || v == "on" {
-		Mock = true
+		mock = true
 	}
 }
 
