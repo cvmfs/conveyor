@@ -9,15 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var apiRoot = "/api/v1"
-
-func getHome(w http.ResponseWriter, h *http.Request) {
-	r := fmt.Sprintf(
-		"You are in an open field on the west side" +
-			"of a white house with a boarded front door.\n")
-	w.Write([]byte(r))
-}
-
 func getJob(w http.ResponseWriter, h *http.Request) {
 	ids := mux.Vars(h)["id"]
 	full := h.URL.Query()["full"]
@@ -30,24 +21,40 @@ func getJobs(w http.ResponseWriter, h *http.Request) {
 	w.Write([]byte(r))
 }
 
+func insertJob(w http.ResponseWriter, h *http.Request) {
+	r := fmt.Sprintln("insert job:")
+	w.Write([]byte(r))
+}
+
 func startFrontEnd(port int) error {
 	router := mux.NewRouter()
 
 	var r *mux.Route
 	r = router.NewRoute()
-	r.Path(apiRoot + "/")
-	r.HandlerFunc(getHome)
+	r.Path("/")
+	r.HandlerFunc(
+		func(w http.ResponseWriter, h *http.Request) {
+			r := fmt.Sprintf(
+				"You are in an open field on the west side " +
+					"of a white house with a boarded front door.\n")
+			w.Write([]byte(r))
+		})
 
 	r = router.NewRoute()
-	r.Path(apiRoot + "/jobs/{id}")
+	r.Path("/jobs/{id}")
 	r.Methods("GET")
 	r.Queries("full", "")
 	r.HandlerFunc(getJob)
 
 	r = router.NewRoute()
-	r.Path(apiRoot + "/jobs")
+	r.Path("/jobs")
 	r.Methods("GET")
 	r.HandlerFunc(getJobs)
+
+	r = router.NewRoute()
+	r.Path("/jobs")
+	r.Methods("POST")
+	r.HandlerFunc(insertJob)
 
 	srv := &http.Server{
 		Handler:      router,
