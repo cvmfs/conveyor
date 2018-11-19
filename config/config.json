@@ -10,7 +10,7 @@
         "host" : "JOB SERVICE HOST NAME",
         "port" : 8080,
         "backend" : {
-            "type" : "postgresql | mysql | sqlite",
+            "type" : "postgres | mysql | sqlite",
             "database" : "DevCVMFS",
             "username" : "DB_USERNAME",
             "password" : "DB_PASSWORD",

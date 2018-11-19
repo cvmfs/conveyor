@@ -5,16 +5,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// BackendConfig - database backend configuration for the job db service
-type BackendConfig struct {
-	Type     string
-	Database string
-	Username string
-	Password string
-	Host     string
-	Port     int
-}
-
 // Config - configuration for the job  db service
 type Config struct {
 	Host    string
@@ -26,7 +16,13 @@ type Config struct {
 func Run(cfg Config) error {
 	log.Info.Println("CVMFS job database service starting")
 
-	if err := startFrontEnd(cfg.Port); err != nil {
+	backend, err := startBackEnd(cfg.Backend)
+	if err != nil {
+		return errors.Wrap(err, "could not start service back-end")
+	}
+	defer backend.Close()
+
+	if err := startFrontEnd(cfg.Port, backend); err != nil {
 		return errors.Wrap(err, "could not start service front-end")
 	}
 

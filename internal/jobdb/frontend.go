@@ -9,24 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getJob(w http.ResponseWriter, h *http.Request) {
-	ids := mux.Vars(h)["id"]
-	full := h.URL.Query()["full"]
-	r := fmt.Sprintln("get job:", ids, " full:", full)
-	w.Write([]byte(r))
-}
-
-func getJobs(w http.ResponseWriter, h *http.Request) {
-	r := fmt.Sprintln("get jobs:")
-	w.Write([]byte(r))
-}
-
-func insertJob(w http.ResponseWriter, h *http.Request) {
-	r := fmt.Sprintln("insert job:")
-	w.Write([]byte(r))
-}
-
-func startFrontEnd(port int) error {
+func startFrontEnd(port int, backend *Backend) error {
 	router := mux.NewRouter()
 
 	var r *mux.Route
@@ -40,21 +23,24 @@ func startFrontEnd(port int) error {
 			w.Write([]byte(r))
 		})
 
+	// GET the status of a single job
 	r = router.NewRoute()
 	r.Path("/jobs/{id}")
 	r.Methods("GET")
 	r.Queries("full", "")
-	r.HandlerFunc(getJob)
+	r.Handler(getJobHandler{backend})
 
+	// GET the status of multiple jobs
 	r = router.NewRoute()
 	r.Path("/jobs")
 	r.Methods("GET")
-	r.HandlerFunc(getJobs)
+	r.Handler(getJobsHandler{backend})
 
+	// PUT the status of a job
 	r = router.NewRoute()
 	r.Path("/jobs")
-	r.Methods("POST")
-	r.HandlerFunc(insertJob)
+	r.Methods("PUT")
+	r.Handler(putJobHandler{backend})
 
 	srv := &http.Server{
 		Handler:      router,

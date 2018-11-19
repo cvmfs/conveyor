@@ -39,9 +39,8 @@ func Run(jparams job.Parameters, qcfg queue.Config) error {
 		Body:         []byte(body),
 	}
 
-	err = conn.Chan.Publish(
-		queue.NewJobExchange, queue.RoutingKey, true, false, msg)
-	if err != nil {
+	if err := conn.Chan.Publish(
+		queue.NewJobExchange, queue.RoutingKey, true, false, msg); err != nil {
 		return errors.Wrap(err, "could not publish job")
 	}
 
