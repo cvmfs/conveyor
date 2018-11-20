@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	_ "github.com/lib/pq" // Import and register the PostgreSQL driver
 	"github.com/pkg/errors"
 )
@@ -17,22 +18,6 @@ type BackendConfig struct {
 	Password string
 	Host     string
 	Port     int
-}
-
-// Job - a finished job
-type jobStatus struct {
-	ID             string
-	Repository     string
-	Payload        string
-	RepositoryPath string
-	Script         string
-	ScriptArgs     string
-	RemoteScript   bool
-	Dependencies   []string
-	StartTime      string
-	FinishTime     string
-	Successful     bool
-	ErrorMessage   string
 }
 
 // Backend - encapsulates the backend state
@@ -57,7 +42,7 @@ func (b *Backend) GetJob(id string, full bool) (string, error) {
 		return "", nil
 	}
 
-	var st jobStatus
+	var st job.Processed
 	if err := rows.Scan(
 		&st.ID, &st.Repository, &st.Payload, &st.RepositoryPath,
 		&st.Script, &st.ScriptArgs, &st.RemoteScript,

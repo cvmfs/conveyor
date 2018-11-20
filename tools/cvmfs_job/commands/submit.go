@@ -33,9 +33,9 @@ var submitCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		jparams := job.Parameters{
-			Repo: repo, Payload: payload, Path: path,
+			Repository: repo, Payload: payload, RepositoryPath: path,
 			Script: script, ScriptArgs: scriptArgs, RemoteScript: *remoteScript,
-			Deps: *deps}
+			Dependencies: *deps}
 		if err := submit.Run(jparams, qcfg); err != nil {
 			log.Error.Println(err)
 			os.Exit(1)

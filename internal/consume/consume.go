@@ -51,7 +51,7 @@ func Run(qcfg queue.Config, tempDir string) error {
 
 	log.Info.Println("Waiting for jobs")
 
-	var desc job.Description
+	var desc job.Unprocessed
 	for j := range jobs {
 		if err := json.Unmarshal(j.Body, &desc); err != nil {
 			log.Error.Println(
@@ -63,7 +63,8 @@ func Run(qcfg queue.Config, tempDir string) error {
 		log.Info.Println("Start publishing job:", desc.ID.String())
 
 		task := func() error {
-			targetDir := path.Join("/cvmfs", desc.Repo, desc.Path)
+			targetDir := path.Join(
+				"/cvmfs", desc.Repository, desc.RepositoryPath)
 			if err := os.MkdirAll(targetDir, 0755); err != nil {
 				return errors.Wrap(err, "could not create target dir")
 			}

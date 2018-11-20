@@ -12,34 +12,43 @@ import (
 
 // Parameters - job submission parameters
 type Parameters struct {
-	Repo         string
-	Payload      string
-	Path         string
-	Script       string
-	ScriptArgs   string
-	RemoteScript bool
-	Deps         []string
+	Repository     string
+	Payload        string
+	RepositoryPath string
+	Script         string
+	ScriptArgs     string
+	RemoteScript   bool
+	Dependencies   []string
 }
 
-// Description - parameters of a job
-type Description struct {
+// Unprocessed - a job submission that has been assigned and ID
+type Unprocessed struct {
 	ID uuid.UUID
 	Parameters
 }
 
+// Processed - a processed job
+type Processed struct {
+	Unprocessed
+	StartTime    string
+	FinishTime   string
+	Successful   bool
+	ErrorMessage string
+}
+
 // CreateJob - create a new job struct with validated field values
-func CreateJob(params Parameters) (*Description, error) {
+func CreateJob(params Parameters) (*Unprocessed, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not generate UUID")
 	}
 
-	leasePath := params.Path
+	leasePath := params.RepositoryPath
 	if leasePath[0] != '/' {
 		leasePath = "/" + leasePath
 	}
 
-	job := &Description{id, params}
+	job := &Unprocessed{ID: id, Parameters: params}
 
 	if params.Script != "" {
 		if !params.RemoteScript {
