@@ -1,6 +1,7 @@
 package jobdb
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -25,8 +26,12 @@ func (h getJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Error.Println(errors.Wrap(err, "get job failed"))
 	}
 
-	rep := fmt.Sprintf("GetJob(%s, full = %v): %s\n", id, full, status)
-	w.Write([]byte(rep))
+	rep, err := json.Marshal(status)
+	if err != nil {
+		log.Error.Println(errors.Wrap(err, "JSON serialization failed"))
+	}
+
+	w.Write(rep)
 }
 
 type getJobsHandler struct {

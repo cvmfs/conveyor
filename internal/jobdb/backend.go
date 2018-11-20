@@ -2,12 +2,13 @@ package jobdb
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	_ "github.com/lib/pq" // Import and register the PostgreSQL driver
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // BackendConfig - database backend configuration for the job db service
@@ -20,6 +21,14 @@ type BackendConfig struct {
 	Port     int
 }
 
+// GetJobReply - Return type of the GetJob query
+type GetJobReply struct {
+	Status string          // "ok" || "error"
+	Reason string          `json:",omitempty"`
+	IDs    []uuid.UUID     `json:",omitempty"`
+	Jobs   []job.Processed `json:",omitempty"`
+}
+
 // Backend - encapsulates the backend state
 type Backend struct {
 	db *sql.DB
@@ -30,33 +39,86 @@ func (b *Backend) Close() {
 	b.db.Close()
 }
 
-// GetJob - returns the ro
-func (b *Backend) GetJob(id string, full bool) (string, error) {
+// GetJob - returns the row from the job DB corresponding to the ID
+func (b *Backend) GetJob(id string, full bool) (*GetJobReply, error) {
+	reply := GetJobReply{Status: "ok", Reason: ""}
+
 	rows, err := b.db.Query("select * from Jobs where ID = $1", id)
 	if err != nil {
-		return "", errors.Wrap(err, "select query failed")
+		reply.Status = "error"
+		reply.Reason = "query error"
+		return &reply, errors.Wrap(err, "query failed")
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return "", nil
+		return &reply, nil
 	}
 
+	st, err := scanRow(rows)
+	if err != nil {
+		reply.Status = "error"
+		reply.Reason = "query failed"
+		return &reply, errors.Wrap(err, "scan failed")
+	}
+
+	if full {
+		reply.Jobs = []job.Processed{*st}
+	} else {
+		reply.IDs = []uuid.UUID{st.ID}
+	}
+
+	return &reply, nil
+}
+
+// GetJobs - returns the rows from the job DB corresponding to the IDs
+func (b *Backend) GetJobs(ids []string, full bool) (string, error) {
+	/*
+		rows, err := b.db.Query("select * from Jobs where ID = $1", ids)
+		if err != nil {
+			return "", errors.Wrap(err, "select query failed")
+		}
+		defer rows.Close()
+
+		if !rows.Next() {
+			return "", nil
+		}
+
+		st, err := scanRow(rows)
+		if err != nil {
+			return "", errors.Wrap(err, "scan failed")
+		}
+
+		var v []byte
+		if full {
+			v, err = json.Marshal(&st)
+		} else {
+			v, err = json.Marshal(&[]uuid.UUID{st.ID})
+		}
+		if err != nil {
+			return "", errors.Wrap(err, "JSON marshalling failed")
+		}
+
+		return string(v), nil
+	*/
+	return "", nil
+}
+
+func scanRow(rows *sql.Rows) (*job.Processed, error) {
 	var st job.Processed
+	var deps string
 	if err := rows.Scan(
 		&st.ID, &st.Repository, &st.Payload, &st.RepositoryPath,
 		&st.Script, &st.ScriptArgs, &st.RemoteScript,
-		&st.Dependencies, &st.StartTime, &st.FinishTime,
+		&deps, &st.StartTime, &st.FinishTime,
 		&st.Successful, &st.ErrorMessage); err != nil {
-		return "", errors.Wrap(err, "scan failed")
+		return nil, err
+	}
+	if deps != "" {
+		st.Dependencies = strings.Split(deps, ",")
 	}
 
-	v, err := json.Marshal(&st)
-	if err != nil {
-		return "", errors.Wrap(err, "JSON marshalling failed")
-	}
-
-	return string(v), nil
+	return &st, nil
 }
 
 func startBackEnd(cfg BackendConfig) (*Backend, error) {
