@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"io/ioutil"
+	"time"
 
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -30,8 +31,8 @@ type Unprocessed struct {
 // Processed - a processed job
 type Processed struct {
 	Unprocessed
-	StartTime    string
-	FinishTime   string
+	StartTime    time.Time
+	FinishTime   time.Time
 	Successful   bool
 	ErrorMessage string
 }
