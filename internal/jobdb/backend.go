@@ -8,6 +8,7 @@ import (
 	_ "github.com/jackc/pgx/stdlib" // Import and register the PostgreSQL driver
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -28,6 +29,12 @@ type GetJobReply struct {
 	Reason string          `json:",omitempty"`
 	IDs    []uuid.UUID     `json:",omitempty"`
 	Jobs   []job.Processed `json:",omitempty"`
+}
+
+// PutJobReply - Return type of the PutJob query
+type PutJobReply struct {
+	Status string // "ok" || "error"
+	Reason string `json:",omitempty"`
 }
 
 // Backend - encapsulates the backend state
@@ -87,20 +94,22 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 
 	rows, err := b.db.Query(queryStr, params...)
 	if err != nil {
+		reason := "SQL query failed"
 		reply.Status = "error"
-		reply.Reason = "query error"
-		return &reply, errors.Wrap(err, "query failed")
+		reply.Reason = reason
+		return &reply, errors.Wrap(err, reason)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		st, err := scanRow(rows)
 		if err != nil {
+			reason := "SQL query scan failed"
 			reply.Status = "error"
-			reply.Reason = "query failed"
+			reply.Reason = reason
 			reply.IDs = []uuid.UUID{}
 			reply.Jobs = []job.Processed{}
-			return &reply, errors.Wrap(err, "scan failed")
+			return &reply, errors.Wrap(err, reason)
 		}
 
 		if full {
@@ -108,6 +117,44 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 		} else {
 			reply.IDs = append(reply.IDs, st.ID)
 		}
+	}
+
+	return &reply, nil
+}
+
+// PutJob - inserts a job into the DB
+func (b *Backend) PutJob(job *job.Processed) (*PutJobReply, error) {
+	reply := PutJobReply{Status: "ok", Reason: ""}
+
+	tx, err := b.db.Begin()
+	if err != nil {
+		reason := "opening SQL transaction failed"
+		reply.Status = "error"
+		reply.Reason = reason
+		return &reply, errors.Wrap(err, reason)
+	}
+	defer tx.Rollback()
+
+	log.Info.Println("Job:", job)
+
+	queryStr := "insert into jobs (ID,Repository,Payload,RepositoryPath,Script,ScriptArgs," +
+		"RemoteScript,Dependencies,StartTime,FinishTime,Successful,ErrorMessage) " +
+		"values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);"
+	if _, err := tx.Exec(queryStr,
+		job.ID, job.Repository, job.Payload, job.RepositoryPath,
+		job.Script, job.ScriptArgs, job.RemoteScript, strings.Join(job.Dependencies, ","),
+		job.StartTime, job.FinishTime, job.Successful, job.ErrorMessage); err != nil {
+		reason := "executing SQL statement failed"
+		reply.Status = "error"
+		reply.Reason = reason
+		return &reply, errors.Wrap(err, reason)
+	}
+	err = tx.Commit()
+	if err != nil {
+		reason := "committing SQL transaction failed"
+		reply.Status = "error"
+		reply.Reason = reason
+		return &reply, errors.Wrap(err, reason)
 	}
 
 	return &reply, nil

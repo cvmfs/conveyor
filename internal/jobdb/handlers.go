@@ -2,10 +2,11 @@ package jobdb
 
 import (
 	"encoding/json"
-	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -30,6 +31,7 @@ func (h getJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	rep, err := json.Marshal(status)
 	if err != nil {
 		log.Error.Println(errors.Wrap(err, "JSON serialization failed"))
+		return
 	}
 
 	w.Write(rep)
@@ -59,6 +61,7 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	rep, err := json.Marshal(status)
 	if err != nil {
 		log.Error.Println(errors.Wrap(err, "JSON serialization failed"))
+		return
 	}
 
 	w.Write(rep)
@@ -69,6 +72,28 @@ type putJobHandler struct {
 }
 
 func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	rep := fmt.Sprintln("insert job:")
-	w.Write([]byte(rep))
+	buf, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		log.Error.Println(errors.Wrap(err, "reading request body failed"))
+		return
+	}
+
+	var job job.Processed
+	if err := json.Unmarshal(buf, &job); err != nil {
+		log.Error.Println(errors.Wrap(err, "JSON deserialization failed"))
+		return
+	}
+
+	status, err := h.backend.PutJob(&job)
+	if err != nil {
+		log.Error.Println(errors.Wrap(err, "get job failed"))
+	}
+
+	rep, err := json.Marshal(status)
+	if err != nil {
+		log.Error.Println(errors.Wrap(err, "JSON serialization failed"))
+		return
+	}
+
+	w.Write(rep)
 }

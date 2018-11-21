@@ -41,6 +41,7 @@ func startFrontEnd(port int, backend *Backend) error {
 	r = router.NewRoute()
 	r.Path("/jobs")
 	r.Methods("POST")
+	r.Headers("Content-Type", "application/json")
 	r.Handler(putJobHandler{backend})
 
 	srv := &http.Server{
