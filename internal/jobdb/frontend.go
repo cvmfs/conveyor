@@ -34,12 +34,13 @@ func startFrontEnd(port int, backend *Backend) error {
 	r = router.NewRoute()
 	r.Path("/jobs")
 	r.Methods("GET")
+	r.Queries("ids", "", "full", "")
 	r.Handler(getJobsHandler{backend})
 
 	// PUT the status of a job
 	r = router.NewRoute()
 	r.Path("/jobs")
-	r.Methods("PUT")
+	r.Methods("POST")
 	r.Handler(putJobHandler{backend})
 
 	srv := &http.Server{

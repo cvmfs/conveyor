@@ -73,36 +73,44 @@ func (b *Backend) GetJob(id string, full bool) (*GetJobReply, error) {
 }
 
 // GetJobs - returns the rows from the job DB corresponding to the IDs
-func (b *Backend) GetJobs(ids []string, full bool) (string, error) {
-	/*
-		rows, err := b.db.Query("select * from Jobs where ID = $1", ids)
-		if err != nil {
-			return "", errors.Wrap(err, "select query failed")
-		}
-		defer rows.Close()
+func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
+	reply := GetJobReply{Status: "ok", Reason: ""}
 
-		if !rows.Next() {
-			return "", nil
-		}
+	queryStr := "select * from Jobs where Jobs.ID in ("
+	params := make([]interface{}, len(ids))
+	for i, v := range ids[0 : len(ids)-1] {
+		queryStr += fmt.Sprintf("$%v, ", i+1)
+		params[i] = v
+	}
+	queryStr += fmt.Sprintf("$%v);", len(ids))
+	params[len(ids)-1] = ids[len(ids)-1]
 
+	rows, err := b.db.Query(queryStr, params...)
+	if err != nil {
+		reply.Status = "error"
+		reply.Reason = "query error"
+		return &reply, errors.Wrap(err, "query failed")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
 		st, err := scanRow(rows)
 		if err != nil {
-			return "", errors.Wrap(err, "scan failed")
+			reply.Status = "error"
+			reply.Reason = "query failed"
+			reply.IDs = []uuid.UUID{}
+			reply.Jobs = []job.Processed{}
+			return &reply, errors.Wrap(err, "scan failed")
 		}
 
-		var v []byte
 		if full {
-			v, err = json.Marshal(&st)
+			reply.Jobs = append(reply.Jobs, *st)
 		} else {
-			v, err = json.Marshal(&[]uuid.UUID{st.ID})
+			reply.IDs = append(reply.IDs, st.ID)
 		}
-		if err != nil {
-			return "", errors.Wrap(err, "JSON marshalling failed")
-		}
+	}
 
-		return string(v), nil
-	*/
-	return "", nil
+	return &reply, nil
 }
 
 func scanRow(rows *sql.Rows) (*job.Processed, error) {
