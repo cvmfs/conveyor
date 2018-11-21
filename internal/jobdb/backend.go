@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	_ "github.com/jackc/pgx/stdlib" // Import and register the PostgreSQL driver
+
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
-	_ "github.com/lib/pq" // Import and register the PostgreSQL driver
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -122,7 +123,7 @@ func scanRow(rows *sql.Rows) (*job.Processed, error) {
 }
 
 func startBackEnd(cfg BackendConfig) (*Backend, error) {
-	db, err := sql.Open(cfg.Type, createDataSrcName(cfg))
+	db, err := sql.Open("pgx", createDataSrcName(cfg))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create SQL connection")
 	}

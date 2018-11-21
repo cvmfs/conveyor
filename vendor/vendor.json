@@ -309,23 +309,53 @@
 			"revisionTime": "2018-09-06T18:38:39Z"
 		},
 		{
+			"checksumSHA1": "2JfJLpaqWwwPtWzzbfpteJIil+8=",
+			"path": "github.com/jackc/pgx",
+			"revision": "bd37aaaa6a808a2b328db9e6330cb656d2526464",
+			"revisionTime": "2018-11-10T13:56:43Z"
+		},
+		{
+			"checksumSHA1": "rsDmBQ/jGFUN2t6G4c3ohkKGKdQ=",
+			"path": "github.com/jackc/pgx/chunkreader",
+			"revision": "bd37aaaa6a808a2b328db9e6330cb656d2526464",
+			"revisionTime": "2018-11-10T13:56:43Z"
+		},
+		{
+			"checksumSHA1": "wArf/u0cmHsLafG2tOcjVUUXQBw=",
+			"path": "github.com/jackc/pgx/internal/sanitize",
+			"revision": "bd37aaaa6a808a2b328db9e6330cb656d2526464",
+			"revisionTime": "2018-11-10T13:56:43Z"
+		},
+		{
+			"checksumSHA1": "OCtOmvS8BLHQAyQXJ/Ub8QxKz0s=",
+			"path": "github.com/jackc/pgx/pgio",
+			"revision": "bd37aaaa6a808a2b328db9e6330cb656d2526464",
+			"revisionTime": "2018-11-10T13:56:43Z"
+		},
+		{
+			"checksumSHA1": "O2maVT2McrV62SKrIXqZh7gHEoM=",
+			"path": "github.com/jackc/pgx/pgproto3",
+			"revision": "bd37aaaa6a808a2b328db9e6330cb656d2526464",
+			"revisionTime": "2018-11-10T13:56:43Z"
+		},
+		{
+			"checksumSHA1": "fFUF5XbI8Gx63ZQPn8gFmRnK+is=",
+			"path": "github.com/jackc/pgx/pgtype",
+			"revision": "bd37aaaa6a808a2b328db9e6330cb656d2526464",
+			"revisionTime": "2018-11-10T13:56:43Z"
+		},
+		{
+			"checksumSHA1": "ZYqBlxWbAIQ5Pygq6NZnC8bJpTw=",
+			"path": "github.com/jackc/pgx/stdlib",
+			"revision": "bd37aaaa6a808a2b328db9e6330cb656d2526464",
+			"revisionTime": "2018-11-10T13:56:43Z"
+		},
+		{
 			"checksumSHA1": "0ZrwvB6KoGPj2PoDNSEJwxQ6Mog=",
 			"origin": "github.com/aws/aws-sdk-go/vendor/github.com/jmespath/go-jmespath",
 			"path": "github.com/jmespath/go-jmespath",
 			"revision": "50e2f0627dec4e2508ea825884a551ecd393425c",
 			"revisionTime": "2018-11-18T00:35:51Z"
-		},
-		{
-			"checksumSHA1": "xxLSo5tKtXc7jGrR70yoEfza8Cw=",
-			"path": "github.com/lib/pq",
-			"revision": "9eb73efc1fcc404148b56765b0d3f61d9a5ef8ee",
-			"revisionTime": "2018-10-16T16:26:27Z"
-		},
-		{
-			"checksumSHA1": "ATnwV0POluBNQEMjPdylodz0oK0=",
-			"path": "github.com/lib/pq/oid",
-			"revision": "9eb73efc1fcc404148b56765b0d3f61d9a5ef8ee",
-			"revisionTime": "2018-10-16T16:26:27Z"
 		},
 		{
 			"checksumSHA1": "AYZGozgchqe4WcKH/jCZI1flnP8=",
