@@ -141,8 +141,6 @@ func (b *Backend) PutJob(job *job.Processed) (*PutJobReply, error) {
 	}
 	defer tx.Rollback()
 
-	log.Info.Println("Job:", job)
-
 	queryStr := "insert into jobs (ID,Repository,Payload,RepositoryPath,Script,ScriptArgs," +
 		"TransferScript,Dependencies,StartTime,FinishTime,Successful,ErrorMessage) " +
 		"values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);"
@@ -162,6 +160,10 @@ func (b *Backend) PutJob(job *job.Processed) (*PutJobReply, error) {
 		reply.Reason = reason
 		return &reply, errors.Wrap(err, reason)
 	}
+
+	log.Info.Printf(
+		"Job inserted: %v, success: %v, start time: %v, finish time: %v\n",
+		job.ID, job.Successful, job.StartTime, job.FinishTime)
 
 	return &reply, nil
 }
