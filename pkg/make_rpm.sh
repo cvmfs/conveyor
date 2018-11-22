@@ -69,8 +69,8 @@ togo file flag config-nr root/etc/systemd/system/cvmfs-job-db.service
 togo file exclude root/etc/systemd/system
 
 mkdir -p ${TOGO_PROJECT}/root/etc/cvmfs/publisher
-cp -v ${BUILD_LOCATION}/config/config.json ${TOGO_PROJECT}/root/etc/cvmfs/publisher/
-togo file flag config-nr root/etc/cvmfs/publisher/config.json
+cp -v ${BUILD_LOCATION}/config/config.toml ${TOGO_PROJECT}/root/etc/cvmfs/publisher/
+togo file flag config-nr root/etc/cvmfs/publisher/config.toml
 togo file exclude root/etc/cvmfs
 
 

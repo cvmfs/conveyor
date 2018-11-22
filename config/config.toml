@@ -1,0 +1,21 @@
+# RabbitMQ configuration is used by cvmfs_job {submit, consume}
+[rabbitmq]
+username = "RABBITMQ USER NAME"
+password = "PASSWORD USER PASSWORD"
+host = "RABBITMQ HOST NAME"
+port = 5672
+vhost = "/"
+
+# JobDB configuration is used by cvmfs_job {submit, consume, db}
+[jobdb]
+host = "JOB SERVICE HOST NAME"
+port = 8080
+
+# JobDB backend configuration is only used by cvmfs_job db
+[jobdb.backend]
+type = "postgres | mysql | sqlite"
+database = "devcvmfs"
+username = "DB_USERNAME"
+password = "DB_PASSWORD"
+host = "DB_HOST NAME"
+post = 5432

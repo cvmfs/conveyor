@@ -16,8 +16,7 @@ var rootCmd = &cobra.Command{
 	Version: "0.9.0",
 }
 
-var cfgFile = "/etc/cvmfs/publisher/config.json"
-
+var cfgFile string
 var logTimestamps *bool
 
 func init() {
@@ -25,8 +24,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(
 		&cfgFile,
 		"config",
-		"/etc/cvmfs/publisher/config.json",
-		"config file")
+		"/etc/cvmfs/publisher/config.toml",
+		"config file (TOML or JSON)")
 	logTimestamps = rootCmd.PersistentFlags().Bool(
 		"log-timestamps",
 		false,
