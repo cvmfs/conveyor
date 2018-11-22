@@ -1,11 +1,7 @@
 package consume
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -110,7 +106,8 @@ func processTransaction(desc *job.Unprocessed, tempDir string) error {
 		var scriptFile string
 		if needsUnpacking {
 			var err error
-			scriptFile, err = unpackScript(desc.Script, tempDir)
+			scriptFile = path.Join(tempDir, "transaction.sh")
+			err = job.UnpackScript(desc.Script, scriptFile)
 			if err != nil {
 				return errors.Wrap(err, "unpacking transaction script failed")
 			}
@@ -125,28 +122,6 @@ func processTransaction(desc *job.Unprocessed, tempDir string) error {
 	}
 
 	return nil
-}
-
-func unpackScript(script string, tempDir string) (string, error) {
-	buf, err := base64.StdEncoding.DecodeString(script)
-	if err != nil {
-		return "", errors.Wrap(err, "base64 decoding failed")
-	}
-	rd := bytes.NewReader(buf)
-	gz, err := gzip.NewReader(rd)
-	if err != nil {
-		return "", errors.Wrap(err, "gzip reader construction failed")
-	}
-	rawbuf, err := ioutil.ReadAll(gz)
-	if err != nil {
-		return "", errors.Wrap(err, "decompression failed")
-	}
-	scriptFileName := path.Join(tempDir, "transaction.sh")
-	if err := ioutil.WriteFile(scriptFileName, rawbuf, 0755); err != nil {
-		return "", errors.Wrap(err, "writing to disk failed")
-	}
-
-	return scriptFileName, nil
 }
 
 func runScript(script string, repo string, repoPath string, args string) error {

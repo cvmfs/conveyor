@@ -53,7 +53,7 @@ func CreateJob(params Parameters) (*Unprocessed, error) {
 
 	if params.Script != "" {
 		if params.TransferScript {
-			s, err := loadScript(params.Script)
+			s, err := PackScript(params.Script)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not load script")
 			}
@@ -64,11 +64,12 @@ func CreateJob(params Parameters) (*Unprocessed, error) {
 	return job, nil
 }
 
-func loadScript(s string) (string, error) {
+// PackScript - packs a script into a gzipped, base64 encoded buffer
+func PackScript(script string) (string, error) {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 
-	data, err := ioutil.ReadFile(s)
+	data, err := ioutil.ReadFile(script)
 	if err != nil {
 		return "", errors.Wrap(err, "could not read script file")
 	}
@@ -80,4 +81,27 @@ func loadScript(s string) (string, error) {
 	}
 
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+}
+
+// UnpackScript - unpacks a script from a gzipped, base64 encoded buffer
+//                and saves it to disk at `dest`
+func UnpackScript(body string, dest string) error {
+	buf, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		return errors.Wrap(err, "base64 decoding failed")
+	}
+	rd := bytes.NewReader(buf)
+	gz, err := gzip.NewReader(rd)
+	if err != nil {
+		return errors.Wrap(err, "gzip reader construction failed")
+	}
+	rawbuf, err := ioutil.ReadAll(gz)
+	if err != nil {
+		return errors.Wrap(err, "decompression failed")
+	}
+	if err := ioutil.WriteFile(dest, rawbuf, 0755); err != nil {
+		return errors.Wrap(err, "writing to disk failed")
+	}
+
+	return nil
 }
