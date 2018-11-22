@@ -1,0 +1,15 @@
+[Unit]
+Description=Consumer for CVMFS publisher jobs
+After=syslog.target network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cvmfs_job consume
+PIDFile=/var/run/cvmfs-job-consumer.pid
+StandardOutput=journal
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

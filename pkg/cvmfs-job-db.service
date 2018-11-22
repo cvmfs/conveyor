@@ -1,11 +1,11 @@
 [Unit]
-Description=Consumer for CVMFS publisher jobs
+Description=Published CVMFS jobs database
 After=syslog.target network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/cvmfs_job consume
-PIDFile=/var/run/cvmfs-job-consume.pid
+ExecStart=/usr/bin/cvmfs_job db
+PIDFile=/var/run/cvmfs-job-db.pid
 StandardOutput=journal
 Restart=always
 RestartSec=5
