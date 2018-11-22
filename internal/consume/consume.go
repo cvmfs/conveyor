@@ -152,7 +152,7 @@ func runScript(script string, repo string, repoPath string, args string) error {
 	cmd := exec.Command(script, repo, repoPath, args)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Dir = path.Join("/cvmfs", repoPath)
+	cmd.Dir = path.Join("/cvmfs", repo)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
