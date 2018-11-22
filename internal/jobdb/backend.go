@@ -23,12 +23,18 @@ type BackendConfig struct {
 	Port     int
 }
 
+// ShortJobStatus - a pair of job ID and the status for short GetJob queries
+type ShortJobStatus struct {
+	ID         uuid.UUID
+	Successful bool
+}
+
 // GetJobReply - Return type of the GetJob query
 type GetJobReply struct {
-	Status string          // "ok" || "error"
-	Reason string          `json:",omitempty"`
-	IDs    []uuid.UUID     `json:",omitempty"`
-	Jobs   []job.Processed `json:",omitempty"`
+	Status string           // "ok" || "error"
+	Reason string           `json:",omitempty"`
+	IDs    []ShortJobStatus `json:",omitempty"`
+	Jobs   []job.Processed  `json:",omitempty"`
 }
 
 // PutJobReply - Return type of the PutJob query
@@ -73,7 +79,7 @@ func (b *Backend) GetJob(id string, full bool) (*GetJobReply, error) {
 	if full {
 		reply.Jobs = []job.Processed{*st}
 	} else {
-		reply.IDs = []uuid.UUID{st.ID}
+		reply.IDs = []ShortJobStatus{ShortJobStatus{st.ID, st.Successful}}
 	}
 
 	return &reply, nil
@@ -107,7 +113,7 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 			reason := "SQL query scan failed"
 			reply.Status = "error"
 			reply.Reason = reason
-			reply.IDs = []uuid.UUID{}
+			reply.IDs = []ShortJobStatus{}
 			reply.Jobs = []job.Processed{}
 			return &reply, errors.Wrap(err, reason)
 		}
@@ -115,7 +121,7 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 		if full {
 			reply.Jobs = append(reply.Jobs, *st)
 		} else {
-			reply.IDs = append(reply.IDs, st.ID)
+			reply.IDs = append(reply.IDs, ShortJobStatus{st.ID, st.Successful})
 		}
 	}
 
