@@ -25,7 +25,7 @@ func init() {
 }
 
 // Run - runs the job consumer
-func Run(qcfg queue.Config, tempDir string) error {
+func Run(qcfg queue.Config, tempDir string, maxJobRetries int) error {
 	// Create temporary dir
 	os.RemoveAll(tempDir)
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
@@ -68,15 +68,31 @@ func Run(qcfg queue.Config, tempDir string) error {
 			return processTransaction(&desc, tempDir)
 		}
 
-		if err := RunTransaction(desc, task); err != nil {
-			log.Error.Println(
-				errors.Wrap(err, "could not run CVMFS transaction"))
-			j.Nack(false, true)
-			continue
+		success := false
+		retry := 0
+		for retry <= maxJobRetries {
+			err := RunTransaction(desc, task)
+			if err != nil {
+				log.Error.Println(
+					errors.Wrap(err, "could not run CVMFS transaction"))
+				retry++
+				log.Info.Printf("Transaction failed.")
+				if retry <= maxJobRetries {
+					log.Info.Printf(" Retrying: %v/%v\n", retry, maxJobRetries)
+				}
+			} else {
+				success = true
+				break
+			}
 		}
 
 		j.Ack(false)
-		log.Info.Println("Finished publishing job:", desc.ID.String())
+		result := "failed"
+		if success {
+			result = "success"
+		}
+		log.Info.Printf(
+			"Finished publishing job: %v, %v\n", desc.ID.String(), result)
 	}
 
 	return nil
@@ -115,7 +131,8 @@ func processTransaction(desc *job.Unprocessed, tempDir string) error {
 			scriptFile = desc.Script
 		}
 
-		err := runScript(scriptFile, desc.Repository, desc.RepositoryPath, desc.ScriptArgs)
+		err := runScript(
+			scriptFile, desc.Repository, desc.RepositoryPath, desc.ScriptArgs)
 		if err != nil {
 			return errors.Wrap(err, "running transaction script failed")
 		}
