@@ -7,7 +7,7 @@ CREATE TABLE Jobs (
     RepositoryPath varchar NOT NULL,
     Script varchar NOT NULL,
     ScriptArgs varchar NOT NULL,
-    RemoteScript boolean NOT NULL,
+    TransferScript boolean NOT NULL,
     Dependencies varchar NOT NULL,
     StartTime timestamp NOT NULL,
     FinishTime timestamp NOT NULL,

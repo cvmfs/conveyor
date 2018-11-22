@@ -17,7 +17,7 @@ var payload string
 var path string
 var script string
 var scriptArgs string
-var remoteScript *bool
+var transferScript *bool
 var deps *[]string
 
 var submitCmd = &cobra.Command{
@@ -34,7 +34,7 @@ var submitCmd = &cobra.Command{
 		}
 		jparams := job.Parameters{
 			Repository: repo, Payload: payload, RepositoryPath: path,
-			Script: script, ScriptArgs: scriptArgs, RemoteScript: *remoteScript,
+			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
 		if err := submit.Run(jparams, qcfg); err != nil {
 			log.Error.Println(err)
@@ -53,8 +53,8 @@ func init() {
 		&script, "script", "", "script to run at the end of CVMFS transaction")
 	submitCmd.Flags().StringVar(
 		&scriptArgs, "script-args", "", "arguments of the transaction script")
-	remoteScript = submitCmd.Flags().Bool(
-		"remote-script", false, "transaction script is a remote script")
+	transferScript = submitCmd.Flags().Bool(
+		"transfer-script", false, "transaction script is a local file which should be sent")
 	deps = submitCmd.Flags().StringSlice(
 		"deps", []string{}, "comma-separate list of job dependency UUIDs")
 }

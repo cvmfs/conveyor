@@ -138,11 +138,11 @@ func (b *Backend) PutJob(job *job.Processed) (*PutJobReply, error) {
 	log.Info.Println("Job:", job)
 
 	queryStr := "insert into jobs (ID,Repository,Payload,RepositoryPath,Script,ScriptArgs," +
-		"RemoteScript,Dependencies,StartTime,FinishTime,Successful,ErrorMessage) " +
+		"TransferScript,Dependencies,StartTime,FinishTime,Successful,ErrorMessage) " +
 		"values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);"
 	if _, err := tx.Exec(queryStr,
 		job.ID, job.Repository, job.Payload, job.RepositoryPath,
-		job.Script, job.ScriptArgs, job.RemoteScript, strings.Join(job.Dependencies, ","),
+		job.Script, job.ScriptArgs, job.TransferScript, strings.Join(job.Dependencies, ","),
 		job.StartTime, job.FinishTime, job.Successful, job.ErrorMessage); err != nil {
 		reason := "executing SQL statement failed"
 		reply.Status = "error"
@@ -165,7 +165,7 @@ func scanRow(rows *sql.Rows) (*job.Processed, error) {
 	var deps string
 	if err := rows.Scan(
 		&st.ID, &st.Repository, &st.Payload, &st.RepositoryPath,
-		&st.Script, &st.ScriptArgs, &st.RemoteScript,
+		&st.Script, &st.ScriptArgs, &st.TransferScript,
 		&deps, &st.StartTime, &st.FinishTime,
 		&st.Successful, &st.ErrorMessage); err != nil {
 		return nil, err

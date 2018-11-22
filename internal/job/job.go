@@ -18,7 +18,7 @@ type Parameters struct {
 	RepositoryPath string
 	Script         string
 	ScriptArgs     string
-	RemoteScript   bool
+	TransferScript bool
 	Dependencies   []string
 }
 
@@ -52,7 +52,7 @@ func CreateJob(params Parameters) (*Unprocessed, error) {
 	job := &Unprocessed{ID: id, Parameters: params}
 
 	if params.Script != "" {
-		if !params.RemoteScript {
+		if params.TransferScript {
 			s, err := loadScript(params.Script)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not load script")
