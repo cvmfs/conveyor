@@ -31,6 +31,7 @@ func init() {
 // Run - runs the job consumer
 func Run(qcfg queue.Config, tempDir string) error {
 	// Create temporary dir
+	os.RemoveAll(tempDir)
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		return errors.Wrap(err, "could not create temp dir")
 	}
