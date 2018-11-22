@@ -16,6 +16,13 @@ const (
 	RoutingKey string = ""
 	// ConsumerName - name to identify the consumer
 	ConsumerName string = "cvmfs_job"
+
+	// CompletedJobExchange - name of the RabbitMQ exchange for finished jobs
+	CompletedJobExchange string = "jobs.done"
+	// SuccessKey - routing/binding key for successful jobs
+	SuccessKey string = "success"
+	// FailedKey - routing/binding key for failed jobs
+	FailedKey string = "failure"
 )
 
 // Config - configuration of the job queue
@@ -54,6 +61,11 @@ func NewConnection(cfg Config) (*Connection, error) {
 
 	if err := channel.ExchangeDeclare(
 		NewJobExchange, "direct", true, false, false, false, nil); err != nil {
+		return nil, errors.Wrap(err, "could not declare exchange")
+	}
+
+	if err := channel.ExchangeDeclare(
+		CompletedJobExchange, "topic", true, false, false, false, nil); err != nil {
 		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
