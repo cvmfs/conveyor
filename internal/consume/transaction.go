@@ -14,24 +14,27 @@ import (
 func RunTransaction(desc job.Unprocessed, task func() error) error {
 	fullPath := path.Join(desc.Repository, desc.RepositoryPath)
 
+	// Close any existing transactions
+	abortTransaction(desc.Repository, false)
+
 	ok := true
 
 	log.Info.Println("Opening CVMFS transaction for:", fullPath)
 
-	if err := startTransaction(fullPath); err != nil {
+	if err := startTransaction(fullPath, true); err != nil {
 		return errors.Wrap(err, "could not start CVMFS transaction")
 	}
 
 	defer func() {
 		if ok {
 			log.Info.Println("Publishing CVMFS transaction")
-			if err := commitTransaction(desc.Repository); err != nil {
+			if err := commitTransaction(desc.Repository, true); err != nil {
 				log.Error.Println(
 					errors.Wrap(err, "could not commit CVMFS transaction"))
 			}
 		} else {
 			log.Error.Println("Aborting CVMFS transaction")
-			if err := abortTransaction(desc.Repository); err != nil {
+			if err := abortTransaction(desc.Repository, true); err != nil {
 				log.Error.Println(
 					errors.Wrap(err, "could not abort CVMFS transaction"))
 			}
@@ -48,11 +51,13 @@ func RunTransaction(desc job.Unprocessed, task func() error) error {
 	return nil
 }
 
-func startTransaction(path string) error {
+func startTransaction(path string, verbose bool) error {
 	if !mock {
 		cmd := exec.Command("cvmfs_server", "transaction", "-r", path)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		if verbose {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		}
 		if err := cmd.Run(); err != nil {
 			return err
 		}
@@ -61,11 +66,13 @@ func startTransaction(path string) error {
 	return nil
 }
 
-func commitTransaction(repo string) error {
+func commitTransaction(repo string, verbose bool) error {
 	if !mock {
 		cmd := exec.Command("cvmfs_server", "publish", repo)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		if verbose {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		}
 		if err := cmd.Run(); err != nil {
 			return err
 		}
@@ -74,11 +81,13 @@ func commitTransaction(repo string) error {
 	return nil
 }
 
-func abortTransaction(repo string) error {
+func abortTransaction(repo string, verbose bool) error {
 	if !mock {
 		cmd := exec.Command("cvmfs_server", "abort", "-f", repo)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		if verbose {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		}
 		if err := cmd.Run(); err != nil {
 			return err
 		}
