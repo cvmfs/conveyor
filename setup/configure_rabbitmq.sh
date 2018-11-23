@@ -32,6 +32,6 @@ fi
 # Add and configure the worker user
 if [ x"$(rabbitmqctl list_users | grep '^${worker_user}' | wc -l)" = x"0" ]; then
     rabbitmqctl add_user ${worker_user} ${worker_pass}
-    rabbitmqctl set_permissions -p $vhost_name ${worker_user} "^(amq\.gen.*|jobs\.new)$" "^(amq\.gen.*|jobs\.new)$" ".*"
+    rabbitmqctl set_permissions -p $vhost_name ${worker_user} "^(amq\.gen.*|jobs.*)$" "^(amq\.gen.*|jobs.*)$" ".*"
 fi
 
