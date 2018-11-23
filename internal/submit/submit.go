@@ -1,15 +1,12 @@
 package submit
 
 import (
-	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/pkg/errors"
-	"github.com/streadway/amqp"
 )
 
 // Run - runs the new job submission process
@@ -27,21 +24,8 @@ func Run(jparams job.Parameters, qcfg queue.Config) error {
 
 	log.Info.Printf("Job description:\n%+v\n", job)
 
-	body, err := json.Marshal(job)
-	if err != nil {
-		return errors.Wrap(err, "could not marshal job into JSON")
-	}
-
-	msg := amqp.Publishing{
-		DeliveryMode: amqp.Persistent,
-		Timestamp:    time.Now(),
-		ContentType:  "text/json",
-		Body:         []byte(body),
-	}
-
-	if err := conn.Chan.Publish(
-		queue.NewJobExchange, queue.RoutingKey, true, false, msg); err != nil {
-		return errors.Wrap(err, "could not publish job")
+	if err := conn.Publish(queue.NewJobExchange, queue.RoutingKey, job); err != nil {
+		return errors.Wrap(err, "job description publishing failed")
 	}
 
 	fmt.Printf("{\"Status\": \"ok\", \"ID\": \"%s\"}\n", job.ID)

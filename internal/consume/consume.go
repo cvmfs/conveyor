@@ -56,6 +56,7 @@ func Run(qCfg queue.Config, jCfg jobdb.Config, tempDir string, maxJobRetries int
 		ch := conn.Chan.NotifyClose(make(chan *amqp.Error))
 		err := <-ch
 		log.Error.Println(errors.Wrap(err, "connection to job queue closed"))
+		os.Exit(1)
 	}()
 
 	var prefix string
@@ -66,10 +67,10 @@ func Run(qCfg queue.Config, jCfg jobdb.Config, tempDir string, maxJobRetries int
 
 	log.Info.Println("Waiting for jobs")
 
-	var desc job.Unprocessed
 	for j := range jobs {
 		startTime := time.Now()
 
+		var desc job.Unprocessed
 		if err := json.Unmarshal(j.Body, &desc); err != nil {
 			log.Error.Println(
 				errors.Wrap(err, "could not unmarshal job description"))
@@ -113,7 +114,7 @@ func Run(qCfg queue.Config, jCfg jobdb.Config, tempDir string, maxJobRetries int
 			Successful:   success,
 			ErrorMessage: errMsg,
 		}
-		if err := postJobStatus(jobPostURL, &processedJob); err != nil {
+		if err := postJobStatus(jobPostURL, &processedJob, conn); err != nil {
 			log.Error.Println(
 				errors.Wrap(err, "posting job status to DB failed"))
 			j.Nack(false, false)
@@ -121,7 +122,6 @@ func Run(qCfg queue.Config, jCfg jobdb.Config, tempDir string, maxJobRetries int
 		}
 
 		j.Ack(false)
-
 		result := "failed"
 		if success {
 			result = "success"
@@ -188,7 +188,7 @@ func runScript(script string, repo string, repoPath string, args string) error {
 	return nil
 }
 
-func postJobStatus(url string, j *job.Processed) error {
+func postJobStatus(url string, j *job.Processed, q *queue.Connection) error {
 	buf, err := json.Marshal(j)
 	if err != nil {
 		return errors.Wrap(err, "JSON encoding of job status failed")
@@ -215,6 +215,18 @@ func postJobStatus(url string, j *job.Processed) error {
 	if pubStat.Status != "ok" {
 		return errors.Wrap(
 			err, fmt.Sprintf("Posting job status failed: %s", pubStat.Reason))
+	}
+
+	shortStatus := jobdb.ShortJobStatus{ID: j.ID, Successful: j.Successful}
+	var routingKey string
+	if j.Successful {
+		routingKey = queue.SuccessKey
+	} else {
+		routingKey = queue.FailedKey
+	}
+	if err := q.Publish(
+		queue.CompletedJobExchange, routingKey, shortStatus); err != nil {
+		return errors.Wrap(err, "Posting job status to notification exchange failed")
 	}
 
 	return nil

@@ -1,7 +1,9 @@
 package queue
 
 import (
+	"encoding/json"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
@@ -85,6 +87,28 @@ func NewConnection(cfg Config) (*Connection, error) {
 // Close - closes an established connection to the job queue
 func (c *Connection) Close() error {
 	return c.Conn.Close()
+}
+
+// Publish - publish data (as JSON) to an exchange using the given routing key
+func (c *Connection) Publish(exchange string, key string, data interface{}) error {
+	body, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "could not marshal job into JSON")
+	}
+
+	msg := amqp.Publishing{
+		DeliveryMode: amqp.Persistent,
+		Timestamp:    time.Now(),
+		ContentType:  "text/json",
+		Body:         []byte(body),
+	}
+
+	if err := c.Chan.Publish(
+		exchange, key, true, false, msg); err != nil {
+		return errors.Wrap(err, "RabbitMQ publishing failed")
+	}
+
+	return nil
 }
 
 func createConnectionURL(username string,
