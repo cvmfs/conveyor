@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/util"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
-func startFrontEnd(port int, backend *Backend) error {
+func startFrontEnd(port int, backend *Backend, keys util.Keys) error {
 	router := mux.NewRouter()
 
 	var r *mux.Route
@@ -42,7 +43,8 @@ func startFrontEnd(port int, backend *Backend) error {
 	r.Path("/jobs")
 	r.Methods("POST")
 	r.Headers("Content-Type", "application/json")
-	r.Handler(putJobHandler{backend})
+	r.Headers("Authorization", "")
+	r.Handler(putJobHandler{backend, keys})
 
 	srv := &http.Server{
 		Handler:      router,

@@ -10,6 +10,7 @@ vhost = "/"
 [jobdb]
 host = "JOB SERVICE HOST NAME"
 port = 8080
+keys = ["LIST", "OF", "FILES", "CONTAINING", "API", "KEYS"]
 
 # JobDB backend configuration is only used by cvmfs_job db
 [jobdb.backend]

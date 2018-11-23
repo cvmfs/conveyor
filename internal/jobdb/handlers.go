@@ -1,6 +1,7 @@
 package jobdb
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/util"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -69,12 +71,30 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 type putJobHandler struct {
 	backend *Backend
+	keys    util.Keys
 }
 
 func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	auth := req.Header.Get("Authorization")
+	tokens := strings.Split(auth, " ")
+	if len(tokens) != 2 {
+		log.Error.Println("Invalid or missing Authorization header")
+	}
+	key := h.keys[tokens[0]]
+	HMAC, err := base64.StdEncoding.DecodeString(tokens[1])
+	if err != nil {
+		log.Error.Println("Could not base64 decode HMAC")
+		return
+	}
+
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		log.Error.Println(errors.Wrap(err, "reading request body failed"))
+		return
+	}
+
+	if !util.CheckHMAC(buf, HMAC, key) {
+		log.Error.Println("Invalid HMAC")
 		return
 	}
 
