@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
@@ -57,7 +58,11 @@ func Run(qCfg queue.Config, jCfg jobdb.Config, tempDir string, maxJobRetries int
 		log.Error.Println(errors.Wrap(err, "connection to job queue closed"))
 	}()
 
-	jobPostURL := fmt.Sprintf("%s:%v/jobs", jCfg.Host, jCfg.Port)
+	var prefix string
+	if !strings.HasPrefix(jCfg.Host, "http://") {
+		prefix = "http://"
+	}
+	jobPostURL := fmt.Sprintf("%s%s:%v/jobs", prefix, jCfg.Host, jCfg.Port)
 
 	log.Info.Println("Waiting for jobs")
 
