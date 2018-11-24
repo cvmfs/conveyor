@@ -58,14 +58,13 @@ func ReadKeys(keyDir string) (*Keys, error) {
 }
 
 // ComputeHMAC - compute the HMAC of a message using a specific key
-func ComputeHMAC(message []byte, key string) ([]byte, error) {
-	return []byte{}, nil
+func ComputeHMAC(message []byte, key string) []byte {
+	mac := hmac.New(sha256.New, []byte(key))
+	mac.Write(message)
+	return mac.Sum(nil)
 }
 
 // CheckHMAC - checks the HMAC of a message
 func CheckHMAC(message, messageHMAC []byte, key string) bool {
-	mac := hmac.New(sha256.New, []byte(key))
-	mac.Write(message)
-	expectedMAC := mac.Sum(nil)
-	return hmac.Equal(messageHMAC, expectedMAC)
+	return hmac.Equal(messageHMAC, ComputeHMAC(message, key))
 }

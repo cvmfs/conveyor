@@ -212,11 +212,7 @@ func postJobStatus(url string, keys *auth.Keys, j *job.Processed, q *queue.Conne
 		return errors.New(
 			fmt.Sprintf("Secret not found for keyID: %v", keyID))
 	}
-	hmac, err := auth.ComputeHMAC(buf, key)
-	if err != nil {
-		errors.Wrap(err, "could not compute HMAC")
-	}
-	hmacStr := base64.StdEncoding.EncodeToString(hmac)
+	hmac := base64.StdEncoding.EncodeToString(auth.ComputeHMAC(buf, key))
 
 	rdr := bytes.NewReader(buf)
 
@@ -224,7 +220,7 @@ func postJobStatus(url string, keys *auth.Keys, j *job.Processed, q *queue.Conne
 	if err != nil {
 		errors.Wrap(err, "could not create POST request")
 	}
-	req.Header["Authorization"] = []string{fmt.Sprintf("%v %v", keyID, hmacStr)}
+	req.Header["Authorization"] = []string{fmt.Sprintf("%v %v", keyID, hmac)}
 	req.Header["Content-Type"] = []string{"application/json"}
 
 	resp, err := http.DefaultClient.Do(req)
