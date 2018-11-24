@@ -82,7 +82,7 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	authHeader := req.Header.Get("Authorization")
 	tokens := strings.Split(authHeader, " ")
 	if len(tokens) != 2 {
-		msg := "reading request body failed"
+		msg := "Missing or incomplete Authorization header"
 		log.Error.Println(msg)
 		http.Error(w, msg, http.StatusUnauthorized)
 		return
