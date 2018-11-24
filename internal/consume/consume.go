@@ -2,6 +2,7 @@ package consume
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -194,15 +195,39 @@ func runScript(script string, repo string, repoPath string, args string) error {
 	return nil
 }
 
-func postJobStatus(url string, keys *util.Keys, j *job.Processed, q *queue.Connection) error {
+func postJobStatus(url string, keys *auth.Keys, j *job.Processed, q *queue.Connection) error {
 	buf, err := json.Marshal(j)
 	if err != nil {
 		return errors.Wrap(err, "JSON encoding of job status failed")
 	}
 
+	// Compute message HMAC
+	keyID, present := keys.RepoKeys[j.Repository]
+	if !present {
+		return errors.New(
+			fmt.Sprintf("Key not found for repository: %v", j.Repository))
+	}
+	key, present := keys.Secrets[keyID]
+	if !present {
+		return errors.New(
+			fmt.Sprintf("Secret not found for keyID: %v", keyID))
+	}
+	hmac, err := auth.ComputeHMAC(buf, key)
+	if err != nil {
+		errors.Wrap(err, "could not compute HMAC")
+	}
+	hmacStr := base64.StdEncoding.EncodeToString(hmac)
+
 	rdr := bytes.NewReader(buf)
 
-	resp, err := http.Post(url, "application/json", rdr)
+	req, err := http.NewRequest("POST", url, rdr)
+	if err != nil {
+		errors.Wrap(err, "could not create POST request")
+	}
+	req.Header["Authorization"] = []string{fmt.Sprintf("%v %v", keyID, hmacStr)}
+	req.Header["Content-Type"] = []string{"application/json"}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "Posting job status to DB failed")
 	}
