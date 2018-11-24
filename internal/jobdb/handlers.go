@@ -80,7 +80,7 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if len(tokens) != 2 {
 		log.Error.Println("Invalid or missing Authorization header")
 	}
-	key := h.keys[tokens[0]]
+	key := h.keys.Secrets[tokens[0]]
 	HMAC, err := base64.StdEncoding.DecodeString(tokens[1])
 	if err != nil {
 		log.Error.Println("Could not base64 decode HMAC")

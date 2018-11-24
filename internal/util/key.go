@@ -16,8 +16,18 @@ const (
 	maxKeyFiles = 1024
 )
 
-// Keys - map from ID to Secret defining a shared key
-type Keys map[string]string
+// Keys - HTTP API keys
+type Keys struct {
+	Secrets  map[string]string // map from keyId to secret
+	RepoKeys map[string]string // map from repository name to keyId
+}
+
+func initKeys() Keys {
+	return Keys{
+		Secrets:  map[string]string{},
+		RepoKeys: map[string]string{},
+	}
+}
 
 // ReadKeys - read HTTP API keys from a list of files
 func ReadKeys(keyDir string) (*Keys, error) {
@@ -30,7 +40,7 @@ func ReadKeys(keyDir string) (*Keys, error) {
 		return nil, errors.Wrap(err, "key dir empty")
 	}
 
-	keys := make(map[string]string)
+	keys := initKeys()
 	for _, f := range files {
 		if strings.HasSuffix(f.Name(), ".gw") {
 			buf, err := ioutil.ReadFile(path.Join(keyDir, f.Name()))
@@ -39,7 +49,9 @@ func ReadKeys(keyDir string) (*Keys, error) {
 					err, fmt.Sprintf("could not read key file: %v", f))
 			}
 			tokens := strings.Split(string(buf), " ")
-			keys[tokens[1]] = tokens[2]
+			keys.Secrets[tokens[1]] = tokens[2]
+			repoName := strings.TrimSuffix(f.Name(), ".gw")
+			keys.RepoKeys[repoName] = tokens[1]
 		}
 	}
 	return &keys, nil
