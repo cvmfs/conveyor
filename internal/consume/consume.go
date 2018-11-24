@@ -233,6 +233,10 @@ func postJobStatus(url string, keys *auth.Keys, j *job.Processed, q *queue.Conne
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("Post request failed: %v", resp.Status))
+	}
+
 	buf2, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return errors.Wrap(err, "Reading reply body failed")
