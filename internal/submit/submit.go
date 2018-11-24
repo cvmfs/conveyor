@@ -10,7 +10,7 @@ import (
 )
 
 // Run - runs the new job submission process
-func Run(jparams job.Parameters, qcfg queue.Config) error {
+func Run(jparams *job.Parameters, qcfg *queue.Config) error {
 	conn, err := queue.NewConnection(qcfg)
 	if err != nil {
 		return errors.Wrap(err, "could not create job queue connection")

@@ -7,9 +7,7 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var maxJobRetries *int
@@ -21,16 +19,14 @@ var consumeCmd = &cobra.Command{
 	Long:  "Consume publishing jobs from the queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var qCfg queue.Config
-		if err := viper.Sub("rabbitmq").Unmarshal(&qCfg); err != nil {
-			log.Error.Println(
-				errors.Wrap(err, "could not read RabbitMQ configuration"))
+		qCfg, err := queue.ReadConfig()
+		if err != nil {
+			log.Error.Println(err)
 			os.Exit(1)
 		}
-		var jCfg jobdb.Config
-		if err := viper.Sub("jobdb").Unmarshal(&jCfg); err != nil {
-			log.Error.Println(
-				errors.Wrap(err, "could not read job DB configuration"))
+		jCfg, err := jobdb.ReadConfig()
+		if err != nil {
+			log.Error.Println(err)
 			os.Exit(1)
 		}
 		if err := consume.Run(qCfg, jCfg, tempDir, *maxJobRetries); err != nil {

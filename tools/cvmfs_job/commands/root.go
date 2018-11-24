@@ -40,13 +40,7 @@ func init() {
 func initConfig() {
 	log.InitLogging(os.Stdout, os.Stderr, *logTimestamps)
 
-	viper.SetDefault("rabbitmq.port", 5672)
-	viper.SetDefault("rabbitmq.vhost", "/cvmfs")
-	viper.SetDefault("jobdb.port", 8080)
-	viper.SetDefault("jobdb.backend.port", 5432)
-
 	viper.SetConfigFile(cfgFile)
-
 	if err := viper.ReadInConfig(); err != nil {
 		log.Error.Println(errors.Wrap(err, "could not read config"))
 		os.Exit(1)

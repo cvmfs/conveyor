@@ -7,9 +7,7 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/submit"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var repo string
@@ -26,17 +24,16 @@ var submitCmd = &cobra.Command{
 	Long:  "Submit a publishing job to a queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		var qcfg queue.Config
-		if err := viper.Sub("rabbitmq").Unmarshal(&qcfg); err != nil {
-			log.Error.Println(
-				errors.Wrap(err, "Could not read RabbitMQ creds"))
+		qCfg, err := queue.ReadConfig()
+		if err != nil {
+			log.Error.Println(err)
 			os.Exit(1)
 		}
-		jparams := job.Parameters{
+		jparams := &job.Parameters{
 			Repository: repo, Payload: payload, RepositoryPath: path,
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
-		if err := submit.Run(jparams, qcfg); err != nil {
+		if err := submit.Run(jparams, qCfg); err != nil {
 			log.Error.Println(err)
 			os.Exit(1)
 		}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
@@ -36,6 +37,21 @@ type Config struct {
 	Port     int
 }
 
+// ReadConfig - populate the Config object using the global viper object
+//              and the config file
+func ReadConfig() (*Config, error) {
+	v := viper.Sub("rabbitmq")
+	viper.SetDefault("rabbitmq.port", 5672)
+	viper.SetDefault("rabbitmq.vhost", "/cvmfs")
+
+	var cfg Config
+	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, errors.Wrap(err, "could not read RabbitMQ configuration")
+	}
+
+	return &cfg, nil
+}
+
 // Connection - encapsulates the AMQP connection and channel
 type Connection struct {
 	Conn  *amqp.Connection
@@ -44,7 +60,7 @@ type Connection struct {
 }
 
 // NewConnection - create a new connection to the job queue
-func NewConnection(cfg Config) (*Connection, error) {
+func NewConnection(cfg *Config) (*Connection, error) {
 	dialStr := createConnectionURL(
 		cfg.Username, cfg.Password, cfg.Host, cfg.VHost, cfg.Port)
 	connection, err := amqp.Dial(dialStr)

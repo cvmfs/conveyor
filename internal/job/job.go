@@ -38,7 +38,7 @@ type Processed struct {
 }
 
 // CreateJob - create a new job struct with validated field values
-func CreateJob(params Parameters) (*Unprocessed, error) {
+func CreateJob(params *Parameters) (*Unprocessed, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not generate UUID")
@@ -49,7 +49,7 @@ func CreateJob(params Parameters) (*Unprocessed, error) {
 		leasePath = "/" + leasePath
 	}
 
-	job := &Unprocessed{ID: id, Parameters: params}
+	job := &Unprocessed{ID: id, Parameters: *params}
 
 	if params.Script != "" {
 		if params.TransferScript {
