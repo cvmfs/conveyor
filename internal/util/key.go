@@ -9,7 +9,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/pkg/errors"
 )
 
