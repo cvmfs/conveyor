@@ -1,8 +1,8 @@
 package jobdb
 
 import (
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -33,7 +33,7 @@ func ReadConfig() (*Config, error) {
 func Run(cfg *Config) error {
 	log.Info.Println("CVMFS job database service starting")
 
-	keys, err := util.ReadKeys(cfg.KeyDir)
+	keys, err := auth.ReadKeys(cfg.KeyDir)
 	if err != nil {
 		return errors.Wrap(err, "could not read API key from file")
 	}

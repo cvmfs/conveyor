@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/util"
 	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
@@ -34,7 +34,7 @@ func init() {
 
 // Run - runs the job consumer
 func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries int) error {
-	keys, err := util.ReadKeys(jCfg.KeyDir)
+	keys, err := auth.ReadKeys(jCfg.KeyDir)
 	if err != nil {
 		return errors.Wrap(err, "could not read API keys from file")
 	}

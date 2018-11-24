@@ -1,4 +1,4 @@
-package util
+package auth
 
 import (
 	"crypto/hmac"
@@ -55,6 +55,11 @@ func ReadKeys(keyDir string) (*Keys, error) {
 		}
 	}
 	return &keys, nil
+}
+
+// ComputeHMAC - compute the HMAC of a message using a specific key
+func ComputeHMAC(message []byte, key string) ([]byte, error) {
+	return []byte{}, nil
 }
 
 // CheckHMAC - checks the HMAC of a message

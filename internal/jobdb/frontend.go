@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/util"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
-func startFrontEnd(port int, backend *Backend, keys *util.Keys) error {
+func startFrontEnd(port int, backend *Backend, keys *auth.Keys) error {
 	router := mux.NewRouter()
 
 	var r *mux.Route

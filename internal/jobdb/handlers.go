@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/util"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -71,12 +71,12 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 type putJobHandler struct {
 	backend *Backend
-	keys    *util.Keys
+	keys    *auth.Keys
 }
 
 func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	auth := req.Header.Get("Authorization")
-	tokens := strings.Split(auth, " ")
+	authHeader := req.Header.Get("Authorization")
+	tokens := strings.Split(authHeader, " ")
 	if len(tokens) != 2 {
 		log.Error.Println("Invalid or missing Authorization header")
 	}
@@ -93,7 +93,7 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if !util.CheckHMAC(buf, HMAC, key) {
+	if !auth.CheckHMAC(buf, HMAC, key) {
 		log.Error.Println("Invalid HMAC")
 		return
 	}
