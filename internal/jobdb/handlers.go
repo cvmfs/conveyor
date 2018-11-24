@@ -71,7 +71,7 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 type putJobHandler struct {
 	backend *Backend
-	keys    util.Keys
+	keys    *util.Keys
 }
 
 func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {

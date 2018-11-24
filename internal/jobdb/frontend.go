@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func startFrontEnd(port int, backend *Backend, keys util.Keys) error {
+func startFrontEnd(port int, backend *Backend, keys *util.Keys) error {
 	router := mux.NewRouter()
 
 	var r *mux.Route

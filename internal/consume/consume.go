@@ -16,6 +16,7 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/util"
 	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
@@ -32,7 +33,12 @@ func init() {
 }
 
 // Run - runs the job consumer
-func Run(qCfg queue.Config, jCfg jobdb.Config, tempDir string, maxJobRetries int) error {
+func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries int) error {
+	keys, err := util.ReadKeys(jCfg.KeyDir)
+	if err != nil {
+		return errors.Wrap(err, "could not read API keys from file")
+	}
+
 	// Create temporary dir
 	os.RemoveAll(tempDir)
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
@@ -114,7 +120,7 @@ func Run(qCfg queue.Config, jCfg jobdb.Config, tempDir string, maxJobRetries int
 			Successful:   success,
 			ErrorMessage: errMsg,
 		}
-		if err := postJobStatus(jobPostURL, &processedJob, conn); err != nil {
+		if err := postJobStatus(jobPostURL, keys, &processedJob, conn); err != nil {
 			log.Error.Println(
 				errors.Wrap(err, "posting job status to DB failed"))
 			j.Nack(false, false)
@@ -188,7 +194,7 @@ func runScript(script string, repo string, repoPath string, args string) error {
 	return nil
 }
 
-func postJobStatus(url string, j *job.Processed, q *queue.Connection) error {
+func postJobStatus(url string, keys *util.Keys, j *job.Processed, q *queue.Connection) error {
 	buf, err := json.Marshal(j)
 	if err != nil {
 		return errors.Wrap(err, "JSON encoding of job status failed")
