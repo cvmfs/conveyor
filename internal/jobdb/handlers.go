@@ -32,7 +32,9 @@ func (h getJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	rep, err := json.Marshal(status)
 	if err != nil {
-		log.Error.Println(errors.Wrap(err, "JSON serialization failed"))
+		msg := "JSON serialization of reply failed"
+		log.Error.Println(errors.Wrap(err, msg))
+		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
 
@@ -62,7 +64,9 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	rep, err := json.Marshal(status)
 	if err != nil {
-		log.Error.Println(errors.Wrap(err, "JSON serialization failed"))
+		msg := "JSON serialization failed"
+		log.Error.Println(errors.Wrap(err, msg))
+		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
 
@@ -78,29 +82,40 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	authHeader := req.Header.Get("Authorization")
 	tokens := strings.Split(authHeader, " ")
 	if len(tokens) != 2 {
-		log.Error.Println("Invalid or missing Authorization header")
+		msg := "reading request body failed"
+		log.Error.Println(msg)
+		http.Error(w, msg, http.StatusUnauthorized)
+		return
 	}
 	key := h.keys.Secrets[tokens[0]]
 	HMAC, err := base64.StdEncoding.DecodeString(tokens[1])
 	if err != nil {
-		log.Error.Println("Could not base64 decode HMAC")
+		msg := "Could not base64 decode HMAC"
+		log.Error.Println(errors.Wrap(err, msg))
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		log.Error.Println(errors.Wrap(err, "reading request body failed"))
+		msg := "reading request body failed"
+		log.Error.Println(errors.Wrap(err, msg))
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
 	if !auth.CheckHMAC(buf, HMAC, key) {
-		log.Error.Println("Invalid HMAC")
+		msg := "Invalid HMAC"
+		log.Error.Println(msg)
+		http.Error(w, msg, http.StatusForbidden)
 		return
 	}
 
 	var job job.Processed
 	if err := json.Unmarshal(buf, &job); err != nil {
-		log.Error.Println(errors.Wrap(err, "JSON deserialization failed"))
+		msg := "JSON deserialization of request failed"
+		log.Error.Println(errors.Wrap(err, msg))
+		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
@@ -111,7 +126,9 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	rep, err := json.Marshal(status)
 	if err != nil {
-		log.Error.Println(errors.Wrap(err, "JSON serialization failed"))
+		msg := "JSON serialization of reply failed"
+		log.Error.Println(errors.Wrap(err, msg))
+		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
 
