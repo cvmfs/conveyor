@@ -15,8 +15,8 @@ const (
 	NewJobExchange string = "jobs.new"
 	// NewJobQueue - name of the RabbitMQ queue for new jobs
 	NewJobQueue string = "jobs.new"
-	// ConsumerName - name to identify the consumer
-	ConsumerName string = "cvmfs_job"
+	// ClientName - name to identify the consumer
+	ClientName string = "cvmfs_job"
 
 	// CompletedJobExchange - name of the RabbitMQ exchange for finished jobs
 	CompletedJobExchange string = "jobs.done"
@@ -56,17 +56,17 @@ func ReadConfig() (*Config, error) {
 	return &cfg, nil
 }
 
-// Connection - encapsulates the AMQP connection and channel
-type Connection struct {
+// Client - encapsulates the AMQP connection and channel
+type Client struct {
 	Conn              *amqp.Connection
 	Chan              *amqp.Channel
 	NewJobQueue       *amqp.Queue
 	CompletedJobQueue *amqp.Queue
 }
 
-// NewConnection - create a new connection to the job queue. connType can
-//                 either be ConsumerConnection or PublisherConnection
-func NewConnection(cfg *Config, connType int) (*Connection, error) {
+// NewClient - create a new connection to the job queue. connType can
+//             either be ConsumerConnection or PublisherConnection
+func NewClient(cfg *Config, connType int) (*Client, error) {
 	dialStr := createConnectionURL(
 		cfg.Username, cfg.Password, cfg.Host, cfg.VHost, cfg.Port)
 	connection, err := amqp.Dial(dialStr)
@@ -97,7 +97,7 @@ func NewConnection(cfg *Config, connType int) (*Connection, error) {
 		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
-	c := &Connection{connection, channel, nil, nil}
+	c := &Client{connection, channel, nil, nil}
 
 	// In a consumer connection relevant queues are declared and bound
 	if connType == ConsumerConnection {
@@ -135,12 +135,12 @@ func NewConnection(cfg *Config, connType int) (*Connection, error) {
 }
 
 // Close - closes an established connection to the job queue
-func (c *Connection) Close() error {
+func (c *Client) Close() error {
 	return c.Conn.Close()
 }
 
 // Publish - publish data (as JSON) to an exchange using the given routing key
-func (c *Connection) Publish(exchange string, key string, data interface{}) error {
+func (c *Client) Publish(exchange string, key string, data interface{}) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return errors.Wrap(err, "could not marshal job into JSON")

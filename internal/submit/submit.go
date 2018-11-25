@@ -11,11 +11,11 @@ import (
 
 // Run - runs the new job submission process
 func Run(jparams *job.Specification, qcfg *queue.Config) error {
-	conn, err := queue.NewConnection(qcfg, queue.PublisherConnection)
+	client, err := queue.NewClient(qcfg, queue.PublisherConnection)
 	if err != nil {
 		return errors.Wrap(err, "could not create job queue connection")
 	}
-	defer conn.Close()
+	defer client.Close()
 
 	job, err := job.CreateJob(jparams)
 	if err != nil {
@@ -24,7 +24,7 @@ func Run(jparams *job.Specification, qcfg *queue.Config) error {
 
 	log.Info.Printf("Job description:\n%+v\n", job)
 
-	if err := conn.Publish(queue.NewJobExchange, "", job); err != nil {
+	if err := client.Publish(queue.NewJobExchange, "", job); err != nil {
 		return errors.Wrap(err, "job description publishing failed")
 	}
 

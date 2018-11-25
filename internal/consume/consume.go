@@ -47,26 +47,26 @@ func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries i
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Create connections to the queue system
-	connC, err := queue.NewConnection(qCfg, queue.ConsumerConnection)
+	// Create clients for the queue system
+	clientC, err := queue.NewClient(qCfg, queue.ConsumerConnection)
 	if err != nil {
 		return errors.Wrap(err, "could not create job queue connection (consumer)")
 	}
-	defer connC.Close()
-	connP, err := queue.NewConnection(qCfg, queue.PublisherConnection)
+	defer clientC.Close()
+	clientP, err := queue.NewClient(qCfg, queue.PublisherConnection)
 	if err != nil {
 		return errors.Wrap(err, "could not create job queue connection (publisher)")
 	}
-	defer connC.Close()
+	defer clientP.Close()
 
-	jobs, err := connC.Chan.Consume(
-		connC.NewJobQueue.Name, queue.ConsumerName, false, false, false, false, nil)
+	jobs, err := clientC.Chan.Consume(
+		clientC.NewJobQueue.Name, queue.ClientName, false, false, false, false, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not start consuming jobs")
 	}
 
 	go func() {
-		ch := connC.Chan.NotifyClose(make(chan *amqp.Error))
+		ch := clientC.Chan.NotifyClose(make(chan *amqp.Error))
 		err := <-ch
 		log.Error.Println(errors.Wrap(err, "connection to job queue closed"))
 		os.Exit(1)
@@ -127,7 +127,7 @@ func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries i
 			Successful:   success,
 			ErrorMessage: errMsg,
 		}
-		if err := postJobStatus(jobPostURL, keys, &processedJob, connP); err != nil {
+		if err := postJobStatus(jobPostURL, keys, &processedJob, clientP); err != nil {
 			log.Error.Println(
 				errors.Wrap(err, "posting job status to DB failed"))
 			j.Nack(false, false)
