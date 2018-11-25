@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -49,6 +48,20 @@ type Status struct {
 	Successful bool
 }
 
+// GetJobReply - Return type of the GetJob query
+type GetJobReply struct {
+	Status string      // "ok" || "error"
+	Reason string      `json:",omitempty"`
+	IDs    []Status    `json:",omitempty"`
+	Jobs   []Processed `json:",omitempty"`
+}
+
+// PutJobReply - Return type of the PutJob query
+type PutJobReply struct {
+	Status string // "ok" || "error"
+	Reason string `json:",omitempty"`
+}
+
 // CreateJob - create a new job struct with validated field values
 func CreateJob(params *Specification) (*Unprocessed, error) {
 	id, err := uuid.NewV1()
@@ -74,10 +87,6 @@ func CreateJob(params *Specification) (*Unprocessed, error) {
 	}
 
 	return job, nil
-}
-
-func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, error) {
-	return []Status{}, nil
 }
 
 // Process - process a job (download and unpack payload, run script etc.)

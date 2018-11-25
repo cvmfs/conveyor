@@ -22,20 +22,6 @@ type BackendConfig struct {
 	Port     int
 }
 
-// GetJobReply - Return type of the GetJob query
-type GetJobReply struct {
-	Status string          // "ok" || "error"
-	Reason string          `json:",omitempty"`
-	IDs    []job.Status    `json:",omitempty"`
-	Jobs   []job.Processed `json:",omitempty"`
-}
-
-// PutJobReply - Return type of the PutJob query
-type PutJobReply struct {
-	Status string // "ok" || "error"
-	Reason string `json:",omitempty"`
-}
-
 // Backend - encapsulates the backend state
 type Backend struct {
 	db *sql.DB
@@ -47,8 +33,8 @@ func (b *Backend) Close() {
 }
 
 // GetJob - returns the row from the job DB corresponding to the ID
-func (b *Backend) GetJob(id string, full bool) (*GetJobReply, error) {
-	reply := GetJobReply{Status: "ok", Reason: ""}
+func (b *Backend) GetJob(id string, full bool) (*job.GetJobReply, error) {
+	reply := job.GetJobReply{Status: "ok", Reason: ""}
 
 	rows, err := b.db.Query("select * from Jobs where ID = $1", id)
 	if err != nil {
@@ -79,8 +65,8 @@ func (b *Backend) GetJob(id string, full bool) (*GetJobReply, error) {
 }
 
 // GetJobs - returns the rows from the job DB corresponding to the IDs
-func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
-	reply := GetJobReply{Status: "ok", Reason: ""}
+func (b *Backend) GetJobs(ids []string, full bool) (*job.GetJobReply, error) {
+	reply := job.GetJobReply{Status: "ok", Reason: ""}
 
 	queryStr := "select * from Jobs where Jobs.ID in ("
 	params := make([]interface{}, len(ids))
@@ -122,8 +108,8 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 }
 
 // PutJob - inserts a job into the DB
-func (b *Backend) PutJob(job *job.Processed) (*PutJobReply, error) {
-	reply := PutJobReply{Status: "ok", Reason: ""}
+func (b *Backend) PutJob(j *job.Processed) (*job.PutJobReply, error) {
+	reply := job.PutJobReply{Status: "ok", Reason: ""}
 
 	tx, err := b.db.Begin()
 	if err != nil {
@@ -138,9 +124,9 @@ func (b *Backend) PutJob(job *job.Processed) (*PutJobReply, error) {
 		"TransferScript,Dependencies,StartTime,FinishTime,Successful,ErrorMessage) " +
 		"values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);"
 	if _, err := tx.Exec(queryStr,
-		job.ID, job.Repository, job.Payload, job.RepositoryPath,
-		job.Script, job.ScriptArgs, job.TransferScript, strings.Join(job.Dependencies, ","),
-		job.StartTime, job.FinishTime, job.Successful, job.ErrorMessage); err != nil {
+		j.ID, j.Repository, j.Payload, j.RepositoryPath,
+		j.Script, j.ScriptArgs, j.TransferScript, strings.Join(j.Dependencies, ","),
+		j.StartTime, j.FinishTime, j.Successful, j.ErrorMessage); err != nil {
 		reason := "executing SQL statement failed"
 		reply.Status = "error"
 		reply.Reason = reason
@@ -156,7 +142,7 @@ func (b *Backend) PutJob(job *job.Processed) (*PutJobReply, error) {
 
 	log.Info.Printf(
 		"Job inserted: %v, success: %v, start time: %v, finish time: %v\n",
-		job.ID, job.Successful, job.StartTime, job.FinishTime)
+		j.ID, j.Successful, j.StartTime, j.FinishTime)
 
 	return &reply, nil
 }

@@ -12,7 +12,6 @@ import (
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/pkg/errors"
@@ -216,8 +215,8 @@ func postJobStatus(
 	if err != nil {
 		errors.Wrap(err, "could not create POST request")
 	}
-	req.Header["Authorization"] = []string{fmt.Sprintf("%v %v", keyID, hmac)}
-	req.Header["Content-Type"] = []string{"application/json"}
+	req.Header.Add("Authorization", fmt.Sprintf("%v %v", keyID, hmac))
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -234,7 +233,7 @@ func postJobStatus(
 		return errors.Wrap(err, "Reading reply body failed")
 	}
 
-	var pubStat jobdb.PutJobReply
+	var pubStat job.PutJobReply
 	if err := json.Unmarshal(buf2, &pubStat); err != nil {
 		return errors.Wrap(err, "JSON decoding of reply failed")
 	}
