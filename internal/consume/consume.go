@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
-	"path"
 	"strings"
 	"time"
 
@@ -18,7 +16,6 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
-	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 )
@@ -94,7 +91,7 @@ func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries i
 		log.Info.Println("Start publishing job:", desc.ID.String())
 
 		task := func() error {
-			return processTransaction(&desc, tempDir)
+			return desc.Process(tempDir)
 		}
 
 		success := false
@@ -146,62 +143,7 @@ func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries i
 	return nil
 }
 
-func processTransaction(desc *job.Unprocessed, tempDir string) error {
-	// Create target dir if needed
-	targetDir := path.Join(
-		"/cvmfs", desc.Repository, desc.RepositoryPath)
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return errors.Wrap(err, "could not create target dir")
-	}
-
-	// Download and unpack the payload, if given
-	log.Info.Println("Downloading payload:", desc.Payload)
-	if err := getter.Get(targetDir, desc.Payload); err != nil {
-		return errors.Wrap(err, "could not download payload")
-	}
-
-	// Run the transaction script, if specified
-	if desc.Script != "" {
-		needsUnpacking := desc.TransferScript
-		log.Info.Printf(
-			"Running transaction script: %v (needs unpacking: %v)\n",
-			desc.Script, needsUnpacking)
-
-		var scriptFile string
-		if needsUnpacking {
-			var err error
-			scriptFile = path.Join(tempDir, "transaction.sh")
-			err = job.UnpackScript(desc.Script, scriptFile)
-			if err != nil {
-				return errors.Wrap(err, "unpacking transaction script failed")
-			}
-		} else {
-			scriptFile = desc.Script
-		}
-
-		err := runScript(
-			scriptFile, desc.Repository, desc.RepositoryPath, desc.ScriptArgs)
-		if err != nil {
-			return errors.Wrap(err, "running transaction script failed")
-		}
-	}
-
-	return nil
-}
-
-func runScript(script string, repo string, repoPath string, args string) error {
-	cmd := exec.Command(script, repo, repoPath, args)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Dir = path.Join("/cvmfs", repo)
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func postJobStatus(url string, keys *auth.Keys, j *job.Processed, q *queue.Connection) error {
+func postJobStatus(url string, keys *auth.Keys, j *job.Processed, q *queue.Client) error {
 	buf, err := json.Marshal(j)
 	if err != nil {
 		return errors.Wrap(err, "JSON encoding of job status failed")

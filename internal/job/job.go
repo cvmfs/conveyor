@@ -5,14 +5,19 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"io/ioutil"
+	"os"
+	"os/exec"
+	"path"
 	"time"
 
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
-// Parameters - job submission parameters
-type Parameters struct {
+// Specification - job submission Specification
+type Specification struct {
 	Repository     string
 	Payload        string
 	RepositoryPath string
@@ -25,7 +30,7 @@ type Parameters struct {
 // Unprocessed - a job submission that has been assigned and ID
 type Unprocessed struct {
 	ID uuid.UUID
-	Parameters
+	Specification
 }
 
 // Processed - a processed job
@@ -38,7 +43,7 @@ type Processed struct {
 }
 
 // CreateJob - create a new job struct with validated field values
-func CreateJob(params *Parameters) (*Unprocessed, error) {
+func CreateJob(params *Specification) (*Unprocessed, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not generate UUID")
@@ -49,11 +54,11 @@ func CreateJob(params *Parameters) (*Unprocessed, error) {
 		leasePath = "/" + leasePath
 	}
 
-	job := &Unprocessed{ID: id, Parameters: *params}
+	job := &Unprocessed{ID: id, Specification: *params}
 
 	if params.Script != "" {
 		if params.TransferScript {
-			s, err := PackScript(params.Script)
+			s, err := packScript(params.Script)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not load script")
 			}
@@ -64,8 +69,52 @@ func CreateJob(params *Parameters) (*Unprocessed, error) {
 	return job, nil
 }
 
-// PackScript - packs a script into a gzipped, base64 encoded buffer
-func PackScript(script string) (string, error) {
+// Process - process a job (download and unpack payload, run script etc.)
+func (j *Unprocessed) Process(tempDir string) error {
+	// Create target dir if needed
+	targetDir := path.Join(
+		"/cvmfs", j.Repository, j.RepositoryPath)
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return errors.Wrap(err, "could not create target dir")
+	}
+
+	// Download and unpack the payload, if given
+	log.Info.Println("Downloading payload:", j.Payload)
+	if err := getter.Get(targetDir, j.Payload); err != nil {
+		return errors.Wrap(err, "could not download payload")
+	}
+
+	// Run the transaction script, if specified
+	if j.Script != "" {
+		needsUnpacking := j.TransferScript
+		log.Info.Printf(
+			"Running transaction script: %v (needs unpacking: %v)\n",
+			j.Script, needsUnpacking)
+
+		var scriptFile string
+		if needsUnpacking {
+			var err error
+			scriptFile = path.Join(tempDir, "transaction.sh")
+			err = unpackScript(j.Script, scriptFile)
+			if err != nil {
+				return errors.Wrap(err, "unpacking transaction script failed")
+			}
+		} else {
+			scriptFile = j.Script
+		}
+
+		err := runScript(
+			scriptFile, j.Repository, j.RepositoryPath, j.ScriptArgs)
+		if err != nil {
+			return errors.Wrap(err, "running transaction script failed")
+		}
+	}
+
+	return nil
+}
+
+// packScript - packs a script into a gzipped, base64 encoded buffer
+func packScript(script string) (string, error) {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
 
@@ -83,9 +132,9 @@ func PackScript(script string) (string, error) {
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
-// UnpackScript - unpacks a script from a gzipped, base64 encoded buffer
+// unpackScript - unpacks a script from a gzipped, base64 encoded buffer
 //                and saves it to disk at `dest`
-func UnpackScript(body string, dest string) error {
+func unpackScript(body string, dest string) error {
 	buf, err := base64.StdEncoding.DecodeString(body)
 	if err != nil {
 		return errors.Wrap(err, "base64 decoding failed")
@@ -101,6 +150,18 @@ func UnpackScript(body string, dest string) error {
 	}
 	if err := ioutil.WriteFile(dest, rawbuf, 0755); err != nil {
 		return errors.Wrap(err, "writing to disk failed")
+	}
+
+	return nil
+}
+
+func runScript(script string, repo string, repoPath string, args string) error {
+	cmd := exec.Command(script, repo, repoPath, args)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Dir = path.Join("/cvmfs", repo)
+	if err := cmd.Run(); err != nil {
+		return err
 	}
 
 	return nil

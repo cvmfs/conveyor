@@ -29,7 +29,7 @@ var submitCmd = &cobra.Command{
 			log.Error.Println(err)
 			os.Exit(1)
 		}
-		jparams := &job.Parameters{
+		jparams := &job.Specification{
 			Repository: repo, Payload: payload, RepositoryPath: path,
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
