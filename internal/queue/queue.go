@@ -15,8 +15,6 @@ const (
 	NewJobExchange string = "jobs.new"
 	// NewJobQueue - name of the RabbitMQ queue for new jobs
 	NewJobQueue string = "jobs.new"
-	// RoutingKey - routing key used when publishing jobs
-	RoutingKey string = ""
 	// ConsumerName - name to identify the consumer
 	ConsumerName string = "cvmfs_job"
 
@@ -26,6 +24,12 @@ const (
 	SuccessKey string = "success"
 	// FailedKey - routing/binding key for failed jobs
 	FailedKey string = "failure"
+)
+
+// The type of connection to be established to RabbitMQ
+const (
+	ConsumerConnection = iota
+	PublisherConnection
 )
 
 // Config - configuration of the job queue
@@ -54,13 +58,15 @@ func ReadConfig() (*Config, error) {
 
 // Connection - encapsulates the AMQP connection and channel
 type Connection struct {
-	Conn  *amqp.Connection
-	Chan  *amqp.Channel
-	Queue *amqp.Queue
+	Conn              *amqp.Connection
+	Chan              *amqp.Channel
+	NewJobQueue       *amqp.Queue
+	CompletedJobQueue *amqp.Queue
 }
 
-// NewConnection - create a new connection to the job queue
-func NewConnection(cfg *Config) (*Connection, error) {
+// NewConnection - create a new connection to the job queue. connType can
+//                 either be ConsumerConnection or PublisherConnection
+func NewConnection(cfg *Config, connType int) (*Connection, error) {
 	dialStr := createConnectionURL(
 		cfg.Username, cfg.Password, cfg.Host, cfg.VHost, cfg.Port)
 	connection, err := amqp.Dial(dialStr)
@@ -77,27 +83,55 @@ func NewConnection(cfg *Config) (*Connection, error) {
 		return nil, errors.Wrap(err, "could not set channel QoS")
 	}
 
+	// The exchange for publishing new jobs (to be processed) is durable and
+	// non auto-deleted
 	if err := channel.ExchangeDeclare(
 		NewJobExchange, "direct", true, false, false, false, nil); err != nil {
 		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
+	// The exchange for publishing completedd job notifications is not-durable and
+	// non auto-deleted
 	if err := channel.ExchangeDeclare(
-		CompletedJobExchange, "topic", true, false, false, false, nil); err != nil {
+		CompletedJobExchange, "topic", false, false, false, false, nil); err != nil {
 		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
-	q, err := channel.QueueDeclare(NewJobQueue, true, false, false, false, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not declare job queue")
+	c := &Connection{connection, channel, nil, nil}
+
+	// In a consumer connection relevant queues are declared and bound
+	if connType == ConsumerConnection {
+		// Declare and bind a queue for new job notifications (round-robin)
+		// This queue is durable, non auto-deleted, non exclusive
+		q1, err := channel.QueueDeclare(NewJobQueue, true, false, false, false, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not declare new job queue")
+		}
+
+		if err := channel.QueueBind(
+			q1.Name, "", NewJobExchange, false, nil); err != nil {
+			return nil, errors.Wrap(err, "could not bind new job queue")
+		}
+
+		c.NewJobQueue = &q1
+
+		// Declare and bind a queue for finished job notifications (one-to-all)
+		// This queue has an automatically generated name and is exclusive to
+		// a single consumer. It is not durable and is auto-deleted
+		q2, err := channel.QueueDeclare("", false, true, true, false, nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not declare completed job queue")
+		}
+
+		if err := channel.QueueBind(
+			q2.Name, "#", CompletedJobExchange, false, nil); err != nil {
+			return nil, errors.Wrap(err, "could not bind completed job queue")
+		}
+
+		c.CompletedJobQueue = &q2
 	}
 
-	if err := channel.QueueBind(
-		q.Name, RoutingKey, NewJobExchange, false, nil); err != nil {
-		return nil, errors.Wrap(err, "could not bind job queue")
-	}
-
-	return &Connection{connection, channel, &q}, nil
+	return c, nil
 }
 
 // Close - closes an established connection to the job queue
