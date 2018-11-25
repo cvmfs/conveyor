@@ -10,14 +10,14 @@ import (
 )
 
 // Run - runs the new job submission process
-func Run(jparams *job.Specification, qcfg *queue.Config) error {
+func Run(spec *job.Specification, qcfg *queue.Config) error {
 	client, err := queue.NewClient(qcfg, queue.PublisherConnection)
 	if err != nil {
 		return errors.Wrap(err, "could not create job queue connection")
 	}
 	defer client.Close()
 
-	job, err := job.CreateJob(jparams)
+	job, err := job.CreateJob(spec)
 	if err != nil {
 		return errors.Wrap(err, "could not create job object")
 	}

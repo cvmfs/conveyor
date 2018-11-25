@@ -10,7 +10,6 @@ import (
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
 
 // BackendConfig - database backend configuration for the job db service
@@ -23,18 +22,12 @@ type BackendConfig struct {
 	Port     int
 }
 
-// ShortJobStatus - a pair of job ID and the status for short GetJob queries
-type ShortJobStatus struct {
-	ID         uuid.UUID
-	Successful bool
-}
-
 // GetJobReply - Return type of the GetJob query
 type GetJobReply struct {
-	Status string           // "ok" || "error"
-	Reason string           `json:",omitempty"`
-	IDs    []ShortJobStatus `json:",omitempty"`
-	Jobs   []job.Processed  `json:",omitempty"`
+	Status string          // "ok" || "error"
+	Reason string          `json:",omitempty"`
+	IDs    []job.Status    `json:",omitempty"`
+	Jobs   []job.Processed `json:",omitempty"`
 }
 
 // PutJobReply - Return type of the PutJob query
@@ -79,7 +72,7 @@ func (b *Backend) GetJob(id string, full bool) (*GetJobReply, error) {
 	if full {
 		reply.Jobs = []job.Processed{*st}
 	} else {
-		reply.IDs = []ShortJobStatus{ShortJobStatus{st.ID, st.Successful}}
+		reply.IDs = []job.Status{job.Status{ID: st.ID, Successful: st.Successful}}
 	}
 
 	return &reply, nil
@@ -113,7 +106,7 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 			reason := "SQL query scan failed"
 			reply.Status = "error"
 			reply.Reason = reason
-			reply.IDs = []ShortJobStatus{}
+			reply.IDs = []job.Status{}
 			reply.Jobs = []job.Processed{}
 			return &reply, errors.Wrap(err, reason)
 		}
@@ -121,7 +114,7 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 		if full {
 			reply.Jobs = append(reply.Jobs, *st)
 		} else {
-			reply.IDs = append(reply.IDs, ShortJobStatus{st.ID, st.Successful})
+			reply.IDs = append(reply.IDs, job.Status{ID: st.ID, Successful: st.Successful})
 		}
 	}
 
