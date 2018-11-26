@@ -100,6 +100,7 @@ func listen(ids map[string]bool, q *queue.Client) (chan *Status, error) {
 			if pres {
 				ch <- &stat
 			}
+			j.Ack(false)
 		}
 	}()
 
