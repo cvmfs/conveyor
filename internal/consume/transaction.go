@@ -17,22 +17,11 @@ func RunTransaction(desc job.Unprocessed, task func() error) error {
 	// Close any existing transactions
 	abortTransaction(desc.Repository, false)
 
-	ok := true
-
 	log.Info.Println("Opening CVMFS transaction for:", fullPath)
 
-	if err := startTransaction(fullPath, true); err != nil {
-		return errors.Wrap(err, "could not start CVMFS transaction")
-	}
-
+	abort := false
 	defer func() {
-		if ok {
-			log.Info.Println("Publishing CVMFS transaction")
-			if err := commitTransaction(desc.Repository, true); err != nil {
-				log.Error.Println(
-					errors.Wrap(err, "could not commit CVMFS transaction"))
-			}
-		} else {
+		if abort {
 			log.Error.Println("Aborting CVMFS transaction")
 			if err := abortTransaction(desc.Repository, true); err != nil {
 				log.Error.Println(
@@ -41,11 +30,22 @@ func RunTransaction(desc job.Unprocessed, task func() error) error {
 		}
 	}()
 
+	if err := startTransaction(fullPath, true); err != nil {
+		abort = true
+		return errors.Wrap(err, "could not start CVMFS transaction")
+	}
+
 	if !mock {
 		if err := task(); err != nil {
-			ok = false
+			abort = true
 			return errors.Wrap(err, "coult not run task during transaction")
 		}
+	}
+
+	log.Info.Println("Publishing CVMFS transaction")
+	if err := commitTransaction(desc.Repository, true); err != nil {
+		abort = true
+		return errors.Wrap(err, "could not commit CVMFS transaction")
 	}
 
 	return nil
