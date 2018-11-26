@@ -7,30 +7,11 @@
   become: yes
   tags: rabbitmq
   tasks:
-    - name: Install PostgreSQL
-      yum: name="postgresql-server,postgresql-contrib,python-psycopg2"
+    - name: Install MariaDB
+      yum: name="mariadb-server,mariadb,python2-PyMySQL"
 
-    - name: Ensure DBs are created
-      postgresql_db: name={{item}}
-      become_user: postgres
-      with_items:
-          - devcvmfs
-          - cvmfs
-          - testcvmfs
-
-    - name: Add user to PostgreSQL
-      become_user: postgres
-      postgresql_user: db={{item}} name={{ postgresql_user }} password={{ postgresql_pass }} priv=ALL
-      with_items:
-          - devcvmfs
-          - cvmfs
-          - testcvmfs
-
-    - name: Add remote access to PostgreSQL configuration
-      script: configure_postgresql.sh
-
-    - name: Start PostgresSQL service
-      systemd: name=postgresql enabled=yes state=restarted
+    - name: Start MariaDB service
+      systemd: name=mariadb enabled=yes state=restarted
 
     - name: Install RabbitMQ
       yum: name="rabbitmq-server"
@@ -38,8 +19,8 @@
     - name: Start Firewalld
       service: name=firewalld enabled=yes state=started
 
-    - name: Open firewall port 5432 for the PostgreSQL
-      firewalld: port=5432/tcp permanent=true state=enabled
+    - name: Open firewall port 3306 for the MariaDB
+      firewalld: port=3306/tcp permanent=true state=enabled
 
     - name: Open firewall port 5672 for TCP
       firewalld: port=5672/tcp permanent=true state=enabled

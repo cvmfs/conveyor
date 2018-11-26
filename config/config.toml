@@ -14,9 +14,9 @@ keydir = "/etc/cvmfs/keys" # Default key dir
 
 # JobDB backend configuration is only used by cvmfs_job db
 [jobdb.backend]
-type = "postgres | mysql | sqlite"
+type = "mysql"
 database = "devcvmfs"
 username = "DB_USERNAME"
 password = "DB_PASSWORD"
 host = "DB_HOST NAME"
-post = 5432
+post = 3306

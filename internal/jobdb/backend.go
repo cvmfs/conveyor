@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	_ "github.com/jackc/pgx/stdlib" // Import and register the PostgreSQL driver
+	_ "github.com/go-sql-driver/mysql" // Import and register the MySQL driver
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
@@ -39,10 +39,10 @@ func (b *Backend) GetJobs(ids []string, full bool) (*job.GetJobReply, error) {
 	queryStr := "select * from Jobs where Jobs.ID in ("
 	params := make([]interface{}, len(ids))
 	for i, v := range ids[0 : len(ids)-1] {
-		queryStr += fmt.Sprintf("$%v, ", i+1)
+		queryStr += "?, "
 		params[i] = v
 	}
-	queryStr += fmt.Sprintf("$%v);", len(ids))
+	queryStr += "?);"
 	params[len(ids)-1] = ids[len(ids)-1]
 
 	rows, err := b.db.Query(queryStr, params...)
@@ -88,9 +88,8 @@ func (b *Backend) PutJob(j *job.Processed) (*job.PutJobReply, error) {
 	}
 	defer tx.Rollback()
 
-	queryStr := "insert into jobs (ID,Repository,Payload,RepositoryPath,Script,ScriptArgs," +
-		"TransferScript,Dependencies,StartTime,FinishTime,Successful,ErrorMessage) " +
-		"values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12);"
+	queryStr := "replace into Jobs values (?,?,?,?,?,?,?,?,?,?,?,?);"
+
 	if _, err := tx.Exec(queryStr,
 		j.ID, j.Repository, j.Payload, j.RepositoryPath,
 		j.Script, j.ScriptArgs, j.TransferScript, strings.Join(j.Dependencies, ","),
@@ -133,7 +132,7 @@ func scanRow(rows *sql.Rows) (*job.Processed, error) {
 }
 
 func startBackEnd(cfg BackendConfig) (*Backend, error) {
-	db, err := sql.Open("pgx", createDataSrcName(cfg))
+	db, err := sql.Open(cfg.Type, createDataSrcName(cfg))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create SQL connection")
 	}
@@ -147,6 +146,6 @@ func startBackEnd(cfg BackendConfig) (*Backend, error) {
 
 func createDataSrcName(cfg BackendConfig) string {
 	return fmt.Sprintf(
-		"user=%s password=%s host=%s port=%v dbname=%s sslmode=disable",
+		"%s:%s@tcp(%s:%v)/%s?parseTime=true",
 		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
 }

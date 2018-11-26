@@ -24,7 +24,7 @@ func ReadConfig() (*Config, error) {
 	v := viper.Sub("jobdb")
 	v.SetDefault("port", 8080)
 	v.SetDefault("keydir", "/etc/cvmfs/keys")
-	v.SetDefault("backend.port", 5432)
+	v.SetDefault("backend.port", 3306)
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, errors.Wrap(err, "could not read job db configuration")
