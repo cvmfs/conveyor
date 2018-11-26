@@ -99,9 +99,11 @@ func (j *Unprocessed) Process(tempDir string) error {
 	}
 
 	// Download and unpack the payload, if given
-	log.Info.Println("Downloading payload:", j.Payload)
-	if err := getter.Get(targetDir, j.Payload); err != nil {
-		return errors.Wrap(err, "could not download payload")
+	if j.Payload != "" {
+		log.Info.Println("Downloading payload:", j.Payload)
+		if err := getter.Get(targetDir, j.Payload); err != nil {
+			return errors.Wrap(err, "could not download payload")
+		}
 	}
 
 	// Run the transaction script, if specified
