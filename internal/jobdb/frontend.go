@@ -24,13 +24,6 @@ func startFrontEnd(port int, backend *Backend, keys *auth.Keys) error {
 			w.Write([]byte(r))
 		})
 
-	// GET the status of a single job
-	r = router.NewRoute()
-	r.Path("/jobs/{id}")
-	r.Methods("GET")
-	r.Queries("full", "")
-	r.Handler(getJobHandler{backend})
-
 	// GET the status of multiple jobs
 	r = router.NewRoute()
 	r.Path("/jobs")

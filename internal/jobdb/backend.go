@@ -32,38 +32,6 @@ func (b *Backend) Close() {
 	b.db.Close()
 }
 
-// GetJob - returns the row from the job DB corresponding to the ID
-func (b *Backend) GetJob(id string, full bool) (*job.GetJobReply, error) {
-	reply := job.GetJobReply{Status: "ok", Reason: ""}
-
-	rows, err := b.db.Query("select * from Jobs where ID = $1", id)
-	if err != nil {
-		reply.Status = "error"
-		reply.Reason = "query error"
-		return &reply, errors.Wrap(err, "query failed")
-	}
-	defer rows.Close()
-
-	if !rows.Next() {
-		return &reply, nil
-	}
-
-	st, err := scanRow(rows)
-	if err != nil {
-		reply.Status = "error"
-		reply.Reason = "query failed"
-		return &reply, errors.Wrap(err, "scan failed")
-	}
-
-	if full {
-		reply.Jobs = []job.Processed{*st}
-	} else {
-		reply.IDs = []job.Status{job.Status{ID: st.ID, Successful: st.Successful}}
-	}
-
-	return &reply, nil
-}
-
 // GetJobs - returns the rows from the job DB corresponding to the IDs
 func (b *Backend) GetJobs(ids []string, full bool) (*job.GetJobReply, error) {
 	reply := job.GetJobReply{Status: "ok", Reason: ""}
