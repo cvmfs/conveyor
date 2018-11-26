@@ -93,8 +93,8 @@ func listen(ids map[string]bool, q *queue.Client) (chan Status, error) {
 			var stat Status
 			if err := json.Unmarshal(j.Body, &stat); err != nil {
 				log.Error.Println(err)
-				j.Nack(false, true)
-				os.Exit(1)
+				j.Nack(false, false)
+				os.Exit(1) // Is there a better way to handle this than restarting?
 			}
 			id := stat.ID.String()
 			_, pres := ids[id]
