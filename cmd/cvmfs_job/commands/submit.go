@@ -52,7 +52,6 @@ func init() {
 	submitCmd.Flags().StringVar(&repo, "repo", "", "target CVMFS repository")
 	submitCmd.MarkFlagRequired("repo")
 	submitCmd.Flags().StringVar(&payload, "payload", "", "payload URL")
-	submitCmd.MarkFlagRequired("payload")
 	submitCmd.Flags().StringVar(&path, "path", "/", "target path inside the repository")
 	submitCmd.Flags().StringVar(
 		&script, "script", "", "script to run at the end of CVMFS transaction")
