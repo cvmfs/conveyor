@@ -17,6 +17,8 @@ import (
 
 const maxWait = 2 * 3600 // max 2h to wait for a job dependency to finish
 
+const maxQueryRetries = 50 // max number of job DB query retries
+
 // WaitForJobs wait for the completion of a set of jobs referenced through theirs
 // unique ids. The job status is obtained from the completed job notification channel
 // of the job queue and from the job DB service
@@ -34,16 +36,18 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 	}
 
 	// Query the job DB for the status of completed jobs
-	queryResults, err := query(ids, jobDBURL)
-	if err != nil {
-		return []Status{}, errors.Wrap(err, "could not perform job DB query")
-	}
+	queryResults := make(chan Status)
+	ch := query(ids, jobDBURL, queryResults)
 
 	log.Info.Println("Waiting for jobs")
 
 	stop := false
 	for !stop {
 		select {
+		case e := <-ch:
+			if e != nil {
+				return []Status{}, errors.Wrap(err, "could not perform job DB query")
+			}
 		case j := <-notifications:
 			jobStatuses[j.ID] = j.Successful
 			log.Info.Println("(Notification) job finished:", j)
@@ -108,48 +112,90 @@ func listen(ids map[string]bool, q *queue.Client) (chan Status, error) {
 	return ch, nil
 }
 
-func query(ids []string, jobDBURL string) (chan Status, error) {
-	req, err := http.NewRequest("GET", jobDBURL, nil)
-	if err != nil {
-		errors.Wrap(err, "could not create GET request")
-	}
-	q := req.URL.Query()
-	q["id"] = ids
-	q.Set("full", "false")
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "Getting job status from DB failed")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("GET request failed: %v", resp.Status))
-	}
-
-	buf2, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "Reading reply body failed")
-	}
-
-	var reply GetJobReply
-	if err := json.Unmarshal(buf2, &reply); err != nil {
-		return nil, errors.Wrap(err, "JSON decoding of reply failed")
-	}
-
-	if reply.Status != "ok" {
-		return nil, errors.Wrap(
-			err, fmt.Sprintf("Getting job status failed: %s", reply.Reason))
-	}
-
-	ch := make(chan Status)
+func query(ids []string, jobDBURL string, results chan Status) chan error {
+	ch := make(chan error)
 
 	go func() {
-		for _, j := range reply.IDs {
-			ch <- j
+		w := defaultWaiter()
+		retry := 0
+
+		for retry < maxQueryRetries {
+			req, err := http.NewRequest("GET", jobDBURL, nil)
+			if err != nil {
+				errors.Wrap(err, "could not create GET request")
+			}
+			q := req.URL.Query()
+			q["id"] = ids
+			q.Set("full", "false")
+			req.URL.RawQuery = q.Encode()
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				ch <- errors.Wrap(err, "Getting job status from DB failed")
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				ch <- errors.New(fmt.Sprintf("GET request failed: %v", resp.Status))
+			}
+
+			buf2, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				ch <- errors.Wrap(err, "Reading reply body failed")
+			}
+
+			var reply GetJobReply
+			if err := json.Unmarshal(buf2, &reply); err != nil {
+				ch <- errors.Wrap(err, "JSON decoding of reply failed")
+			}
+
+			if reply.Status != "ok" {
+				ch <- errors.Wrap(
+					err, fmt.Sprintf("Getting job status failed: %s", reply.Reason))
+			}
+
+			for _, j := range reply.IDs {
+				results <- j
+			}
+
+			w.wait()
 		}
+
+		ch <- nil
 	}()
 
-	return ch, nil
+	return ch
+}
+
+const initRetryDelay = 5   // seconds
+const maxRetryDelay = 1800 // seconds
+
+type waiter struct {
+	currentDelay int
+	initDelay    int
+	maxDelay     int
+}
+
+func defaultWaiter() waiter {
+	return waiter{
+		currentDelay: initRetryDelay,
+		initDelay:    initRetryDelay,
+		maxDelay:     maxRetryDelay,
+	}
+}
+
+func newWaiter(initDelay, maxDelay int) waiter {
+	return waiter{initDelay, initDelay, maxDelay}
+}
+
+func (w *waiter) wait() {
+	time.Sleep(time.Duration(w.currentDelay) * time.Second)
+	w.currentDelay *= 2
+	if w.currentDelay > w.maxDelay {
+		w.currentDelay = w.maxDelay
+	}
+}
+
+func (w *waiter) reset() {
+	w.currentDelay = w.initDelay
 }
