@@ -23,12 +23,7 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		full = true
 	}
 
-	var ids []string
-	st := req.URL.Query().Get("ids")
-	if st != "" {
-		ids = strings.Split(st, ",")
-	}
-
+	ids := req.URL.Query()["id"]
 	status, err := h.backend.GetJobs(ids, full)
 	if err != nil {
 		log.Error.Println(errors.Wrap(err, "get job failed"))

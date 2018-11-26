@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
@@ -113,7 +112,7 @@ func query(ids []string, jobDBURL string) (chan *Status, error) {
 		errors.Wrap(err, "could not create GET request")
 	}
 	q := req.URL.Query()
-	q.Set("ids", strings.Join(ids, ","))
+	q["id"] = ids
 	q.Set("full", "false")
 	req.URL.RawQuery = q.Encode()
 
