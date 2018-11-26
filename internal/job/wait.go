@@ -16,7 +16,7 @@ import (
 	"github.com/streadway/amqp"
 )
 
-const maxWait = 12 * 3600 // max 12h to wait for job dependencies to finish
+const maxWait = 2 * 3600 // max 2h to wait a job dependency to finish
 
 // WaitForJobs wait for the completion of a set of jobs referenced through theirs
 // unique ids. The job status is obtained from the completed job notification channel
@@ -40,18 +40,20 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 		return []Status{}, errors.Wrap(err, "could not perform job DB query")
 	}
 
+	log.Info.Println("Waiting for jobs")
+
 	stop := false
 	for !stop {
 		select {
 		case j := <-notifications:
-			log.Info.Println("(Notification) job completed:", j)
 			jobStatuses[j.ID] = j.Successful
+			log.Info.Println("(Notification) job finished:", j.ID, "status:", j.Successful)
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				stop = true
 			}
 		case j := <-queryResults:
-			log.Info.Println("(Query) job completed:", j)
 			jobStatuses[j.ID] = j.Successful
+			log.Info.Println("(Query result) job finished:", j.ID, "status:", j.Successful)
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				stop = true
 			}

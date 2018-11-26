@@ -40,7 +40,7 @@ func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries i
 	}
 	defer consumer.close()
 
-	log.Info.Println("Waiting for jobs")
+	log.Info.Println("Entering consumer loop")
 
 	if err := consumer.loop(); err != nil {
 		return errors.Wrap(err, "error in consumer loop")
