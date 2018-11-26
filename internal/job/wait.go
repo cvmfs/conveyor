@@ -46,13 +46,13 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 		select {
 		case j := <-notifications:
 			jobStatuses[j.ID] = j.Successful
-			log.Info.Println("(Notification) job finished:", j.ID, "status:", j.Successful)
+			log.Info.Println("(Notification) job finished:", j)
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				stop = true
 			}
 		case j := <-queryResults:
 			jobStatuses[j.ID] = j.Successful
-			log.Info.Println("(Query result) job finished:", j.ID, "status:", j.Successful)
+			log.Info.Println("(Query result) job finished:", j)
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				stop = true
 			}
@@ -60,6 +60,8 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 			return []Status{}, errors.New("timeout")
 		}
 	}
+
+	log.Info.Println("Collected the status of all jobs")
 
 	st := []Status{}
 	for k, v := range jobStatuses {
@@ -69,7 +71,7 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 	return st, nil
 }
 
-func listen(ids map[string]bool, q *queue.Client) (chan *Status, error) {
+func listen(ids map[string]bool, q *queue.Client) (chan Status, error) {
 	jobs, err := q.Chan.Consume(
 		q.CompletedJobQueue.Name, "", false, false, false, false, nil)
 	if err != nil {
@@ -84,20 +86,20 @@ func listen(ids map[string]bool, q *queue.Client) (chan *Status, error) {
 		os.Exit(1)
 	}()
 
-	ch := make(chan *Status)
+	ch := make(chan Status)
 
 	go func() {
 		for j := range jobs {
 			var stat Status
 			if err := json.Unmarshal(j.Body, &stat); err != nil {
 				log.Error.Println(err)
-				j.Nack(false, false)
-				ch <- nil
+				j.Nack(false, true)
+				os.Exit(1)
 			}
 			id := stat.ID.String()
 			_, pres := ids[id]
 			if pres {
-				ch <- &stat
+				ch <- stat
 			}
 			j.Ack(false)
 		}
@@ -106,7 +108,7 @@ func listen(ids map[string]bool, q *queue.Client) (chan *Status, error) {
 	return ch, nil
 }
 
-func query(ids []string, jobDBURL string) (chan *Status, error) {
+func query(ids []string, jobDBURL string) (chan Status, error) {
 	req, err := http.NewRequest("GET", jobDBURL, nil)
 	if err != nil {
 		errors.Wrap(err, "could not create GET request")
@@ -141,13 +143,13 @@ func query(ids []string, jobDBURL string) (chan *Status, error) {
 			err, fmt.Sprintf("Getting job status failed: %s", reply.Reason))
 	}
 
-	ch := make(chan *Status)
+	ch := make(chan Status)
 
 	go func() {
 		for _, j := range reply.IDs {
-			ch <- &j
+			ch <- j
 		}
 	}()
 
-	return nil, nil
+	return ch, nil
 }
