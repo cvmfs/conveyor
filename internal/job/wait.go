@@ -110,8 +110,9 @@ func query(ids []string, jobDBURL string) (chan *Status, error) {
 		errors.Wrap(err, "could not create GET request")
 	}
 	q := req.URL.Query()
-	q.Add("ids", strings.Join(ids, ","))
-	q.Add("full", "false")
+	q.Set("ids", strings.Join(ids, ","))
+	q.Set("full", "false")
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
