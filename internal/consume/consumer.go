@@ -93,41 +93,43 @@ func (c *consumer) handleMessage(msg *amqp.Delivery) {
 		return
 	}
 
-	// Wait for job dependencies to finish
-	depStatus, err := job.WaitForJobs(
-		desc.Dependencies, c.qCons, c.jobDBURL)
-	if err != nil {
-		err := errors.Wrap(err, "waiting for job dependencies failed")
-		log.Error.Println(err)
-		if err := postJobStatus(
-			&desc, startTime, time.Now(), false, err.Error(),
-			c.jobDBURL, c.keys, c.qCons); err != nil {
-			log.Error.Println(
-				errors.Wrap(err, "posting job status to DB failed"))
-			msg.Nack(false, true)
-			return
+	if len(desc.Dependencies) > 0 {
+		// Wait for job dependencies to finish
+		depStatus, err := job.WaitForJobs(
+			desc.Dependencies, c.qCons, c.jobDBURL)
+		if err != nil {
+			err := errors.Wrap(err, "waiting for job dependencies failed")
+			log.Error.Println(err)
+			if err := postJobStatus(
+				&desc, startTime, time.Now(), false, err.Error(),
+				c.jobDBURL, c.keys, c.qCons); err != nil {
+				log.Error.Println(
+					errors.Wrap(err, "posting job status to DB failed"))
+				msg.Nack(false, true)
+				return
+			}
 		}
-	}
 
-	// In any of the dependencies failed, the current job should also
-	// be listed as failed
-	failed := []string{}
-	for _, st := range depStatus {
-		if st.Successful == false {
-			failed = append(failed, st.ID.String())
+		// In any of the dependencies failed, the current job should also
+		// be listed as failed
+		failed := []string{}
+		for _, st := range depStatus {
+			if st.Successful == false {
+				failed = append(failed, st.ID.String())
+			}
 		}
-	}
-	if len(failed) > 0 {
-		err := errors.New(
-			fmt.Sprintf("failed job dependencies: %v", failed))
-		log.Error.Println(err)
-		if err := postJobStatus(
-			&desc, startTime, time.Now(), false, err.Error(),
-			c.jobDBURL, c.keys, c.qCons); err != nil {
-			log.Error.Println(
-				errors.Wrap(err, "posting job status to DB failed"))
-			msg.Nack(false, true)
-			return
+		if len(failed) > 0 {
+			err := errors.New(
+				fmt.Sprintf("failed job dependencies: %v", failed))
+			log.Error.Println(err)
+			if err := postJobStatus(
+				&desc, startTime, time.Now(), false, err.Error(),
+				c.jobDBURL, c.keys, c.qCons); err != nil {
+				log.Error.Println(
+					errors.Wrap(err, "posting job status to DB failed"))
+				msg.Nack(false, true)
+				return
+			}
 		}
 	}
 
