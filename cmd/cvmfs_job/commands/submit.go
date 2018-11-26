@@ -32,10 +32,10 @@ var submitCmd = &cobra.Command{
 			log.Error.Println(err)
 			os.Exit(1)
 		}
-		jCfg, rr := jobdb.ReadConfig()
+		jCfg, err := jobdb.ReadConfig()
 		if err != nil {
 			log.Error.Println(err)
-			ex.Exit(1)
+			os.Exit(1)
 		}
 		jparams := &job.Specification{
 			Repository: repo, Payload: payload, RepositoryPath: path,
