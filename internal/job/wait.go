@@ -30,14 +30,16 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 	jobStatuses := map[uuid.UUID]bool{}
 
 	// Subscribe to notifications from the completed job channel
-	notifications, err := listen(idMap, q)
-	if err != nil {
+	notifications := make(chan Status)
+	notifQuit := make(chan bool)
+	if err := listen(idMap, q, notifications, notifQuit); err != nil {
 		return []Status{}, errors.Wrap(err, "could not subscribe to notifications")
 	}
 
 	// Query the job DB for the status of completed jobs
 	queryResults := make(chan Status)
-	ch := query(ids, jobDBURL, queryResults)
+	queryQuit := make(chan bool)
+	ch := query(ids, jobDBURL, queryResults, queryQuit)
 
 	log.Info.Println("Waiting for jobs")
 
@@ -46,21 +48,29 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 		select {
 		case e := <-ch:
 			if e != nil {
-				return []Status{}, errors.Wrap(err, "could not perform job DB query")
+				close(notifQuit)
+				close(queryQuit)
+				return []Status{}, errors.Wrap(e, "could not perform job DB query")
 			}
 		case j := <-notifications:
 			jobStatuses[j.ID] = j.Successful
 			log.Info.Println("(Notification) job finished:", j)
 			if !j.Successful || len(ids) == len(jobStatuses) {
+				close(notifQuit)
+				close(queryQuit)
 				stop = true
 			}
 		case j := <-queryResults:
 			jobStatuses[j.ID] = j.Successful
 			log.Info.Println("(Query result) job finished:", j)
 			if !j.Successful || len(ids) == len(jobStatuses) {
+				close(notifQuit)
+				close(queryQuit)
 				stop = true
 			}
 		case <-time.After(maxWait * time.Second):
+			close(notifQuit)
+			close(queryQuit)
 			return []Status{}, errors.New("timeout")
 		}
 	}
@@ -75,11 +85,16 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 	return st, nil
 }
 
-func listen(ids map[string]bool, q *queue.Client) (chan Status, error) {
+func listen(
+	ids map[string]bool,
+	q *queue.Client,
+	notifications chan<- Status,
+	quit <-chan bool) error {
+
 	jobs, err := q.Chan.Consume(
 		q.CompletedJobQueue.Name, "", false, false, false, false, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not start consuming jobs")
+		return errors.Wrap(err, "could not start consuming jobs")
 	}
 
 	go func() {
@@ -90,35 +105,40 @@ func listen(ids map[string]bool, q *queue.Client) (chan Status, error) {
 		os.Exit(1)
 	}()
 
-	ch := make(chan Status)
-
 	go func() {
-		for j := range jobs {
-			var stat Status
-			if err := json.Unmarshal(j.Body, &stat); err != nil {
-				log.Error.Println(err)
-				j.Nack(false, false)
-				os.Exit(1) // Is there a better way to handle this than restarting?
+	L:
+		for {
+			select {
+			case j := <-jobs:
+				var stat Status
+				if err := json.Unmarshal(j.Body, &stat); err != nil {
+					log.Error.Println(err)
+					j.Nack(false, false)
+					os.Exit(1) // Is there a better way to handle this than restarting?
+				}
+				id := stat.ID.String()
+				_, pres := ids[id]
+				if pres {
+					notifications <- stat
+				}
+				j.Ack(false)
+			case <-quit:
+				break L
 			}
-			id := stat.ID.String()
-			_, pres := ids[id]
-			if pres {
-				ch <- stat
-			}
-			j.Ack(false)
 		}
 	}()
 
-	return ch, nil
+	return nil
 }
 
-func query(ids []string, jobDBURL string, results chan Status) chan error {
+func query(ids []string, jobDBURL string, results chan<- Status, quit <-chan bool) chan error {
 	ch := make(chan error)
 
 	go func() {
 		w := defaultWaiter()
 		retry := 0
 
+	L:
 		for retry < maxQueryRetries {
 			req, err := http.NewRequest("GET", jobDBURL, nil)
 			if err != nil {
@@ -159,6 +179,11 @@ func query(ids []string, jobDBURL string, results chan Status) chan error {
 			}
 
 			w.wait()
+			select {
+			case <-quit:
+				break L
+			default:
+			}
 		}
 
 		ch <- nil
