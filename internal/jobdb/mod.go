@@ -1,6 +1,9 @@
 package jobdb
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/pkg/errors"
@@ -27,6 +30,15 @@ func ReadConfig() (*Config, error) {
 		return nil, errors.Wrap(err, "could not read job db configuration")
 	}
 	return &cfg, nil
+}
+
+// JobDBURL constructs the URL of the job DB service
+func (c *Config) JobDBURL() string {
+	var prefix string
+	if !strings.HasPrefix(c.Host, "http://") {
+		prefix = "http://"
+	}
+	return fmt.Sprintf("%s%s:%v/jobs", prefix, c.Host, c.Port)
 }
 
 // Run - run the job db service
