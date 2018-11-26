@@ -70,8 +70,7 @@ func WaitForJobs(ids []string, q *queue.Client, jobDBURL string) ([]Status, erro
 
 func listen(ids map[string]bool, q *queue.Client) (chan *Status, error) {
 	jobs, err := q.Chan.Consume(
-		q.CompletedJobQueue.Name, queue.ClientName,
-		false, false, false, false, nil)
+		q.CompletedJobQueue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not start consuming jobs")
 	}

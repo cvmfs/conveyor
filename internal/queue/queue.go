@@ -15,8 +15,6 @@ const (
 	NewJobExchange string = "jobs.new"
 	// NewJobQueue - name of the RabbitMQ queue for new jobs
 	NewJobQueue string = "jobs.new"
-	// ClientName - name to identify the consumer
-	ClientName string = "cvmfs_job"
 
 	// CompletedJobExchange - name of the RabbitMQ exchange for finished jobs
 	CompletedJobExchange string = "jobs.done"

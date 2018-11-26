@@ -62,8 +62,7 @@ func (c *consumer) close() {
 
 func (c *consumer) loop() error {
 	jobs, err := c.qCons.Chan.Consume(
-		c.qCons.NewJobQueue.Name, queue.ClientName,
-		false, false, false, false, nil)
+		c.qCons.NewJobQueue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not start consuming jobs")
 	}
