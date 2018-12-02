@@ -12,4 +12,4 @@ done
 ids=$(echo $ids | tr ' ' ,)
 
 # Submit a final job depending on all the previous ones
-./cvmfs_job submit --repo test-sw.hsf.org --deps "$ids" --wait
+./cvmfs_job submit --repo test-sw.hsf.org --deps "$ids" --script /usr/local/bin/list_all_versions.sh --wait
