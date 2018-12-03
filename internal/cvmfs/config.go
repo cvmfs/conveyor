@@ -57,16 +57,20 @@ func ReadConfig() (*Config, error) {
 	}
 
 	q := viper.Sub("queue")
-	q.SetDefault("port", 5672)
-	q.SetDefault("vhost", "/cvmfs")
-	if err := q.Unmarshal(&cfg.Queue); err != nil {
-		return nil, errors.Wrap(err, "could not read queue configuration")
+	if q != nil {
+		q.SetDefault("port", 5672)
+		q.SetDefault("vhost", "/cvmfs")
+		if err := q.Unmarshal(&cfg.Queue); err != nil {
+			return nil, errors.Wrap(err, "could not read queue configuration")
+		}
 	}
 
 	db := viper.Sub("db")
-	db.SetDefault("db.port", 3306)
-	if err := db.Unmarshal(&cfg.Backend); err != nil {
-		return nil, errors.Wrap(err, "could not read db configuration")
+	if db != nil {
+		db.SetDefault("db.port", 3306)
+		if err := db.Unmarshal(&cfg.Backend); err != nil {
+			return nil, errors.Wrap(err, "could not read db configuration")
+		}
 	}
 
 	return &cfg, nil
