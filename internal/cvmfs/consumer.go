@@ -28,7 +28,7 @@ func init() {
 type Consumer struct {
 	qCons         *QueueClient
 	qPub          *QueueClient
-	jobDBURL      string
+	jobServerURL  string
 	keys          *Keys
 	tempDir       string
 	maxJobRetries int
@@ -36,7 +36,7 @@ type Consumer struct {
 
 // NewConsumer - creates a new job consumer object
 func NewConsumer(
-	qCfg *QueueConfig, keys *Keys, jobDBURL string, tempDir string,
+	qCfg *QueueConfig, keys *Keys, jobServerURL string, tempDir string,
 	maxJobRetries int) (*Consumer, error) {
 
 	cleanUp := false
@@ -60,7 +60,7 @@ func NewConsumer(
 	}
 
 	return &Consumer{
-		qCons, qPub, jobDBURL, keys, tempDir, maxJobRetries}, nil
+		qCons, qPub, jobServerURL, keys, tempDir, maxJobRetries}, nil
 }
 
 // Close all the internal connections of the consumer
@@ -106,15 +106,15 @@ func (c *Consumer) handleMessage(msg *amqp.Delivery) {
 	if len(desc.Dependencies) > 0 {
 		// Wait for job dependencies to finish
 		depStatus, err := WaitForJobs(
-			desc.Dependencies, c.qCons, c.jobDBURL)
+			desc.Dependencies, c.qCons, c.jobServerURL)
 		if err != nil {
 			err := errors.Wrap(err, "waiting for job dependencies failed")
 			LogError.Println(err)
 			if err := postJobStatus(
 				&desc, startTime, time.Now(), false, err.Error(),
-				c.jobDBURL, c.keys, c.qCons); err != nil {
+				c.jobServerURL, c.keys, c.qCons); err != nil {
 				LogError.Println(
-					errors.Wrap(err, "posting job status to DB failed"))
+					errors.Wrap(err, "posting job status to server failed"))
 				msg.Nack(false, true)
 				return
 			}
@@ -134,9 +134,9 @@ func (c *Consumer) handleMessage(msg *amqp.Delivery) {
 			LogError.Println(err)
 			if err := postJobStatus(
 				&desc, startTime, time.Now(), false, err.Error(),
-				c.jobDBURL, c.keys, c.qCons); err != nil {
+				c.jobServerURL, c.keys, c.qCons); err != nil {
 				LogError.Println(
-					errors.Wrap(err, "posting job status to DB failed"))
+					errors.Wrap(err, "posting job status to server failed"))
 				msg.Nack(false, true)
 				return
 			}
@@ -171,12 +171,12 @@ func (c *Consumer) handleMessage(msg *amqp.Delivery) {
 
 	finishTime := time.Now()
 
-	// Publish the processed job status to the Job DB
+	// Publish the processed job status to the job server
 	if err := postJobStatus(
 		&desc, startTime, finishTime, success, errMsg,
-		c.jobDBURL, c.keys, c.qPub); err != nil {
+		c.jobServerURL, c.keys, c.qPub); err != nil {
 		LogError.Println(
-			errors.Wrap(err, "posting job status to DB failed"))
+			errors.Wrap(err, "posting job status to server failed"))
 		msg.Nack(false, true)
 		return
 	}
@@ -221,7 +221,7 @@ func postJobStatus(
 
 	rdr := bytes.NewReader(buf)
 
-	// Post processed job status to the job DB
+	// Post processed job status to the job server
 	req, err := http.NewRequest("POST", url, rdr)
 	if err != nil {
 		errors.Wrap(err, "could not create POST request")
@@ -231,7 +231,7 @@ func postJobStatus(
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "Posting job status to DB failed")
+		return errors.Wrap(err, "Posting job status to server failed")
 	}
 	defer resp.Body.Close()
 

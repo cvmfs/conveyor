@@ -1,19 +1,19 @@
-# RabbitMQ configuration is used by cvmfs_job {submit, consume}
-[rabbitmq]
-username = "RABBITMQ USER NAME"
-password = "PASSWORD USER PASSWORD"
-host = "RABBITMQ HOST NAME"
-port = 5672
-vhost = "/"
-
-# JobDB configuration is used by cvmfs_job {submit, consume, db}
-[jobdb]
+# Job server configuration is used by cvmfs_job {submit, consume, server}
+[server]
 host = "JOB SERVICE HOST NAME"
 port = 8080
 keydir = "/etc/cvmfs/keys" # Default key dir
 
-# JobDB backend configuration is only used by cvmfs_job db
-[jobdb.backend]
+# Queue configuration is used by cvmfs_job server
+[queue]
+username = "QUEUE USER NAME"
+password = "QUEUE USER PASSWORD"
+host = "QUEUE HOST NAME"
+port = 5672
+vhost = "/"
+
+# Job server backend configuration is only used by cvmfs_job server
+[db]
 type = "mysql"
 database = "devcvmfs"
 username = "DB_USERNAME"

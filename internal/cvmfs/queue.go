@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
 )
 
@@ -29,30 +28,6 @@ const (
 	ConsumerConnection = iota
 	PublisherConnection
 )
-
-// QueueConfig - configuration of the job queue
-type QueueConfig struct {
-	Username string
-	Password string
-	Host     string
-	VHost    string
-	Port     int
-}
-
-// ReadQueueConfig - populate the Config object using the global viper object
-//              and the config file
-func ReadQueueConfig() (*QueueConfig, error) {
-	v := viper.Sub("rabbitmq")
-	viper.SetDefault("rabbitmq.port", 5672)
-	viper.SetDefault("rabbitmq.vhost", "/cvmfs")
-
-	var cfg QueueConfig
-	if err := v.Unmarshal(&cfg); err != nil {
-		return nil, errors.Wrap(err, "could not read RabbitMQ configuration")
-	}
-
-	return &cfg, nil
-}
 
 // QueueClient - encapsulates the AMQP connection and channel
 type QueueClient struct {

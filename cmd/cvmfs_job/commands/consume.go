@@ -17,18 +17,13 @@ var consumeCmd = &cobra.Command{
 	Long:  "Consume publishing jobs from the queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		qCfg, err := cvmfs.ReadQueueConfig()
-		if err != nil {
-			cvmfs.LogError.Println(err)
-			os.Exit(1)
-		}
-		jCfg, err := cvmfs.ReadJobDbConfig()
+		cfg, err := cvmfs.ReadConfig()
 		if err != nil {
 			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
 
-		keys, err := cvmfs.ReadKeys(jCfg.KeyDir)
+		keys, err := cvmfs.ReadKeys(cfg.KeyDir)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not read API keys from file"))
@@ -45,7 +40,7 @@ var consumeCmd = &cobra.Command{
 		defer os.RemoveAll(tempDir)
 
 		consumer, err := cvmfs.NewConsumer(
-			qCfg, keys, jCfg.JobDBURL(), tempDir, *maxJobRetries)
+			&cfg.Queue, keys, cfg.JobServerURL(), tempDir, *maxJobRetries)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not create RabbitMQ message consumer"))

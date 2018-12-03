@@ -10,16 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// BackendConfig - database backend configuration for the job db service
-type BackendConfig struct {
-	Type     string
-	Database string
-	Username string
-	Password string
-	Host     string
-	Port     int
-}
-
 // Backend - encapsulates the backend state
 type Backend struct {
 	db *sql.DB

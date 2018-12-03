@@ -8,18 +8,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var dbCmd = &cobra.Command{
-	Use:   "db",
-	Short: "Start job DB",
-	Long:  "Start the job database service",
+var serverCmd = &cobra.Command{
+	Use:   "server",
+	Short: "Start the job server",
+	Long:  "Start the job server",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := cvmfs.ReadJobDbConfig()
+		cfg, err := cvmfs.ReadConfig()
 		if err != nil {
 			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		cvmfs.LogInfo.Println("CVMFS job database service starting")
+		cvmfs.LogInfo.Println("CVMFS job server starting")
 
 		keys, err := cvmfs.ReadKeys(cfg.KeyDir)
 		if err != nil {

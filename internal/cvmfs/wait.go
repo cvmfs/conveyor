@@ -15,12 +15,12 @@ import (
 
 const maxWait = 2 * 3600 // max 2h to wait for a job dependency to finish
 
-const maxQueryRetries = 50 // max number of job DB query retries
+const maxQueryRetries = 50 // max number of job server query retries
 
 // WaitForJobs wait for the completion of a set of jobs referenced through theirs
 // unique ids. The job status is obtained from the completed job notification channel
-// of the job queue and from the job DB service
-func WaitForJobs(ids []string, q *QueueClient, jobDBURL string) ([]JobStatus, error) {
+// of the job queue and from the job server
+func WaitForJobs(ids []string, q *QueueClient, jobServerURL string) ([]JobStatus, error) {
 	idMap := make(map[string]bool)
 	for _, id := range ids {
 		idMap[id] = false
@@ -34,10 +34,10 @@ func WaitForJobs(ids []string, q *QueueClient, jobDBURL string) ([]JobStatus, er
 		return []JobStatus{}, errors.Wrap(err, "could not subscribe to notifications")
 	}
 
-	// Query the job DB for the JobStatus of completed jobs
+	// Query the job server for the status of completed jobs
 	queryResults := make(chan JobStatus)
 	queryQuit := make(chan bool)
-	ch := query(ids, jobDBURL, queryResults, queryQuit)
+	ch := query(ids, jobServerURL, queryResults, queryQuit)
 
 	LogInfo.Println("Waiting for jobs")
 
@@ -48,7 +48,7 @@ func WaitForJobs(ids []string, q *QueueClient, jobDBURL string) ([]JobStatus, er
 			if e != nil {
 				close(notifQuit)
 				close(queryQuit)
-				return []JobStatus{}, errors.Wrap(e, "could not perform job DB query")
+				return []JobStatus{}, errors.Wrap(e, "could not perform job server query")
 			}
 		case j := <-notifications:
 			jobStatuses[j.ID] = j.Successful
@@ -129,7 +129,7 @@ func listen(
 	return nil
 }
 
-func query(ids []string, jobDBURL string, results chan<- JobStatus, quit <-chan bool) chan error {
+func query(ids []string, jobServerURL string, results chan<- JobStatus, quit <-chan bool) chan error {
 	ch := make(chan error)
 
 	go func() {
@@ -138,7 +138,7 @@ func query(ids []string, jobDBURL string, results chan<- JobStatus, quit <-chan 
 
 	L:
 		for retry < maxQueryRetries {
-			req, err := http.NewRequest("GET", jobDBURL, nil)
+			req, err := http.NewRequest("GET", jobServerURL, nil)
 			if err != nil {
 				errors.Wrap(err, "could not create GET request")
 			}
@@ -149,7 +149,7 @@ func query(ids []string, jobDBURL string, results chan<- JobStatus, quit <-chan 
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
-				ch <- errors.Wrap(err, "Getting job status from DB failed")
+				ch <- errors.Wrap(err, "Getting job status from server failed")
 			}
 			defer resp.Body.Close()
 

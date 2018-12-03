@@ -63,9 +63,9 @@ togo file exclude root/usr/bin
 
 mkdir -p ${TOGO_PROJECT}/root/etc/systemd/system
 cp -v ${SCRIPT_LOCATION}/cvmfs-job-consumer.service ${TOGO_PROJECT}/root/etc/systemd/system/
-cp -v ${SCRIPT_LOCATION}/cvmfs-job-db.service ${TOGO_PROJECT}/root/etc/systemd/system/
+cp -v ${SCRIPT_LOCATION}/cvmfs-job-server.service ${TOGO_PROJECT}/root/etc/systemd/system/
 togo file flag config-nr root/etc/systemd/system/cvmfs-job-consumer.service
-togo file flag config-nr root/etc/systemd/system/cvmfs-job-db.service
+togo file flag config-nr root/etc/systemd/system/cvmfs-job-server.service
 togo file exclude root/etc/systemd/system
 
 mkdir -p ${TOGO_PROJECT}/root/etc/cvmfs/publisher

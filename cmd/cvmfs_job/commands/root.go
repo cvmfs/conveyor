@@ -12,7 +12,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "cvmfs_job",
 	Short:   "CVMFS publishing tool",
-	Long:    "A tool for working with publishing jobs to CVMFS repositories",
+	Long:    "A publishing tool for CVMFS repositories",
 	Version: "0.9.0",
 }
 
@@ -32,7 +32,7 @@ func init() {
 		"include timestamps in logging output")
 	rootCmd.AddCommand(consumeCmd)
 	rootCmd.AddCommand(submitCmd)
-	rootCmd.AddCommand(dbCmd)
+	rootCmd.AddCommand(serverCmd)
 
 	viper.BindPFlag("log-timestamps", rootCmd.PersistentFlags().Lookup("log-timestamps"))
 }

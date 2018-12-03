@@ -24,12 +24,7 @@ var submitCmd = &cobra.Command{
 	Long:  "Submit a publishing job to a queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		qCfg, err := cvmfs.ReadQueueConfig()
-		if err != nil {
-			cvmfs.LogError.Println(err)
-			os.Exit(1)
-		}
-		jCfg, err := cvmfs.ReadJobDbConfig()
+		cfg, err := cvmfs.ReadConfig()
 		if err != nil {
 			cvmfs.LogError.Println(err)
 			os.Exit(1)
@@ -39,7 +34,7 @@ var submitCmd = &cobra.Command{
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
 
-		pub, err := cvmfs.NewQueueClient(qCfg, cvmfs.PublisherConnection)
+		pub, err := cvmfs.NewQueueClient(&cfg.Queue, cvmfs.PublisherConnection)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not create publisher connection"))
@@ -64,14 +59,14 @@ var submitCmd = &cobra.Command{
 
 		// Optionally wait for completion of the job
 		if *wait {
-			consumer, err := cvmfs.NewQueueClient(qCfg, cvmfs.ConsumerConnection)
+			consumer, err := cvmfs.NewQueueClient(&cfg.Queue, cvmfs.ConsumerConnection)
 			if err != nil {
 				cvmfs.LogError.Println(
 					errors.Wrap(err, "could not create consumer connection"))
 				os.Exit(1)
 			}
 			stats, err := cvmfs.WaitForJobs(
-				[]string{newJob.ID.String()}, consumer, jCfg.JobDBURL())
+				[]string{newJob.ID.String()}, consumer, cfg.JobServerURL())
 			if err != nil {
 				cvmfs.LogError.Println(
 					errors.Wrap(err, "waiting for job completion failed"))

@@ -4,6 +4,6 @@ if [ "x$(systemctl list-unit-files | grep cvmfs-job-consumer)" != "x" ]; then
 	systemctl stop cvmfs-job-consumer
 fi
 
-if [ "x$(systemctl list-unit-files | grep cvmfs-job-db)" != "x" ]; then
-	systemctl stop cvmfs-job-db
+if [ "x$(systemctl list-unit-files | grep cvmfs-job-server)" != "x" ]; then
+	systemctl stop cvmfs-job-server
 fi
