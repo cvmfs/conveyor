@@ -146,14 +146,14 @@ func (c *Consumer) handleMessage(msg *amqp.Delivery) {
 	LogInfo.Println("Start publishing job:", desc.ID.String())
 
 	task := func() error {
-		return desc.Process(c.tempDir)
+		return desc.process(c.tempDir)
 	}
 
 	success := false
 	errMsg := ""
 	retry := 0
 	for retry <= c.maxJobRetries {
-		err := RunTransaction(desc, task)
+		err := runTransaction(desc, task)
 		if err != nil {
 			wrappedErr := errors.Wrap(err, "could not run CVMFS transaction")
 			errMsg = wrappedErr.Error()

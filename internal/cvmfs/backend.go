@@ -34,8 +34,8 @@ func (b *Backend) Close() {
 	b.db.Close()
 }
 
-// GetJobs - returns the rows from the job DB corresponding to the IDs
-func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
+// getJobs - returns the rows from the job DB corresponding to the IDs
+func (b *Backend) getJobs(ids []string, full bool) (*GetJobReply, error) {
 	reply := GetJobReply{Status: "ok", Reason: ""}
 
 	queryStr := "select * from Jobs where Jobs.ID in ("
@@ -77,8 +77,8 @@ func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
 	return &reply, nil
 }
 
-// PutJob - inserts a job into the DB
-func (b *Backend) PutJob(j *ProcessedJob) (*PutJobReply, error) {
+// putJob - inserts a job into the DB
+func (b *Backend) putJob(j *ProcessedJob) (*PutJobReply, error) {
 	reply := PutJobReply{Status: "ok", Reason: ""}
 
 	tx, err := b.db.Begin()

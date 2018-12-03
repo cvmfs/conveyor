@@ -21,7 +21,7 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	ids := req.URL.Query()["id"]
-	status, err := h.backend.GetJobs(ids, full)
+	status, err := h.backend.getJobs(ids, full)
 	if err != nil {
 		LogError.Println(errors.Wrap(err, "get job failed"))
 	}
@@ -83,7 +83,7 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	status, err := h.backend.PutJob(&job)
+	status, err := h.backend.putJob(&job)
 	if err != nil {
 		LogError.Println(errors.Wrap(err, "get job failed"))
 	}

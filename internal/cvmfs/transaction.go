@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// RunTransaction - run the CVMFS transaction according to the job description
-func RunTransaction(desc UnprocessedJob, task func() error) error {
+// runTransaction - run the CVMFS transaction according to the job description
+func runTransaction(desc UnprocessedJob, task func() error) error {
 	fullPath := path.Join(desc.Repository, desc.RepositoryPath)
 
 	// Close any existing transactions

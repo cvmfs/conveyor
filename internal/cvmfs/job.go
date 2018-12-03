@@ -89,7 +89,7 @@ func CreateJob(params *JobSpecification) (*UnprocessedJob, error) {
 }
 
 // Process - process a job (download and unpack payload, run script etc.)
-func (j *UnprocessedJob) Process(tempDir string) error {
+func (j *UnprocessedJob) process(tempDir string) error {
 	// Create target dir if needed
 	targetDir := path.Join(
 		"/cvmfs", j.Repository, j.RepositoryPath)
