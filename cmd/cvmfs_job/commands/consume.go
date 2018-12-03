@@ -3,10 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/consume"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
 	"github.com/spf13/cobra"
 )
 
@@ -19,18 +16,18 @@ var consumeCmd = &cobra.Command{
 	Long:  "Consume publishing jobs from the queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		qCfg, err := queue.ReadConfig()
+		qCfg, err := cvmfs.ReadQueueConfig()
 		if err != nil {
-			log.Error.Println(err)
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		jCfg, err := jobdb.ReadConfig()
+		jCfg, err := cvmfs.ReadJobDbConfig()
 		if err != nil {
-			log.Error.Println(err)
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		if err := consume.Run(qCfg, jCfg, tempDir, *maxJobRetries); err != nil {
-			log.Error.Println(err)
+		if err := cvmfs.RunConsume(qCfg, jCfg, tempDir, *maxJobRetries); err != nil {
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
 	},

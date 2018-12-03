@@ -3,8 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
 	"github.com/spf13/cobra"
 )
 
@@ -14,13 +13,13 @@ var dbCmd = &cobra.Command{
 	Long:  "Start the job database service",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := jobdb.ReadConfig()
+		cfg, err := cvmfs.ReadJobDbConfig()
 		if err != nil {
-			log.Error.Println(err)
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		if err := jobdb.Run(cfg); err != nil {
-			log.Error.Println(err)
+		if err := cvmfs.RunJobDb(cfg); err != nil {
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
 	},

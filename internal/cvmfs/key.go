@@ -1,4 +1,4 @@
-package auth
+package cvmfs
 
 import (
 	"crypto/hmac"

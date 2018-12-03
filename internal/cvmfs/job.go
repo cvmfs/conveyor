@@ -1,4 +1,4 @@
-package job
+package cvmfs
 
 import (
 	"bytes"
@@ -10,14 +10,13 @@ import (
 	"path"
 	"time"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
-// Specification - job submission Specification
-type Specification struct {
+// JobSpecification - job submission Specification
+type JobSpecification struct {
 	Repository     string
 	Payload        string
 	RepositoryPath string
@@ -27,33 +26,33 @@ type Specification struct {
 	Dependencies   []string
 }
 
-// Unprocessed - a job submission that has been assigned and ID
-type Unprocessed struct {
+// UnprocessedJob - a job submission that has been assigned and ID
+type UnprocessedJob struct {
 	ID uuid.UUID
-	Specification
+	JobSpecification
 }
 
-// Processed - a processed job
-type Processed struct {
-	Unprocessed
+// ProcessedJob - a processed job
+type ProcessedJob struct {
+	UnprocessedJob
 	StartTime    time.Time
 	FinishTime   time.Time
 	Successful   bool
 	ErrorMessage string
 }
 
-// Status - a pair of job ID and the completion status
-type Status struct {
+// JobStatus - a pair of job ID and the completion status
+type JobStatus struct {
 	ID         uuid.UUID
 	Successful bool
 }
 
 // GetJobReply - Return type of the GetJob query
 type GetJobReply struct {
-	Status string      // "ok" || "error"
-	Reason string      `json:",omitempty"`
-	IDs    []Status    `json:",omitempty"`
-	Jobs   []Processed `json:",omitempty"`
+	Status string         // "ok" || "error"
+	Reason string         `json:",omitempty"`
+	IDs    []JobStatus    `json:",omitempty"`
+	Jobs   []ProcessedJob `json:",omitempty"`
 }
 
 // PutJobReply - Return type of the PutJob query
@@ -63,7 +62,7 @@ type PutJobReply struct {
 }
 
 // CreateJob - create a new job struct with validated field values
-func CreateJob(params *Specification) (*Unprocessed, error) {
+func CreateJob(params *JobSpecification) (*UnprocessedJob, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not generate UUID")
@@ -74,7 +73,7 @@ func CreateJob(params *Specification) (*Unprocessed, error) {
 		leasePath = "/" + leasePath
 	}
 
-	job := &Unprocessed{ID: id, Specification: *params}
+	job := &UnprocessedJob{ID: id, JobSpecification: *params}
 
 	if params.Script != "" {
 		if params.TransferScript {
@@ -90,7 +89,7 @@ func CreateJob(params *Specification) (*Unprocessed, error) {
 }
 
 // Process - process a job (download and unpack payload, run script etc.)
-func (j *Unprocessed) Process(tempDir string) error {
+func (j *UnprocessedJob) Process(tempDir string) error {
 	// Create target dir if needed
 	targetDir := path.Join(
 		"/cvmfs", j.Repository, j.RepositoryPath)
@@ -100,7 +99,7 @@ func (j *Unprocessed) Process(tempDir string) error {
 
 	// Download and unpack the payload, if given
 	if j.Payload != "" {
-		log.Info.Println("Downloading payload:", j.Payload)
+		LogInfo.Println("Downloading payload:", j.Payload)
 		if err := getter.Get(targetDir, j.Payload); err != nil {
 			return errors.Wrap(err, "could not download payload")
 		}
@@ -109,7 +108,7 @@ func (j *Unprocessed) Process(tempDir string) error {
 	// Run the transaction script, if specified
 	if j.Script != "" {
 		needsUnpacking := j.TransferScript
-		log.Info.Printf(
+		LogInfo.Printf(
 			"Running transaction script: %v (needs unpacking: %v)\n",
 			j.Script, needsUnpacking)
 

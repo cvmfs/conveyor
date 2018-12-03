@@ -1,4 +1,4 @@
-package jobdb
+package cvmfs
 
 import (
 	"database/sql"
@@ -7,8 +7,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql" // Import and register the MySQL driver
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/pkg/errors"
 )
 
@@ -33,8 +31,8 @@ func (b *Backend) Close() {
 }
 
 // GetJobs - returns the rows from the job DB corresponding to the IDs
-func (b *Backend) GetJobs(ids []string, full bool) (*job.GetJobReply, error) {
-	reply := job.GetJobReply{Status: "ok", Reason: ""}
+func (b *Backend) GetJobs(ids []string, full bool) (*GetJobReply, error) {
+	reply := GetJobReply{Status: "ok", Reason: ""}
 
 	queryStr := "select * from Jobs where Jobs.ID in ("
 	params := make([]interface{}, len(ids))
@@ -60,15 +58,15 @@ func (b *Backend) GetJobs(ids []string, full bool) (*job.GetJobReply, error) {
 			reason := "SQL query scan failed"
 			reply.Status = "error"
 			reply.Reason = reason
-			reply.IDs = []job.Status{}
-			reply.Jobs = []job.Processed{}
+			reply.IDs = []JobStatus{}
+			reply.Jobs = []ProcessedJob{}
 			return &reply, errors.Wrap(err, reason)
 		}
 
 		if full {
 			reply.Jobs = append(reply.Jobs, *st)
 		} else {
-			reply.IDs = append(reply.IDs, job.Status{ID: st.ID, Successful: st.Successful})
+			reply.IDs = append(reply.IDs, JobStatus{ID: st.ID, Successful: st.Successful})
 		}
 	}
 
@@ -76,8 +74,8 @@ func (b *Backend) GetJobs(ids []string, full bool) (*job.GetJobReply, error) {
 }
 
 // PutJob - inserts a job into the DB
-func (b *Backend) PutJob(j *job.Processed) (*job.PutJobReply, error) {
-	reply := job.PutJobReply{Status: "ok", Reason: ""}
+func (b *Backend) PutJob(j *ProcessedJob) (*PutJobReply, error) {
+	reply := PutJobReply{Status: "ok", Reason: ""}
 
 	tx, err := b.db.Begin()
 	if err != nil {
@@ -107,15 +105,15 @@ func (b *Backend) PutJob(j *job.Processed) (*job.PutJobReply, error) {
 		return &reply, errors.Wrap(err, reason)
 	}
 
-	log.Info.Printf(
+	LogInfo.Printf(
 		"Job inserted: %v, success: %v, start time: %v, finish time: %v\n",
 		j.ID, j.Successful, j.StartTime, j.FinishTime)
 
 	return &reply, nil
 }
 
-func scanRow(rows *sql.Rows) (*job.Processed, error) {
-	var st job.Processed
+func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
+	var st ProcessedJob
 	var deps string
 	if err := rows.Scan(
 		&st.ID, &st.Repository, &st.Payload, &st.RepositoryPath,

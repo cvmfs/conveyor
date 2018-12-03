@@ -1,12 +1,8 @@
-package consume
+package cvmfs
 
 import (
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/pkg/errors"
 )
 
@@ -20,9 +16,9 @@ func init() {
 	}
 }
 
-// Run - runs the job consumer
-func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries int) error {
-	keys, err := auth.ReadKeys(jCfg.KeyDir)
+// RunConsume - runs the job consumer
+func RunConsume(qCfg *QueueConfig, jCfg *JobDbConfig, tempDir string, maxJobRetries int) error {
+	keys, err := ReadKeys(jCfg.KeyDir)
 	if err != nil {
 		return errors.Wrap(err, "could not read API keys from file")
 	}
@@ -40,7 +36,7 @@ func Run(qCfg *queue.Config, jCfg *jobdb.Config, tempDir string, maxJobRetries i
 	}
 	defer consumer.close()
 
-	log.Info.Println("Entering consumer loop")
+	LogInfo.Println("Entering consumer loop")
 
 	if err := consumer.loop(); err != nil {
 		return errors.Wrap(err, "error in consumer loop")

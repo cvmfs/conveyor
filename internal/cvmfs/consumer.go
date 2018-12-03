@@ -1,4 +1,4 @@
-package consume
+package cvmfs
 
 import (
 	"bytes"
@@ -10,31 +10,27 @@ import (
 	"os"
 	"time"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 )
 
 type consumer struct {
-	qCons         *queue.Client
-	qPub          *queue.Client
+	qCons         *QueueClient
+	qPub          *QueueClient
 	jobDBURL      string
-	keys          *auth.Keys
+	keys          *Keys
 	tempDir       string
 	maxJobRetries int
 }
 
 func createConsumer(
-	qCfg *queue.Config, keys *auth.Keys, jobDBURL string, tempDir string,
+	qCfg *QueueConfig, keys *Keys, jobDBURL string, tempDir string,
 	maxJobRetries int) (*consumer, error) {
 
 	cleanUp := false
 
 	// Create clients for the queue system
-	qCons, err := queue.NewClient(qCfg, queue.ConsumerConnection)
+	qCons, err := NewQueueClient(qCfg, ConsumerConnection)
 	if err != nil {
 		return nil, errors.Wrap(
 			err, "could not create job queue connection (consumer)")
@@ -44,7 +40,7 @@ func createConsumer(
 			qCons.Close()
 		}
 	}()
-	qPub, err := queue.NewClient(qCfg, queue.PublisherConnection)
+	qPub, err := NewQueueClient(qCfg, PublisherConnection)
 	if err != nil {
 		cleanUp = true
 		return nil, errors.Wrap(
@@ -70,7 +66,7 @@ func (c *consumer) loop() error {
 	go func() {
 		ch := c.qCons.Chan.NotifyClose(make(chan *amqp.Error))
 		err := <-ch
-		log.Error.Println(
+		LogError.Println(
 			errors.Wrap(err, "connection to job queue closed"))
 		os.Exit(1)
 	}()
@@ -85,9 +81,9 @@ func (c *consumer) loop() error {
 func (c *consumer) handleMessage(msg *amqp.Delivery) {
 	startTime := time.Now()
 
-	var desc job.Unprocessed
+	var desc UnprocessedJob
 	if err := json.Unmarshal(msg.Body, &desc); err != nil {
-		log.Error.Println(
+		LogError.Println(
 			errors.Wrap(err, "could not unmarshal job description"))
 		msg.Nack(false, false)
 		return
@@ -95,15 +91,15 @@ func (c *consumer) handleMessage(msg *amqp.Delivery) {
 
 	if len(desc.Dependencies) > 0 {
 		// Wait for job dependencies to finish
-		depStatus, err := job.WaitForJobs(
+		depStatus, err := WaitForJobs(
 			desc.Dependencies, c.qCons, c.jobDBURL)
 		if err != nil {
 			err := errors.Wrap(err, "waiting for job dependencies failed")
-			log.Error.Println(err)
+			LogError.Println(err)
 			if err := postJobStatus(
 				&desc, startTime, time.Now(), false, err.Error(),
 				c.jobDBURL, c.keys, c.qCons); err != nil {
-				log.Error.Println(
+				LogError.Println(
 					errors.Wrap(err, "posting job status to DB failed"))
 				msg.Nack(false, true)
 				return
@@ -121,11 +117,11 @@ func (c *consumer) handleMessage(msg *amqp.Delivery) {
 		if len(failed) > 0 {
 			err := errors.New(
 				fmt.Sprintf("failed job dependencies: %v", failed))
-			log.Error.Println(err)
+			LogError.Println(err)
 			if err := postJobStatus(
 				&desc, startTime, time.Now(), false, err.Error(),
 				c.jobDBURL, c.keys, c.qCons); err != nil {
-				log.Error.Println(
+				LogError.Println(
 					errors.Wrap(err, "posting job status to DB failed"))
 				msg.Nack(false, true)
 				return
@@ -133,7 +129,7 @@ func (c *consumer) handleMessage(msg *amqp.Delivery) {
 		}
 	}
 
-	log.Info.Println("Start publishing job:", desc.ID.String())
+	LogInfo.Println("Start publishing job:", desc.ID.String())
 
 	task := func() error {
 		return desc.Process(c.tempDir)
@@ -147,11 +143,11 @@ func (c *consumer) handleMessage(msg *amqp.Delivery) {
 		if err != nil {
 			wrappedErr := errors.Wrap(err, "could not run CVMFS transaction")
 			errMsg = wrappedErr.Error()
-			log.Error.Println(wrappedErr)
+			LogError.Println(wrappedErr)
 			retry++
-			log.Info.Printf("Transaction failed.")
+			LogInfo.Printf("Transaction failed.")
 			if retry <= c.maxJobRetries {
-				log.Info.Printf(" Retrying: %v/%v\n", retry, c.maxJobRetries)
+				LogInfo.Printf(" Retrying: %v/%v\n", retry, c.maxJobRetries)
 			}
 		} else {
 			success = true
@@ -165,7 +161,7 @@ func (c *consumer) handleMessage(msg *amqp.Delivery) {
 	if err := postJobStatus(
 		&desc, startTime, finishTime, success, errMsg,
 		c.jobDBURL, c.keys, c.qPub); err != nil {
-		log.Error.Println(
+		LogError.Println(
 			errors.Wrap(err, "posting job status to DB failed"))
 		msg.Nack(false, true)
 		return
@@ -176,20 +172,20 @@ func (c *consumer) handleMessage(msg *amqp.Delivery) {
 	if success {
 		result = "success"
 	}
-	log.Info.Printf(
+	LogInfo.Printf(
 		"Finished publishing job: %v, %v\n", desc.ID.String(), result)
 }
 
 func postJobStatus(
-	j *job.Unprocessed, t0 time.Time, t1 time.Time, success bool, errMsg string,
-	url string, keys *auth.Keys, q *queue.Client) error {
+	j *UnprocessedJob, t0 time.Time, t1 time.Time, success bool, errMsg string,
+	url string, keys *Keys, q *QueueClient) error {
 
-	processed := job.Processed{
-		Unprocessed:  *j,
-		StartTime:    t0,
-		FinishTime:   t1,
-		Successful:   success,
-		ErrorMessage: errMsg,
+	processed := ProcessedJob{
+		UnprocessedJob: *j,
+		StartTime:      t0,
+		FinishTime:     t1,
+		Successful:     success,
+		ErrorMessage:   errMsg,
 	}
 	buf, err := json.Marshal(processed)
 	if err != nil {
@@ -207,7 +203,7 @@ func postJobStatus(
 		return errors.New(
 			fmt.Sprintf("Secret not found for keyID: %v", keyID))
 	}
-	hmac := base64.StdEncoding.EncodeToString(auth.ComputeHMAC(buf, key))
+	hmac := base64.StdEncoding.EncodeToString(ComputeHMAC(buf, key))
 
 	rdr := bytes.NewReader(buf)
 
@@ -234,7 +230,7 @@ func postJobStatus(
 		return errors.Wrap(err, "Reading reply body failed")
 	}
 
-	var pubStat job.PutJobReply
+	var pubStat PutJobReply
 	if err := json.Unmarshal(buf2, &pubStat); err != nil {
 		return errors.Wrap(err, "JSON decoding of reply failed")
 	}
@@ -245,15 +241,15 @@ func postJobStatus(
 	}
 
 	// Publish a notification to the completed job exchange
-	status := job.Status{ID: processed.ID, Successful: processed.Successful}
+	status := JobStatus{ID: processed.ID, Successful: processed.Successful}
 	var routingKey string
 	if processed.Successful {
-		routingKey = queue.SuccessKey
+		routingKey = SuccessKey
 	} else {
-		routingKey = queue.FailedKey
+		routingKey = FailedKey
 	}
 	if err := q.Publish(
-		queue.CompletedJobExchange, routingKey, status); err != nil {
+		CompletedJobExchange, routingKey, status); err != nil {
 		return errors.Wrap(err, "Posting job status to notification exchange failed")
 	}
 

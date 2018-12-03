@@ -1,4 +1,4 @@
-package queue
+package cvmfs
 
 import (
 	"encoding/json"
@@ -30,8 +30,8 @@ const (
 	PublisherConnection
 )
 
-// Config - configuration of the job queue
-type Config struct {
+// QueueConfig - configuration of the job queue
+type QueueConfig struct {
 	Username string
 	Password string
 	Host     string
@@ -39,14 +39,14 @@ type Config struct {
 	Port     int
 }
 
-// ReadConfig - populate the Config object using the global viper object
+// ReadQueueConfig - populate the Config object using the global viper object
 //              and the config file
-func ReadConfig() (*Config, error) {
+func ReadQueueConfig() (*QueueConfig, error) {
 	v := viper.Sub("rabbitmq")
 	viper.SetDefault("rabbitmq.port", 5672)
 	viper.SetDefault("rabbitmq.vhost", "/cvmfs")
 
-	var cfg Config
+	var cfg QueueConfig
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, errors.Wrap(err, "could not read RabbitMQ configuration")
 	}
@@ -54,17 +54,17 @@ func ReadConfig() (*Config, error) {
 	return &cfg, nil
 }
 
-// Client - encapsulates the AMQP connection and channel
-type Client struct {
+// QueueClient - encapsulates the AMQP connection and channel
+type QueueClient struct {
 	Conn              *amqp.Connection
 	Chan              *amqp.Channel
 	NewJobQueue       *amqp.Queue
 	CompletedJobQueue *amqp.Queue
 }
 
-// NewClient - create a new connection to the job queue. connType can
+// NewQueueClient - create a new connection to the job queue. connType can
 //             either be ConsumerConnection or PublisherConnection
-func NewClient(cfg *Config, connType int) (*Client, error) {
+func NewQueueClient(cfg *QueueConfig, connType int) (*QueueClient, error) {
 	dialStr := createConnectionURL(
 		cfg.Username, cfg.Password, cfg.Host, cfg.VHost, cfg.Port)
 	connection, err := amqp.Dial(dialStr)
@@ -95,7 +95,7 @@ func NewClient(cfg *Config, connType int) (*Client, error) {
 		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
-	c := &Client{connection, channel, nil, nil}
+	c := &QueueClient{connection, channel, nil, nil}
 
 	// In a consumer connection relevant queues are declared and bound
 	if connType == ConsumerConnection {
@@ -133,12 +133,12 @@ func NewClient(cfg *Config, connType int) (*Client, error) {
 }
 
 // Close - closes an established connection to the job queue
-func (c *Client) Close() error {
+func (c *QueueClient) Close() error {
 	return c.Conn.Close()
 }
 
 // Publish - publish data (as JSON) to an exchange using the given routing key
-func (c *Client) Publish(exchange string, key string, data interface{}) error {
+func (c *QueueClient) Publish(exchange string, key string, data interface{}) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return errors.Wrap(err, "could not marshal job into JSON")

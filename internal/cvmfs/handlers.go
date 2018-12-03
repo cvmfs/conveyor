@@ -1,4 +1,4 @@
-package jobdb
+package cvmfs
 
 import (
 	"encoding/base64"
@@ -7,9 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/auth"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/pkg/errors"
 )
 
@@ -26,13 +23,13 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ids := req.URL.Query()["id"]
 	status, err := h.backend.GetJobs(ids, full)
 	if err != nil {
-		log.Error.Println(errors.Wrap(err, "get job failed"))
+		LogError.Println(errors.Wrap(err, "get job failed"))
 	}
 
 	rep, err := json.Marshal(status)
 	if err != nil {
 		msg := "JSON serialization failed"
-		log.Error.Println(errors.Wrap(err, msg))
+		LogError.Println(errors.Wrap(err, msg))
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}
@@ -42,7 +39,7 @@ func (h getJobsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 type putJobHandler struct {
 	backend *Backend
-	keys    *auth.Keys
+	keys    *Keys
 }
 
 func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -50,7 +47,7 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	tokens := strings.Split(authHeader, " ")
 	if len(tokens) != 2 {
 		msg := "Missing or incomplete Authorization header"
-		log.Error.Println(msg)
+		LogError.Println(msg)
 		http.Error(w, msg, http.StatusUnauthorized)
 		return
 	}
@@ -58,7 +55,7 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	HMAC, err := base64.StdEncoding.DecodeString(tokens[1])
 	if err != nil {
 		msg := "Could not base64 decode HMAC"
-		log.Error.Println(errors.Wrap(err, msg))
+		LogError.Println(errors.Wrap(err, msg))
 		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
@@ -66,35 +63,35 @@ func (h putJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	buf, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		msg := "reading request body failed"
-		log.Error.Println(errors.Wrap(err, msg))
+		LogError.Println(errors.Wrap(err, msg))
 		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
-	if !auth.CheckHMAC(buf, HMAC, key) {
+	if !CheckHMAC(buf, HMAC, key) {
 		msg := "Invalid HMAC"
-		log.Error.Println(msg)
+		LogError.Println(msg)
 		http.Error(w, msg, http.StatusForbidden)
 		return
 	}
 
-	var job job.Processed
+	var job ProcessedJob
 	if err := json.Unmarshal(buf, &job); err != nil {
 		msg := "JSON deserialization of request failed"
-		log.Error.Println(errors.Wrap(err, msg))
+		LogError.Println(errors.Wrap(err, msg))
 		http.Error(w, msg, http.StatusBadRequest)
 		return
 	}
 
 	status, err := h.backend.PutJob(&job)
 	if err != nil {
-		log.Error.Println(errors.Wrap(err, "get job failed"))
+		LogError.Println(errors.Wrap(err, "get job failed"))
 	}
 
 	rep, err := json.Marshal(status)
 	if err != nil {
 		msg := "JSON serialization of reply failed"
-		log.Error.Println(errors.Wrap(err, msg))
+		LogError.Println(errors.Wrap(err, msg))
 		http.Error(w, msg, http.StatusInternalServerError)
 		return
 	}

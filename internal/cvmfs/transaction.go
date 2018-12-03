@@ -1,30 +1,28 @@
-package consume
+package cvmfs
 
 import (
 	"os"
 	"os/exec"
 	"path"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
 	"github.com/pkg/errors"
 )
 
 // RunTransaction - run the CVMFS transaction according to the job description
-func RunTransaction(desc job.Unprocessed, task func() error) error {
+func RunTransaction(desc UnprocessedJob, task func() error) error {
 	fullPath := path.Join(desc.Repository, desc.RepositoryPath)
 
 	// Close any existing transactions
 	abortTransaction(desc.Repository, false)
 
-	log.Info.Println("Opening CVMFS transaction for:", fullPath)
+	LogInfo.Println("Opening CVMFS transaction for:", fullPath)
 
 	abort := false
 	defer func() {
 		if abort {
-			log.Error.Println("Aborting CVMFS transaction")
+			LogError.Println("Aborting CVMFS transaction")
 			if err := abortTransaction(desc.Repository, true); err != nil {
-				log.Error.Println(
+				LogError.Println(
 					errors.Wrap(err, "could not abort CVMFS transaction"))
 			}
 		}
@@ -42,7 +40,7 @@ func RunTransaction(desc job.Unprocessed, task func() error) error {
 		}
 	}
 
-	log.Info.Println("Publishing CVMFS transaction")
+	LogInfo.Println("Publishing CVMFS transaction")
 	if err := commitTransaction(desc.Repository, true); err != nil {
 		abort = true
 		return errors.Wrap(err, "could not commit CVMFS transaction")

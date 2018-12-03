@@ -3,12 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/jobdb"
-
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/job"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/queue"
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/submit"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
 	"github.com/spf13/cobra"
 )
 
@@ -27,22 +22,22 @@ var submitCmd = &cobra.Command{
 	Long:  "Submit a publishing job to a queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		qCfg, err := queue.ReadConfig()
+		qCfg, err := cvmfs.ReadQueueConfig()
 		if err != nil {
-			log.Error.Println(err)
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		jCfg, err := jobdb.ReadConfig()
+		jCfg, err := cvmfs.ReadJobDbConfig()
 		if err != nil {
-			log.Error.Println(err)
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		jparams := &job.Specification{
+		jparams := &cvmfs.JobSpecification{
 			Repository: repo, Payload: payload, RepositoryPath: path,
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
-		if err := submit.Run(jparams, qCfg, jCfg, *wait); err != nil {
-			log.Error.Println(err)
+		if err := cvmfs.RunSubmit(jparams, qCfg, jCfg, *wait); err != nil {
+			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
 	},

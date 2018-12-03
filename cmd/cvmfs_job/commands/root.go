@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/log"
+	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,11 +38,11 @@ func init() {
 }
 
 func initConfig() {
-	log.InitLogging(os.Stdout, os.Stderr, *logTimestamps)
+	cvmfs.InitLogging(os.Stdout, os.Stderr, *logTimestamps)
 
 	viper.SetConfigFile(cfgFile)
 	if err := viper.ReadInConfig(); err != nil {
-		log.Error.Println(errors.Wrap(err, "could not read config"))
+		cvmfs.LogError.Println(errors.Wrap(err, "could not read config"))
 		os.Exit(1)
 	}
 }
@@ -50,7 +50,7 @@ func initConfig() {
 // Execute the root command of the application
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Error.Println(err)
+		cvmfs.LogError.Println(err)
 		os.Exit(1)
 	}
 }
