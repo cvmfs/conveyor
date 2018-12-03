@@ -9,7 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func startFrontEnd(port int, backend *Backend, keys *Keys) error {
+// StartFrontEnd initializes the HTTP frontend of the job server
+func StartFrontEnd(port int, backend *Backend, keys *Keys) error {
 	router := mux.NewRouter()
 
 	var r *mux.Route

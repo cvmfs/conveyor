@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -32,14 +34,57 @@ var submitCmd = &cobra.Command{
 			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		jparams := &cvmfs.JobSpecification{
+		spec := &cvmfs.JobSpecification{
 			Repository: repo, Payload: payload, RepositoryPath: path,
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
-		if err := cvmfs.RunSubmit(jparams, qCfg, jCfg, *wait); err != nil {
-			cvmfs.LogError.Println(err)
+
+		pub, err := cvmfs.NewQueueClient(qCfg, cvmfs.PublisherConnection)
+		if err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "could not create publisher connection"))
 			os.Exit(1)
 		}
+		defer pub.Close()
+
+		newJob, err := cvmfs.CreateJob(spec)
+		if err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "could not create job object"))
+			os.Exit(1)
+		}
+
+		cvmfs.LogInfo.Printf("Job description:\n%+v\n", newJob)
+
+		if err := pub.Publish(cvmfs.NewJobExchange, "", newJob); err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "job description publishing failed"))
+			os.Exit(1)
+		}
+
+		// Optionally wait for completion of the job
+		if *wait {
+			consumer, err := cvmfs.NewQueueClient(qCfg, cvmfs.ConsumerConnection)
+			if err != nil {
+				cvmfs.LogError.Println(
+					errors.Wrap(err, "could not create consumer connection"))
+				os.Exit(1)
+			}
+			stats, err := cvmfs.WaitForJobs(
+				[]string{newJob.ID.String()}, consumer, jCfg.JobDBURL())
+			if err != nil {
+				cvmfs.LogError.Println(
+					errors.Wrap(err, "waiting for job completion failed"))
+				os.Exit(1)
+			}
+
+			if !stats[0].Successful {
+				fmt.Printf("{\"Status\": \"error\", \"ID\": \"%s\"}\n", newJob.ID)
+				os.Exit(1)
+			}
+		}
+
+		fmt.Printf("{\"Status\": \"ok\", \"ID\": \"%s\"}\n", newJob.ID)
 	},
 }
 

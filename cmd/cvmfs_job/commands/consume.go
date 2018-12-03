@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -26,8 +27,36 @@ var consumeCmd = &cobra.Command{
 			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
-		if err := cvmfs.RunConsume(qCfg, jCfg, tempDir, *maxJobRetries); err != nil {
-			cvmfs.LogError.Println(err)
+
+		keys, err := cvmfs.ReadKeys(jCfg.KeyDir)
+		if err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "could not read API keys from file"))
+			os.Exit(1)
+		}
+
+		// Create temporary dir
+		os.RemoveAll(tempDir)
+		if err := os.MkdirAll(tempDir, 0755); err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "could not create temp dir"))
+			os.Exit(1)
+		}
+		defer os.RemoveAll(tempDir)
+
+		consumer, err := cvmfs.NewConsumer(
+			qCfg, keys, jCfg.JobDBURL(), tempDir, *maxJobRetries)
+		if err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "could not create RabbitMQ message consumer"))
+			os.Exit(1)
+		}
+		defer consumer.Close()
+
+		cvmfs.LogInfo.Println("Entering consumer loop")
+
+		if err := consumer.Loop(); err != nil {
+			cvmfs.LogInfo.Println(errors.Wrap(err, "error in consumer loop"))
 			os.Exit(1)
 		}
 	},

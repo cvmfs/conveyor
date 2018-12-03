@@ -25,6 +25,20 @@ type Backend struct {
 	db *sql.DB
 }
 
+// StartBackEnd initializes the backend of the job server
+func StartBackEnd(cfg BackendConfig) (*Backend, error) {
+	db, err := sql.Open(cfg.Type, createDataSrcName(cfg))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create SQL connection")
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, errors.Wrap(err, "connection ping failed")
+	}
+
+	return &Backend{db}, nil
+}
+
 // Close - closes the database connection
 func (b *Backend) Close() {
 	b.db.Close()
@@ -127,19 +141,6 @@ func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
 	}
 
 	return &st, nil
-}
-
-func startBackEnd(cfg BackendConfig) (*Backend, error) {
-	db, err := sql.Open(cfg.Type, createDataSrcName(cfg))
-	if err != nil {
-		return nil, errors.Wrap(err, "could not create SQL connection")
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, errors.Wrap(err, "connection ping failed")
-	}
-
-	return &Backend{db}, nil
 }
 
 func createDataSrcName(cfg BackendConfig) string {

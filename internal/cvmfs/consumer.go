@@ -14,7 +14,18 @@ import (
 	"github.com/streadway/amqp"
 )
 
-type consumer struct {
+var mock bool
+
+func init() {
+	mock = false
+	v := os.Getenv("CVMFS_MOCK_JOB_CONSUMER")
+	if v == "true" || v == "yes" || v == "on" {
+		mock = true
+	}
+}
+
+// Consumer - a job consumer object
+type Consumer struct {
 	qCons         *QueueClient
 	qPub          *QueueClient
 	jobDBURL      string
@@ -23,9 +34,10 @@ type consumer struct {
 	maxJobRetries int
 }
 
-func createConsumer(
+// NewConsumer - creates a new job consumer object
+func NewConsumer(
 	qCfg *QueueConfig, keys *Keys, jobDBURL string, tempDir string,
-	maxJobRetries int) (*consumer, error) {
+	maxJobRetries int) (*Consumer, error) {
 
 	cleanUp := false
 
@@ -47,16 +59,18 @@ func createConsumer(
 			err, "could not create job queue connection (publisher)")
 	}
 
-	return &consumer{
+	return &Consumer{
 		qCons, qPub, jobDBURL, keys, tempDir, maxJobRetries}, nil
 }
 
-func (c *consumer) close() {
+// Close all the internal connections of the consumer
+func (c *Consumer) Close() {
 	c.qCons.Close()
 	c.qPub.Close()
 }
 
-func (c *consumer) loop() error {
+// Loop start the event loop for consuming job messages
+func (c *Consumer) Loop() error {
 	jobs, err := c.qCons.Chan.Consume(
 		c.qCons.NewJobQueue.Name, "", false, false, false, false, nil)
 	if err != nil {
@@ -78,7 +92,7 @@ func (c *consumer) loop() error {
 	return nil
 }
 
-func (c *consumer) handleMessage(msg *amqp.Delivery) {
+func (c *Consumer) handleMessage(msg *amqp.Delivery) {
 	startTime := time.Now()
 
 	var desc UnprocessedJob

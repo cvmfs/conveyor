@@ -38,25 +38,3 @@ func (c *JobDbConfig) JobDBURL() string {
 	}
 	return fmt.Sprintf("%s%s:%v/jobs", prefix, c.Host, c.Port)
 }
-
-// RunJobDb - run the job db service
-func RunJobDb(cfg *JobDbConfig) error {
-	LogInfo.Println("CVMFS job database service starting")
-
-	keys, err := ReadKeys(cfg.KeyDir)
-	if err != nil {
-		return errors.Wrap(err, "could not read API key from file")
-	}
-
-	backend, err := startBackEnd(cfg.Backend)
-	if err != nil {
-		return errors.Wrap(err, "could not start service back-end")
-	}
-	defer backend.Close()
-
-	if err := startFrontEnd(cfg.Port, backend, keys); err != nil {
-		return errors.Wrap(err, "could not start service front-end")
-	}
-
-	return nil
-}
