@@ -3,105 +3,25 @@ package cvmfs
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
-	"github.com/streadway/amqp"
 )
 
-const maxWait = 2 * 3600 // max 2h to wait for a job dependency to finish
-
 const maxQueryRetries = 50 // max number of job server query retries
-
-// WaitForJobs wait for the completion of a set of jobs referenced through theirs
-// unique ids. The job status is obtained from the completed job notification channel
-// of the job queue and from the job server
-func WaitForJobs(ids []string, q *QueueClient, jobServerURL string) ([]JobStatus, error) {
-	idMap := make(map[string]bool)
-	for _, id := range ids {
-		idMap[id] = false
-	}
-	jobStatuses := map[uuid.UUID]bool{}
-
-	// Subscribe to notifications from the completed job channel
-	notifications := make(chan JobStatus)
-	notifQuit := make(chan bool)
-	if err := listen(idMap, q, notifications, notifQuit); err != nil {
-		return []JobStatus{}, errors.Wrap(err, "could not subscribe to notifications")
-	}
-
-	// Query the job server for the status of completed jobs
-	queryResults := make(chan JobStatus)
-	queryQuit := make(chan bool)
-	ch := query(ids, jobServerURL, queryResults, queryQuit)
-
-	LogInfo.Println("Waiting for jobs")
-
-	stop := false
-	for !stop {
-		select {
-		case e := <-ch:
-			if e != nil {
-				close(notifQuit)
-				close(queryQuit)
-				return []JobStatus{}, errors.Wrap(e, "could not perform job server query")
-			}
-		case j := <-notifications:
-			jobStatuses[j.ID] = j.Successful
-			LogInfo.Println("(Notification) job finished:", j)
-			if !j.Successful || len(ids) == len(jobStatuses) {
-				close(notifQuit)
-				close(queryQuit)
-				stop = true
-			}
-		case j := <-queryResults:
-			jobStatuses[j.ID] = j.Successful
-			LogInfo.Println("(Query result) job finished:", j)
-			if !j.Successful || len(ids) == len(jobStatuses) {
-				close(notifQuit)
-				close(queryQuit)
-				stop = true
-			}
-		case <-time.After(maxWait * time.Second):
-			close(notifQuit)
-			close(queryQuit)
-			return []JobStatus{}, errors.New("timeout")
-		}
-	}
-
-	LogInfo.Println("All jobs complete. Continuing")
-
-	st := []JobStatus{}
-	for k, v := range jobStatuses {
-		st = append(st, JobStatus{ID: k, Successful: v})
-	}
-
-	return st, nil
-}
 
 func listen(
 	ids map[string]bool,
 	q *QueueClient,
 	notifications chan<- JobStatus,
-	quit <-chan bool) error {
+	quit <-chan struct{}) error {
 
 	jobs, err := q.Chan.Consume(
 		q.CompletedJobQueue.Name, "", false, false, false, false, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not start consuming jobs")
 	}
-
-	go func() {
-		ch := q.Chan.NotifyClose(make(chan *amqp.Error))
-		err := <-ch
-		LogError.Println(
-			errors.Wrap(err, "connection to job queue closed"))
-		os.Exit(1)
-	}()
 
 	go func() {
 	L:
@@ -129,7 +49,7 @@ func listen(
 	return nil
 }
 
-func query(ids []string, jobServerURL string, results chan<- JobStatus, quit <-chan bool) chan error {
+func query(ids []string, client *JobClient, repo string, results chan<- JobStatus, quit <-chan struct{}) chan error {
 	ch := make(chan error)
 
 	go func() {
@@ -138,33 +58,10 @@ func query(ids []string, jobServerURL string, results chan<- JobStatus, quit <-c
 
 	L:
 		for retry < maxQueryRetries {
-			req, err := http.NewRequest("GET", jobServerURL, nil)
+			reply, err := client.GetJobStatus(ids, repo)
 			if err != nil {
-				errors.Wrap(err, "could not create GET request")
-			}
-			q := req.URL.Query()
-			q["id"] = ids
-			q.Set("full", "false")
-			req.URL.RawQuery = q.Encode()
-
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				ch <- errors.Wrap(err, "Getting job status from server failed")
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				ch <- errors.New(fmt.Sprintf("GET request failed: %v", resp.Status))
-			}
-
-			buf2, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				ch <- errors.Wrap(err, "Reading reply body failed")
-			}
-
-			var reply GetJobReply
-			if err := json.Unmarshal(buf2, &reply); err != nil {
-				ch <- errors.Wrap(err, "JSON decoding of reply failed")
+				ch <- errors.Wrap(err, "could not retrieve job status from server")
+				return
 			}
 
 			if reply.Status != "ok" {

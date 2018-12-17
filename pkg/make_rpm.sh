@@ -22,6 +22,8 @@ BUILD_LOCATION=$(realpath $1)
 VERSION=$2
 RELEASE=$3
 
+PROJECT_NAME=cvmfs-publisher-tools
+
 echo "Script location: ${SCRIPT_LOCATION}"
 echo "Build location: ${BUILD_LOCATION}"
 echo "Version: $VERSION"
@@ -41,7 +43,6 @@ make clean && make
 ### Create togo project
 
 echo "Creating togo project"
-PROJECT_NAME=cvmfs-publisher-tools
 cd $BUILD_LOCATION
 mkdir -p togo
 cd togo

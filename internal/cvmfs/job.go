@@ -15,6 +15,9 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// MaxJobDuration is the number of seconds that a job is allowed to take
+const MaxJobDuration = 2 * 3600
+
 // JobSpecification - job submission Specification
 type JobSpecification struct {
 	Repository     string
@@ -47,45 +50,47 @@ type JobStatus struct {
 	Successful bool
 }
 
-// GetJobReply - Return type of the GetJob query
-type GetJobReply struct {
-	Status string         // "ok" || "error"
-	Reason string         `json:",omitempty"`
-	IDs    []JobStatus    `json:",omitempty"`
-	Jobs   []ProcessedJob `json:",omitempty"`
-}
-
-// PutJobReply - Return type of the PutJob query
-type PutJobReply struct {
+// BasicReply - basic reply with status and optional error cause
+type BasicReply struct {
 	Status string // "ok" || "error"
 	Reason string `json:",omitempty"`
 }
 
-// CreateJob - create a new job struct with validated field values
-func CreateJob(params *JobSpecification) (*UnprocessedJob, error) {
-	id, err := uuid.NewV1()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not generate UUID")
+// GetJobStatusReply - Return type of the GetJob query
+type GetJobStatusReply struct {
+	BasicReply
+	IDs  []JobStatus    `json:",omitempty"`
+	Jobs []ProcessedJob `json:",omitempty"`
+}
+
+// PostNewJobReply - return type of the PostNewJob action
+type PostNewJobReply struct {
+	BasicReply
+	ID uuid.UUID
+}
+
+// PostJobStatusReply - return value of the PutJobStatus action
+type PostJobStatusReply struct {
+	BasicReply
+}
+
+// Prepare - prepare a job specification for submissions
+func (spec *JobSpecification) Prepare() error {
+	if spec.RepositoryPath[0] != '/' {
+		spec.RepositoryPath = "/" + spec.RepositoryPath
 	}
 
-	leasePath := params.RepositoryPath
-	if leasePath[0] != '/' {
-		leasePath = "/" + leasePath
-	}
-
-	job := &UnprocessedJob{ID: id, JobSpecification: *params}
-
-	if params.Script != "" {
-		if params.TransferScript {
-			s, err := packScript(params.Script)
+	if spec.Script != "" {
+		if spec.TransferScript {
+			s, err := packScript(spec.Script)
 			if err != nil {
-				return nil, errors.Wrap(err, "could not load script")
+				return errors.Wrap(err, "could not load script")
 			}
-			job.Script = s
+			spec.Script = s
 		}
 	}
 
-	return job, nil
+	return nil
 }
 
 // Process - process a job (download and unpack payload, run script etc.)

@@ -1,4 +1,4 @@
-# Job server configuration is used by cvmfs_job {submit, consume, server}
+# Job server configuration is used by cvmfs_job {submit, consumer, server}
 [server]
 host = "JOB SERVICE HOST NAME"
 port = 8080

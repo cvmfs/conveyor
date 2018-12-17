@@ -36,13 +36,39 @@ type Config struct {
 	Backend BackendConfig
 }
 
-// JobServerURL constructs the URL of the job DB service
-func (c *Config) JobServerURL() string {
+// HTTPEndpoints holds the different HTTP end points of the job server
+type HTTPEndpoints struct {
+	base   string
+	basews string
+}
+
+// NewJobs returns the endpoint for new jobs. Set withBase = true to prepend the base URL
+func (o HTTPEndpoints) NewJobs(withBase bool) string {
+	pt := "/jobs/new"
+	if withBase {
+		return o.base + pt
+	}
+	return pt
+}
+
+// CompletedJobs returns the endpoint for completed jobs. Set withBase = true to prepend the base URL
+func (o HTTPEndpoints) CompletedJobs(withBase bool) string {
+	pt := "/jobs/complete"
+	if withBase {
+		return o.base + pt
+	}
+	return pt
+}
+
+// HTTPEndpoints constructs an HTTPEndpoints object
+func (c *Config) HTTPEndpoints() HTTPEndpoints {
 	var prefix string
 	if !strings.HasPrefix(c.Host, "http://") {
 		prefix = "http://"
 	}
-	return fmt.Sprintf("%s%s:%v/jobs", prefix, c.Host, c.Port)
+	base := fmt.Sprintf("%s%s:%v", prefix, c.Host, c.Port)
+	basews := "ws:" + strings.TrimPrefix(base, "http:")
+	return HTTPEndpoints{base, basews}
 }
 
 // ReadConfig - populate the config object using the global viper object
@@ -67,7 +93,7 @@ func ReadConfig() (*Config, error) {
 
 	db := viper.Sub("db")
 	if db != nil {
-		db.SetDefault("db.port", 3306)
+		db.SetDefault("port", 3306)
 		if err := db.Unmarshal(&cfg.Backend); err != nil {
 			return nil, errors.Wrap(err, "could not read db configuration")
 		}

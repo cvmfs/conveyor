@@ -9,11 +9,11 @@ import (
 )
 
 // runTransaction - run the CVMFS transaction according to the job description
-func runTransaction(desc UnprocessedJob, task func() error) error {
-	fullPath := path.Join(desc.Repository, desc.RepositoryPath)
+func runTransaction(job *UnprocessedJob, task func() error) error {
+	fullPath := path.Join(job.Repository, job.RepositoryPath)
 
 	// Close any existing transactions
-	abortTransaction(desc.Repository, false)
+	abortTransaction(job.Repository, false)
 
 	LogInfo.Println("Opening CVMFS transaction for:", fullPath)
 
@@ -21,7 +21,7 @@ func runTransaction(desc UnprocessedJob, task func() error) error {
 	defer func() {
 		if abort {
 			LogError.Println("Aborting CVMFS transaction")
-			if err := abortTransaction(desc.Repository, true); err != nil {
+			if err := abortTransaction(job.Repository, true); err != nil {
 				LogError.Println(
 					errors.Wrap(err, "could not abort CVMFS transaction"))
 			}
@@ -41,7 +41,7 @@ func runTransaction(desc UnprocessedJob, task func() error) error {
 	}
 
 	LogInfo.Println("Publishing CVMFS transaction")
-	if err := commitTransaction(desc.Repository, true); err != nil {
+	if err := commitTransaction(job.Repository, true); err != nil {
 		abort = true
 		return errors.Wrap(err, "could not commit CVMFS transaction")
 	}

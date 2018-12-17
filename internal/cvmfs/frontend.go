@@ -9,9 +9,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// StartFrontEnd initializes the HTTP frontend of the job server
-func StartFrontEnd(port int, backend *Backend, keys *Keys) error {
+// startFrontEnd initializes the HTTP frontend of the job server
+func startFrontEnd(cfg *Config, backend *serverBackend, keys *Keys) error {
+	endpoints := cfg.HTTPEndpoints()
+
 	router := mux.NewRouter()
+
+	// Add the HMAC authorization middleware
+	authz := hmacAuthorization{keys}
+	router.Use(authz.Middleware)
 
 	var r *mux.Route
 	r = router.NewRoute()
@@ -24,24 +30,33 @@ func StartFrontEnd(port int, backend *Backend, keys *Keys) error {
 			w.Write([]byte(r))
 		})
 
-	// GET the status of multiple jobs
+	// POST a new job
 	r = router.NewRoute()
-	r.Path("/jobs")
-	r.Methods("GET")
-	r.Queries("id", "", "full", "")
-	r.Handler(getJobsHandler{backend})
-
-	// PUT the status of a job
-	r = router.NewRoute()
-	r.Path("/jobs")
+	r.Path(endpoints.NewJobs(false))
 	r.Methods("POST")
 	r.Headers("Content-Type", "application/json")
 	r.Headers("Authorization", "")
-	r.Handler(putJobHandler{backend, keys})
+	r.Handler(putNewJobHandler{backend})
+
+	// GET the status of multiple completed jobs
+	r = router.NewRoute()
+	r.Path(endpoints.CompletedJobs(false))
+	r.Methods("GET")
+	r.Queries("id", "", "full", "")
+	r.Headers("Authorization", "")
+	r.Handler(getJobStatusHandler{backend})
+
+	// POST the completion status of a job
+	r = router.NewRoute()
+	r.Path(endpoints.CompletedJobs(false))
+	r.Methods("POST")
+	r.Headers("Content-Type", "application/json")
+	r.Headers("Authorization", "")
+	r.Handler(putJobStatusHandler{backend})
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         fmt.Sprintf(":%d", port),
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}

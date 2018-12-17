@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -20,13 +21,6 @@ const (
 type Keys struct {
 	Secrets  map[string]string // map from keyId to secret
 	RepoKeys map[string]string // map from repository name to keyId
-}
-
-func initKeys() Keys {
-	return Keys{
-		Secrets:  map[string]string{},
-		RepoKeys: map[string]string{},
-	}
 }
 
 // ReadKeys - read HTTP API keys from a list of files
@@ -57,14 +51,49 @@ func ReadKeys(keyDir string) (*Keys, error) {
 	return &keys, nil
 }
 
-// ComputeHMAC - compute the HMAC of a message using a specific key
-func ComputeHMAC(message []byte, key string) []byte {
+func initKeys() Keys {
+	return Keys{
+		Secrets:  map[string]string{},
+		RepoKeys: map[string]string{},
+	}
+}
+
+// getKeyForRepo returns the keyId and secret key associated with a repository
+func (k *Keys) getKeyForRepo(repo string) (string, string, error) {
+	id, present := k.RepoKeys[repo]
+	if !present {
+		return "", "", errors.New(
+			fmt.Sprintf("Key not found for repository: %v", repo))
+	}
+	secret, present := k.Secrets[id]
+	if !present {
+		return "", "", errors.New(
+			fmt.Sprintf("Secret not found for keyID: %v", id))
+	}
+
+	return id, secret, nil
+}
+
+// Returns the first (alphabetically) key ID
+func (k *Keys) firstKeyID() string {
+	ks := make([]string, len(k.Secrets))
+	idx := 0
+	for keyID := range k.Secrets {
+		ks[idx] = keyID
+		idx++
+	}
+	sort.Strings(ks)
+	return ks[0]
+}
+
+// computeHMAC - compute the HMAC of a message using a specific key
+func computeHMAC(message []byte, key string) []byte {
 	mac := hmac.New(sha256.New, []byte(key))
 	mac.Write(message)
 	return mac.Sum(nil)
 }
 
-// CheckHMAC - checks the HMAC of a message
-func CheckHMAC(message, messageHMAC []byte, key string) bool {
-	return hmac.Equal(messageHMAC, ComputeHMAC(message, key))
+// checkHMAC - checks the HMAC of a message
+func checkHMAC(message, messageHMAC []byte, key string) bool {
+	return hmac.Equal(messageHMAC, computeHMAC(message, key))
 }

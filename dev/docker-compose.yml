@@ -8,7 +8,7 @@ services:
       - "MYSQL_USER=cvmfs_db"
       - "MYSQL_PASSWORD=password"
     volumes:
-      - "/opt/cvmfs-publisher-data:/var/lib/mysql"
+      - "/opt/cvmfs-publisher-data/mysql:/var/lib/mysql"
     ports:
       - "3306:3306"
   rmq:
@@ -17,6 +17,8 @@ services:
     environment:
       - "RABBITMQ_ERLANG_COOKIE=secret"
       - "RABBITMQ_NODENAME=rabbit@rabbit00"
+    volumes:
+      - "/opt/cvmfs-publisher-data/rabbitmq:/var/lib/rabbitmq"
     ports:
       - "15672:15672"
       - "5672:5672"

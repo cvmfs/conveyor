@@ -29,44 +29,57 @@ var submitCmd = &cobra.Command{
 			cvmfs.LogError.Println(err)
 			os.Exit(1)
 		}
+
+		keys, err := cvmfs.ReadKeys(cfg.KeyDir)
+		if err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "could not read API keys from file"))
+			os.Exit(1)
+		}
+
 		spec := &cvmfs.JobSpecification{
 			Repository: repo, Payload: payload, RepositoryPath: path,
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
 
-		pub, err := cvmfs.NewQueueClient(&cfg.Queue, cvmfs.PublisherConnection)
-		if err != nil {
-			cvmfs.LogError.Println(
-				errors.Wrap(err, "could not create publisher connection"))
-			os.Exit(1)
-		}
-		defer pub.Close()
+		cvmfs.LogInfo.Printf("Job description:\n%+v\n", spec)
 
-		newJob, err := cvmfs.CreateJob(spec)
-		if err != nil {
+		if err := spec.Prepare(); err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not create job object"))
 			os.Exit(1)
 		}
 
-		cvmfs.LogInfo.Printf("Job description:\n%+v\n", newJob)
-
-		if err := pub.Publish(cvmfs.NewJobExchange, "", newJob); err != nil {
-			cvmfs.LogError.Println(
-				errors.Wrap(err, "job description publishing failed"))
+		client, err := cvmfs.NewJobClient(keys, cfg)
+		if err != nil {
+			cvmfs.LogError.Println("could not start job client")
 			os.Exit(1)
 		}
 
+		stat, err := client.PostNewJob(spec)
+		if err != nil {
+			cvmfs.LogError.Println(
+				errors.Wrap(err, "could not post new job"))
+			os.Exit(1)
+		}
+
+		if stat.Status != "ok" {
+			cvmfs.LogError.Println(
+				errors.New(fmt.Sprintf("posting new job failed: %v", stat.Reason)))
+			os.Exit(1)
+		}
+
+		id := stat.ID
+
 		// Optionally wait for completion of the job
 		if *wait {
-			consumer, err := cvmfs.NewQueueClient(&cfg.Queue, cvmfs.ConsumerConnection)
+			client, err := cvmfs.NewJobClient(keys, cfg)
 			if err != nil {
 				cvmfs.LogError.Println(
-					errors.Wrap(err, "could not create consumer connection"))
+					errors.Wrap(err, "could not create job client"))
 				os.Exit(1)
 			}
-			stats, err := cvmfs.WaitForJobs(
-				[]string{newJob.ID.String()}, consumer, cfg.JobServerURL())
+			stats, err := client.WaitForJobs([]string{id.String()}, spec.Repository)
 			if err != nil {
 				cvmfs.LogError.Println(
 					errors.Wrap(err, "waiting for job completion failed"))
@@ -74,12 +87,12 @@ var submitCmd = &cobra.Command{
 			}
 
 			if !stats[0].Successful {
-				fmt.Printf("{\"Status\": \"error\", \"ID\": \"%s\"}\n", newJob.ID)
+				fmt.Printf("{\"Status\": \"error\", \"ID\": \"%s\"}\n", id)
 				os.Exit(1)
 			}
 		}
 
-		fmt.Printf("{\"Status\": \"ok\", \"ID\": \"%s\"}\n", newJob.ID)
+		fmt.Printf("{\"Status\": \"ok\", \"ID\": \"%s\"}\n", id)
 	},
 }
 

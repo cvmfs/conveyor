@@ -28,17 +28,9 @@ var serverCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backend, err := cvmfs.StartBackEnd(cfg.Backend)
-		if err != nil {
+		if err := cvmfs.StartServer(cfg, keys); err != nil {
 			cvmfs.LogError.Println(
-				errors.Wrap(err, "could not start service back-end"))
-			os.Exit(1)
-		}
-		defer backend.Close()
-
-		if err := cvmfs.StartFrontEnd(cfg.Port, backend, keys); err != nil {
-			cvmfs.LogError.Println(
-				errors.Wrap(err, "could not start service front-end"))
+				errors.Wrap(err, "could not start job server"))
 			os.Exit(1)
 		}
 	},
