@@ -31,7 +31,7 @@ func NewJobClient(keys *Keys, cfg *Config) (*JobClient, error) {
 	return &JobClient{keys, cfg.HTTPEndpoints(), q}, nil
 }
 
-// SubscribeNewJobs - subscribes to the new job publisher
+// SubscribeNewJobs - subscribes to new job messages
 func (c *JobClient) SubscribeNewJobs(keyID string) (<-chan amqp.Delivery, error) {
 	ch, err := c.qcl.Chan.Consume(
 		c.qcl.NewJobQueue.Name, "", false, false, false, false, nil)

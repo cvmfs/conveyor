@@ -69,9 +69,9 @@ togo file flag config-nr root/etc/systemd/system/conveyor-worker.service
 togo file flag config-nr root/etc/systemd/system/conveyor-server.service
 togo file exclude root/etc/systemd/system
 
-mkdir -p ${TOGO_PROJECT}/root/etc/cvmfs/publisher
-cp -v ${BUILD_LOCATION}/config/config.toml ${TOGO_PROJECT}/root/etc/cvmfs/publisher/
-togo file flag config-nr root/etc/cvmfs/publisher/config.toml
+mkdir -p ${TOGO_PROJECT}/root/etc/cvmfs/conveyor
+cp -v ${BUILD_LOCATION}/config/config.toml ${TOGO_PROJECT}/root/etc/cvmfs/conveyor/
+togo file flag config-nr root/etc/cvmfs/conveyor/config.toml
 togo file exclude root/etc/cvmfs
 
 
