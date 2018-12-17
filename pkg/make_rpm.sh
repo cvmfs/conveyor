@@ -78,8 +78,8 @@ togo file exclude root/etc/cvmfs
 ### Configure the togo build
 
 cp -v ${SCRIPT_LOCATION}/spec/* ${TOGO_PROJECT}/spec/
-sed -i -e "s/<<CVMFS_PUBLISHER_TOOLS_VERSION>>/$VERSION/g" ${TOGO_PROJECT}/spec/header
-sed -i -e "s/<<CVMFS_PUBLISHER_TOOLS_RELEASE>>/$RELEASE/g" ${TOGO_PROJECT}/spec/header
+sed -i -e "s/<<CONVEYOR_VERSION>>/$VERSION/g" ${TOGO_PROJECT}/spec/header
+sed -i -e "s/<<CONVEYOR_RELEASE>>/$RELEASE/g" ${TOGO_PROJECT}/spec/header
 
 
 ### Build the package
