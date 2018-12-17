@@ -1,10 +1,10 @@
 [Unit]
-Description=Consumer for CVMFS publisher jobs
+Description=CernVM-FS Conveyor worker
 After=syslog.target network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/conveyor consumer
+ExecStart=/usr/bin/conveyor worker
 PIDFile=/var/run/conveyor-worker.pid
 StandardOutput=journal
 Restart=always

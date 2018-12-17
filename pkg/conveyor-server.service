@@ -1,5 +1,5 @@
 [Unit]
-Description=Published CVMFS jobs database
+Description=CernVM-FS Conveyor server
 After=syslog.target network.target
 
 [Service]
