@@ -1,7 +1,7 @@
-all: cvmfs_job
+all: conveyor
 
-cvmfs_job:
-	CGO_ENABLED=0 go build ./cmd/cvmfs_job
+conveyor:
+	CGO_ENABLED=0 go build
 
 clean:
-	rm -f cvmfs_job
+	go clean

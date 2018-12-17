@@ -3,16 +3,16 @@ package commands
 import (
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
+	"github.com/cvmfs/conveyor/internal/cvmfs"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var rootCmd = &cobra.Command{
-	Use:     "cvmfs_job",
-	Short:   "CVMFS publishing tool",
-	Long:    "A publishing tool for CVMFS repositories",
+	Use:     "conveyor",
+	Short:   "CernVM-FS Conveyor",
+	Long:    "CernVM-FS Conveyor - Higher-level publishing tools for CVMFS repositories",
 	Version: "0.9.0",
 }
 
@@ -24,15 +24,15 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(
 		&cfgFile,
 		"config",
-		"/etc/cvmfs/publisher/config.toml",
+		"/etc/cvmfs/conveyor/config.toml",
 		"config file (TOML or JSON)")
 	logTimestamps = rootCmd.PersistentFlags().Bool(
 		"log-timestamps",
 		false,
 		"include timestamps in logging output")
-	rootCmd.AddCommand(consumerCmd)
-	rootCmd.AddCommand(submitCmd)
 	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(submitCmd)
+	rootCmd.AddCommand(workerCmd)
 
 	viper.BindPFlag("log-timestamps", rootCmd.PersistentFlags().Lookup("log-timestamps"))
 }

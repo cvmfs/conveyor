@@ -1,8 +1,8 @@
-# CernVM-FS publisher tools
+# Conveyor
 
 ## Overview
 
-Additional tools and services for publishing to CernVM-FS repositories.
+CernVM-FS Conveyor is a set of additional tools and services providing a higher-level, job-based, interface for publishing into CernVM-FS repositories.
 
 ## License and copyright
 

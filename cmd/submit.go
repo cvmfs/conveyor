@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
+	"github.com/cvmfs/conveyor/internal/cvmfs"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

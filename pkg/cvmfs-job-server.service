@@ -4,8 +4,8 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/cvmfs_job server
-PIDFile=/var/run/cvmfs-job-server.pid
+ExecStart=/usr/bin/conveyor server
+PIDFile=/var/run/conveyor-server.pid
 StandardOutput=journal
 Restart=always
 RestartSec=5

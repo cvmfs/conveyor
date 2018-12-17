@@ -1,9 +1,9 @@
 %preun
 
-if [ "x$(systemctl list-unit-files | grep cvmfs-job-consumer)" != "x" ]; then
-	systemctl stop cvmfs-job-consumer
+if [ "x$(systemctl list-unit-files | grep conveyor-worker)" != "x" ]; then
+	systemctl stop conveyor-worker
 fi
 
-if [ "x$(systemctl list-unit-files | grep cvmfs-job-server)" != "x" ]; then
-	systemctl stop cvmfs-job-server
+if [ "x$(systemctl list-unit-files | grep conveyor-server)" != "x" ]; then
+	systemctl stop conveyor-server
 fi

@@ -1,5 +1,5 @@
 # The name of your package
-Name: cvmfs-publisher-tools
+Name: conveyor
 
 # A short summary of your package
 Summary: Additional tools and services for publishing to CernVM-FS repositories

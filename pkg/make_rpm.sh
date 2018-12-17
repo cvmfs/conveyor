@@ -22,7 +22,7 @@ BUILD_LOCATION=$(realpath $1)
 VERSION=$2
 RELEASE=$3
 
-PROJECT_NAME=cvmfs-publisher-tools
+PROJECT_NAME=conveyor
 
 echo "Script location: ${SCRIPT_LOCATION}"
 echo "Build location: ${BUILD_LOCATION}"
@@ -37,7 +37,7 @@ mkdir -p ${BUILD_LOCATION}/gopath/src/github.com/cvmfs
 ln -fs ${BUILD_LOCATION} ${BUILD_LOCATION}/gopath/src/github.com/cvmfs/${PROJECT_NAME}
 export GOPATH="${BUILD_LOCATION}/gopath"
 cd ${BUILD_LOCATION}
-make clean && make
+go build
 
 
 ### Create togo project
@@ -56,17 +56,17 @@ cd ${TOGO_PROJECT}
 
 ### Install executable(s) to togo root
 mkdir -p root/usr/bin
-cp -v ${BUILD_LOCATION}/cvmfs_job root/usr/bin/
+cp -v ${BUILD_LOCATION}/conveyor root/usr/bin/
 togo file exclude root/usr/bin
 
 
 ### Add other files to togo project root
 
 mkdir -p ${TOGO_PROJECT}/root/etc/systemd/system
-cp -v ${SCRIPT_LOCATION}/cvmfs-job-consumer.service ${TOGO_PROJECT}/root/etc/systemd/system/
-cp -v ${SCRIPT_LOCATION}/cvmfs-job-server.service ${TOGO_PROJECT}/root/etc/systemd/system/
-togo file flag config-nr root/etc/systemd/system/cvmfs-job-consumer.service
-togo file flag config-nr root/etc/systemd/system/cvmfs-job-server.service
+cp -v ${SCRIPT_LOCATION}/conveyor-worker.service ${TOGO_PROJECT}/root/etc/systemd/system/
+cp -v ${SCRIPT_LOCATION}/conveyor-server.service ${TOGO_PROJECT}/root/etc/systemd/system/
+togo file flag config-nr root/etc/systemd/system/conveyor-worker.service
+togo file flag config-nr root/etc/systemd/system/conveyor-server.service
 togo file exclude root/etc/systemd/system
 
 mkdir -p ${TOGO_PROJECT}/root/etc/cvmfs/publisher

@@ -1,10 +1,10 @@
-# Job server configuration is used by cvmfs_job {submit, consumer, server}
+# Job server configuration is used by conveyor {submit, consumer, server}
 [server]
 host = "JOB SERVICE HOST NAME"
 port = 8080
 keydir = "/etc/cvmfs/keys" # Default key dir
 
-# Queue configuration is used by cvmfs_job server
+# Queue configuration is used by conveyor server
 [queue]
 username = "QUEUE USER NAME"
 password = "QUEUE USER PASSWORD"
@@ -12,7 +12,7 @@ host = "QUEUE HOST NAME"
 port = 5672
 vhost = "/"
 
-# Job server backend configuration is only used by cvmfs_job server
+# Job server backend configuration is only used by conveyor server
 [db]
 type = "mysql"
 database = "devcvmfs"

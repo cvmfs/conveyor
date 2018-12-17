@@ -3,7 +3,7 @@ package commands
 import (
 	"os"
 
-	"github.com/cvmfs/cvmfs-publisher-tools/internal/cvmfs"
+	"github.com/cvmfs/conveyor/internal/cvmfs"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -11,10 +11,10 @@ import (
 var maxJobRetries *int
 var tempDir string
 
-var consumerCmd = &cobra.Command{
-	Use:   "consumer",
-	Short: "Run job consumer",
-	Long:  "Run the consumer of publishing jobs",
+var workerCmd = &cobra.Command{
+	Use:   "worker",
+	Short: "Run conveyor worker",
+	Long:  "Run the conveyor worker daemon",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := cvmfs.ReadConfig()
@@ -42,7 +42,7 @@ var consumerCmd = &cobra.Command{
 		consumer, err := cvmfs.NewConsumer(keys, cfg, tempDir, *maxJobRetries)
 		if err != nil {
 			cvmfs.LogError.Println(
-				errors.Wrap(err, "could not create RabbitMQ message consumer"))
+				errors.Wrap(err, "could not create queue consumer"))
 			os.Exit(1)
 		}
 		defer consumer.Close()
@@ -57,9 +57,9 @@ var consumerCmd = &cobra.Command{
 }
 
 func init() {
-	maxJobRetries = consumerCmd.Flags().Int(
+	maxJobRetries = workerCmd.Flags().Int(
 		"max-job-retries", 3, "maximum number of retries for processing a job before "+
 			"giving up and recording it as a failed job")
-	consumerCmd.Flags().StringVar(
-		&tempDir, "temp-dir", "/tmp/cvmfs-consumer", "temporary directory for use during CVMFS transaction")
+	workerCmd.Flags().StringVar(
+		&tempDir, "temp-dir", "/tmp/conveyor-worker", "temporary directory for use during CVMFS transaction")
 }
