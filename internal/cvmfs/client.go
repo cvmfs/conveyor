@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -14,6 +15,12 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+// Maximum number of retries for HTTP requests
+const maxRequestRetries = 50
+
+// Retry delay in seconds for the job status query
+const queryRetryDelay = 30
 
 // JobClient offers functionality for interacting with the job server
 type JobClient struct {
@@ -110,7 +117,9 @@ L:
 }
 
 // GetJobStatus queries the status of a set of jobs from the server
-func (c *JobClient) GetJobStatus(ids []string, repo string) (*GetJobStatusReply, error) {
+func (c *JobClient) GetJobStatus(
+	ids []string, repo string, quit <-chan struct{}) (*GetJobStatusReply, error) {
+
 	req, err := http.NewRequest("GET", c.endpoints.CompletedJobs(true), nil)
 	if err != nil {
 		errors.Wrap(err, "Could not create GET request")
@@ -129,7 +138,7 @@ func (c *JobClient) GetJobStatus(ids []string, repo string) (*GetJobStatusReply,
 	hmac := base64.StdEncoding.EncodeToString(computeHMAC(buf, secret))
 	req.Header.Add("Authorization", fmt.Sprintf("%v %v", keyID, hmac))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := makeRequest(req, quit)
 	if err != nil {
 		return nil, errors.Wrap(err, "Getting job status from server failed")
 	}
@@ -159,7 +168,8 @@ func (c *JobClient) PostNewJob(job *JobSpecification) (*PostNewJobReply, error) 
 		return nil, errors.Wrap(err, "JSON encoding of job status failed")
 	}
 
-	reply, err := c.postMsg(buf, job.Repository, c.endpoints.NewJobs(true))
+	quit := make(chan struct{})
+	reply, err := c.postMsg(buf, job.Repository, c.endpoints.NewJobs(true), quit)
 	if err != nil {
 		return nil, errors.Wrap(err, "POST request failed")
 	}
@@ -179,7 +189,8 @@ func (c *JobClient) PostJobStatus(job *ProcessedJob) (*PostJobStatusReply, error
 		return nil, errors.Wrap(err, "JSON encoding of job status failed")
 	}
 
-	reply, err := c.postMsg(buf, job.Repository, c.endpoints.CompletedJobs(true))
+	quit := make(chan struct{})
+	reply, err := c.postMsg(buf, job.Repository, c.endpoints.CompletedJobs(true), quit)
 	if err != nil {
 		return nil, errors.Wrap(err, "POST request failed")
 	}
@@ -195,7 +206,9 @@ func (c *JobClient) PostJobStatus(job *ProcessedJob) (*PostJobStatusReply, error
 // postMsg makes a POST request to the conveyor server located at "url" with the body
 // provided in the "msg" slice. The message is signed with the key corresponding to
 // "repository"
-func (c *JobClient) postMsg(msg []byte, repository string, url string) ([]byte, error) {
+func (c *JobClient) postMsg(
+	msg []byte, repository, url string, quit <-chan struct{}) ([]byte, error) {
+
 	// Compute message HMAC
 	keyID, secret, err := c.keys.getKeyForRepo(repository)
 	if err != nil {
@@ -213,7 +226,7 @@ func (c *JobClient) postMsg(msg []byte, repository string, url string) ([]byte, 
 	req.Header.Add("Authorization", fmt.Sprintf("%v %v", keyID, hmac))
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := makeRequest(req, quit)
 	if err != nil {
 		return nil, errors.Wrap(err, "Posting job status to server failed")
 	}
@@ -229,4 +242,123 @@ func (c *JobClient) postMsg(msg []byte, repository string, url string) ([]byte, 
 	}
 
 	return buf2, nil
+}
+
+// RequestCancelled is an error value that signals a cancelled HTTP request
+type RequestCancelled struct{}
+
+func (c RequestCancelled) Error() string {
+	return "Request cancelled"
+}
+
+// Helper function to perform an HTTP request with retries, backoff and cancellation
+// On return, "err" is of type "RequestCancelled" if the request was cancelled
+func makeRequest(req *http.Request, quit <-chan struct{}) (*http.Response, error) {
+	w := DefaultWaiter()
+	var resp *http.Response
+	var err error
+L:
+	for retry := 0; retry < maxRequestRetries; retry++ {
+		select {
+		case <-quit:
+			err = RequestCancelled{}
+			break L
+		default:
+		}
+		resp, err = http.DefaultClient.Do(req)
+		if err == nil {
+			break L
+		}
+		if retry < maxRequestRetries-1 {
+			w.Wait()
+		}
+	}
+	return resp, err
+}
+
+// listen is a helper function for WaitForJobs. Listens for completion status messages
+// from the queue and publishes them to the notifications channel, if they correspond
+// to any job in "ids"
+func listen(
+	ids map[string]bool,
+	q *QueueClient,
+	notifications chan<- JobStatus,
+	quit <-chan struct{}) error {
+
+	jobs, err := q.Chan.Consume(
+		q.CompletedJobQueue.Name, "", false, false, false, false, nil)
+	if err != nil {
+		return errors.Wrap(err, "could not start consuming jobs")
+	}
+
+	go func() {
+	L:
+		for {
+			select {
+			case j := <-jobs:
+				var stat JobStatus
+				if err := json.Unmarshal(j.Body, &stat); err != nil {
+					LogError.Println(err)
+					j.Nack(false, false)
+					os.Exit(1) // Is there a better way to handle this than restarting?
+				}
+				id := stat.ID.String()
+				_, pres := ids[id]
+				if pres {
+					notifications <- stat
+				}
+				j.Ack(false)
+			case <-quit:
+				break L
+			}
+		}
+	}()
+
+	return nil
+}
+
+// listen is a helper function for WaitForJobs. Repeatedly queries the conveyor
+// server for the completion status of jobs identified by "ids", forwarding the
+// messages on the results channel
+func query(
+	ids []string,
+	client *JobClient,
+	repo string,
+	results chan<- JobStatus,
+	quit <-chan struct{}) chan error {
+
+	ch := make(chan error)
+
+	go func() {
+	L:
+		for {
+			select {
+			case <-quit:
+				break L
+			default:
+			}
+			reply, err := client.GetJobStatus(ids, repo, quit)
+			if err != nil {
+				// Only forward the error value if there wasn't any cancellation
+				if _, cancellation := err.(*RequestCancelled); !cancellation {
+					ch <- errors.Wrap(err, "could not retrieve job status from server")
+				}
+				return
+			}
+
+			if reply.Status != "ok" {
+				ch <- errors.Wrap(
+					err, fmt.Sprintf("Getting job status failed: %s", reply.Reason))
+			}
+
+			for _, j := range reply.IDs {
+				results <- j
+			}
+
+			time.Sleep(queryRetryDelay * time.Second)
+		}
+		close(ch)
+	}()
+
+	return ch
 }
