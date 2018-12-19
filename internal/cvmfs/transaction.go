@@ -8,12 +8,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// runTransaction - run the CVMFS transaction according to the job description
-func runTransaction(job *UnprocessedJob, task func() error) error {
-	fullPath := path.Join(job.Repository, job.RepositoryPath)
+// runTransaction runs a CVMFS transaction on the specified repository, locking the
+// provided subpath. The body of the transaction is encoded in the "task" function
+func runTransaction(repository, subpath string, task func() error) error {
+	fullPath := path.Join(repository, subpath)
 
 	// Close any existing transactions
-	abortTransaction(job.Repository, false)
+	abortTransaction(repository, false)
 
 	LogInfo.Println("Opening CVMFS transaction for:", fullPath)
 
@@ -21,7 +22,7 @@ func runTransaction(job *UnprocessedJob, task func() error) error {
 	defer func() {
 		if abort {
 			LogError.Println("Aborting CVMFS transaction")
-			if err := abortTransaction(job.Repository, true); err != nil {
+			if err := abortTransaction(repository, true); err != nil {
 				LogError.Println(
 					errors.Wrap(err, "could not abort CVMFS transaction"))
 			}
@@ -41,7 +42,7 @@ func runTransaction(job *UnprocessedJob, task func() error) error {
 	}
 
 	LogInfo.Println("Publishing CVMFS transaction")
-	if err := commitTransaction(job.Repository, true); err != nil {
+	if err := commitTransaction(repository, true); err != nil {
 		abort = true
 		return errors.Wrap(err, "could not commit CVMFS transaction")
 	}

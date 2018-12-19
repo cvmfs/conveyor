@@ -23,7 +23,8 @@ type Keys struct {
 	RepoKeys map[string]string // map from repository name to keyId
 }
 
-// ReadKeys - read HTTP API keys from a list of files
+// ReadKeys from the given directory. The function attempts to load keys from any file
+// CVMFS gateway key file (*.gw) in the given directory
 func ReadKeys(keyDir string) (*Keys, error) {
 	d, err := os.Open(keyDir)
 	if err != nil {

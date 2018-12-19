@@ -30,7 +30,7 @@ var serverCmd = &cobra.Command{
 
 		if err := cvmfs.StartServer(cfg, keys); err != nil {
 			cvmfs.LogError.Println(
-				errors.Wrap(err, "could not start job server"))
+				errors.Wrap(err, "could not start conveyor server"))
 			os.Exit(1)
 		}
 	},

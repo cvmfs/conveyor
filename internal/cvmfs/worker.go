@@ -14,14 +14,15 @@ var mock bool
 
 func init() {
 	mock = false
-	v := os.Getenv("CVMFS_MOCK_JOB_CONSUMER")
+	v := os.Getenv("CONVEYOR_MOCK_WORKER")
 	if v == "true" || v == "yes" || v == "on" {
 		mock = true
 	}
 }
 
-// Consumer - a job consumer object
-type Consumer struct {
+// Worker encapsulates the loop where job descriptions received from the conveyor server
+// are downloaded and processed
+type Worker struct {
 	client        *JobClient
 	keys          *Keys
 	endpoints     HTTPEndpoints
@@ -29,34 +30,37 @@ type Consumer struct {
 	maxJobRetries int
 }
 
-// NewConsumer - creates a new job consumer object
-func NewConsumer(
-	keys *Keys, cfg *Config, tempDir string,
-	maxJobRetries int) (*Consumer, error) {
+// NewWorker creates a new Worker object using a config object
+func NewWorker(
+	cfg *Config, keys *Keys, tempDir string,
+	maxJobRetries int) (*Worker, error) {
 
-	client, err := NewJobClient(keys, cfg)
+	client, err := NewJobClient(cfg, keys)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create a queue client")
 	}
 
-	return &Consumer{
+	return &Worker{
 		client, keys, cfg.HTTPEndpoints(), tempDir, maxJobRetries}, nil
 }
 
-// Close all the internal connections of the consumer
-func (c *Consumer) Close() {}
+// Close all the internal connections of the Worker object
+func (w *Worker) Close() {
+	w.client.Close()
+}
 
-// Loop start the event loop for consuming job messages
-func (c *Consumer) Loop() error {
+// Loop subscribes to the new job messages from the conveyor server and processes them
+// one by one
+func (w *Worker) Loop() error {
 	// Select the lowest alphabetical keyID to be used for signing the subscription request
 	// This is an arbitrary choice which has no impact on the content of the messages.
-	ch, err := c.client.SubscribeNewJobs(c.keys.firstKeyID())
+	ch, err := w.client.SubscribeNewJobs(w.keys.firstKeyID())
 	if err != nil {
 		return errors.Wrap(err, "could not start job subscription")
 	}
 
 	for msg := range ch {
-		if err := c.handle(&msg); err != nil {
+		if err := w.handle(&msg); err != nil {
 			LogError.Println(errors.Wrap(err, "Error in job handler"))
 		}
 	}
@@ -64,7 +68,9 @@ func (c *Consumer) Loop() error {
 	return nil
 }
 
-func (c *Consumer) handle(msg *amqp.Delivery) error {
+// handle a job message received from the conveyor server; involves deserializing the job
+// description and processing the job
+func (w *Worker) handle(msg *amqp.Delivery) error {
 	startTime := time.Now()
 
 	var job UnprocessedJob
@@ -74,9 +80,9 @@ func (c *Consumer) handle(msg *amqp.Delivery) error {
 
 	if len(job.Dependencies) > 0 {
 		// Wait for job dependencies to finish
-		depStatus, err := c.client.WaitForJobs(job.Dependencies, job.Repository)
+		depStatus, err := w.client.WaitForJobs(job.Dependencies, job.Repository)
 		if err != nil {
-			if err := c.postJobStatus(
+			if err := w.postJobStatus(
 				&job, startTime, time.Now(), false, err.Error()); err != nil {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
@@ -97,7 +103,7 @@ func (c *Consumer) handle(msg *amqp.Delivery) error {
 			err := errors.New(
 				fmt.Sprintf("failed job dependencies: %v", failed))
 			LogError.Println(err)
-			if err := c.postJobStatus(
+			if err := w.postJobStatus(
 				&job, startTime, time.Now(), false, err.Error()); err != nil {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
@@ -108,22 +114,22 @@ func (c *Consumer) handle(msg *amqp.Delivery) error {
 	LogInfo.Println("Start publishing job:", job.ID.String())
 
 	task := func() error {
-		return job.process(c.tempDir)
+		return job.process(w.tempDir)
 	}
 
 	success := false
 	errMsg := ""
 	retry := 0
-	for retry <= c.maxJobRetries {
-		err := runTransaction(&job, task)
+	for retry <= w.maxJobRetries {
+		err := runTransaction(job.Repository, job.RepositoryPath, task)
 		if err != nil {
 			wrappedErr := errors.Wrap(err, "could not run CVMFS transaction")
 			errMsg = wrappedErr.Error()
 			LogError.Println(wrappedErr)
 			retry++
 			LogInfo.Printf("Transaction failed.")
-			if retry <= c.maxJobRetries {
-				LogInfo.Printf(" Retrying: %v/%v\n", retry, c.maxJobRetries)
+			if retry <= w.maxJobRetries {
+				LogInfo.Printf(" Retrying: %v/%v\n", retry, w.maxJobRetries)
 			}
 		} else {
 			success = true
@@ -134,7 +140,7 @@ func (c *Consumer) handle(msg *amqp.Delivery) error {
 	finishTime := time.Now()
 
 	// Publish the processed job status to the job server
-	if err := c.postJobStatus(
+	if err := w.postJobStatus(
 		&job, startTime, finishTime, success, errMsg); err != nil {
 		msg.Nack(false, true)
 		return errors.Wrap(err, "posting job status to server failed")
@@ -151,7 +157,7 @@ func (c *Consumer) handle(msg *amqp.Delivery) error {
 	return nil
 }
 
-func (c *Consumer) postJobStatus(
+func (w *Worker) postJobStatus(
 	j *UnprocessedJob, t0 time.Time, t1 time.Time, success bool, errMsg string) error {
 
 	processed := ProcessedJob{
@@ -163,7 +169,7 @@ func (c *Consumer) postJobStatus(
 	}
 
 	// Post job status to the job server
-	pubStat, err := c.client.PostJobStatus(&processed)
+	pubStat, err := w.client.PostJobStatus(&processed)
 	if err != nil {
 		return errors.Wrap(err, "Could not post job status")
 	}

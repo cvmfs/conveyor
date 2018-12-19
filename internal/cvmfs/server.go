@@ -11,7 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// StartServer starts the job server. This is a blocking call
+// StartServer starts the conveyor server component. This function will block until
+// the server finishes.
 func StartServer(cfg *Config, keys *Keys) error {
 	backend, err := startBackEnd(cfg)
 	if err != nil {
@@ -26,7 +27,7 @@ func StartServer(cfg *Config, keys *Keys) error {
 	return nil
 }
 
-// serverBackend - interface to the server state
+// serverBackend encapsulates the server state
 type serverBackend struct {
 	db  *sql.DB
 	pub *QueueClient
@@ -51,13 +52,13 @@ func startBackEnd(cfg *Config) (*serverBackend, error) {
 	return &serverBackend{db, pub}, nil
 }
 
-// Close - closes the database connection
+// Close the connection to the database and the queue
 func (b *serverBackend) Close() {
 	b.db.Close()
 	b.pub.Close()
 }
 
-// getJobStatus - returns the rows from the job DB corresponding to the IDs
+// getJobStatus returns the rows from the job DB corresponding to the IDs
 func (b *serverBackend) getJobStatus(ids []string, full bool) (*GetJobStatusReply, error) {
 	reply := GetJobStatusReply{BasicReply: BasicReply{Status: "ok", Reason: ""}}
 
@@ -100,7 +101,7 @@ func (b *serverBackend) getJobStatus(ids []string, full bool) (*GetJobStatusRepl
 	return &reply, nil
 }
 
-// putNewJob - publishes a new job
+// putNewJob publishes a new (unprocessed) job
 func (b *serverBackend) putNewJob(j *JobSpecification) (*PostNewJobReply, error) {
 	id, err := uuid.NewV1()
 	if err != nil {
@@ -117,7 +118,7 @@ func (b *serverBackend) putNewJob(j *JobSpecification) (*PostNewJobReply, error)
 	return &reply, nil
 }
 
-// putJobStatus - inserts a job into the DB
+// putJobStatus inserts a job into the DB
 func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, error) {
 	reply := PostJobStatusReply{BasicReply{Status: "ok", Reason: ""}}
 

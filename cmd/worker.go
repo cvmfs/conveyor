@@ -39,18 +39,18 @@ var workerCmd = &cobra.Command{
 		}
 		defer os.RemoveAll(tempDir)
 
-		consumer, err := cvmfs.NewConsumer(keys, cfg, tempDir, *maxJobRetries)
+		worker, err := cvmfs.NewWorker(cfg, keys, tempDir, *maxJobRetries)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not create queue consumer"))
 			os.Exit(1)
 		}
-		defer consumer.Close()
+		defer worker.Close()
 
-		cvmfs.LogInfo.Println("Entering consumer loop")
+		cvmfs.LogInfo.Println("Starting worker loop")
 
-		if err := consumer.Loop(); err != nil {
-			cvmfs.LogInfo.Println(errors.Wrap(err, "error in consumer loop"))
+		if err := worker.Loop(); err != nil {
+			cvmfs.LogInfo.Println(errors.Wrap(err, "error in worker loop"))
 			os.Exit(1)
 		}
 	},

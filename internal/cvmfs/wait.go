@@ -11,6 +11,9 @@ import (
 
 const maxQueryRetries = 50 // max number of job server query retries
 
+// listen is a helper function for JobClient.WaitForJobs. Listens for completion
+// status messages from the queue and publishes them to the notifications channel, if
+// they correspond to any job in "ids"
 func listen(
 	ids map[string]bool,
 	q *QueueClient,
@@ -49,6 +52,9 @@ func listen(
 	return nil
 }
 
+// listen is a helper function for JobClient.WaitForJobs. Queries the conveyor server for
+// the completion status of jobs identified by "ids", forwarding the messages on the
+// results channel
 func query(ids []string, client *JobClient, repo string, results chan<- JobStatus, quit <-chan struct{}) chan error {
 	ch := make(chan error)
 

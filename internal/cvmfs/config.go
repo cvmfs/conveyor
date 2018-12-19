@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// BackendConfig - database backend configuration for the job server DB backend
+// BackendConfig - database backend configuration for the conveyor job server DB backend
 type BackendConfig struct {
 	Type     string
 	Database string
@@ -18,7 +18,7 @@ type BackendConfig struct {
 	Port     int
 }
 
-// QueueConfig - configuration of message queue
+// QueueConfig - configuration of message queue (RabbitMQ)
 type QueueConfig struct {
 	Username string
 	Password string
@@ -36,13 +36,14 @@ type Config struct {
 	Backend BackendConfig
 }
 
-// HTTPEndpoints holds the different HTTP end points of the job server
+// HTTPEndpoints holds the different HTTP end points of the conveyor job server
 type HTTPEndpoints struct {
 	base   string
 	basews string
 }
 
-// NewJobs returns the endpoint for new jobs. Set withBase = true to prepend the base URL
+// NewJobs returns the endpoint for new jobs. If "withBase" is true, the base URL
+// is prepended
 func (o HTTPEndpoints) NewJobs(withBase bool) string {
 	pt := "/jobs/new"
 	if withBase {
@@ -51,7 +52,8 @@ func (o HTTPEndpoints) NewJobs(withBase bool) string {
 	return pt
 }
 
-// CompletedJobs returns the endpoint for completed jobs. Set withBase = true to prepend the base URL
+// CompletedJobs returns the endpoint for completed jobs.  If "withBase" is true, the
+// base URL is prepended
 func (o HTTPEndpoints) CompletedJobs(withBase bool) string {
 	pt := "/jobs/complete"
 	if withBase {

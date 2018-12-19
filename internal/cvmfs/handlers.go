@@ -11,6 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// hmacAuthorization implements the Middleware interface and checks the HMAC signature of
+// incoming requests
 type hmacAuthorization struct {
 	keys *Keys
 }

@@ -30,7 +30,8 @@ const (
 	publisherConnection
 )
 
-// QueueClient - encapsulates the AMQP connection and channel
+// QueueClient containts all the objects associated with a connection to a RabbitMQ
+// instance
 type QueueClient struct {
 	Conn              *amqp.Connection
 	Chan              *amqp.Channel
@@ -38,8 +39,8 @@ type QueueClient struct {
 	CompletedJobQueue *amqp.Queue
 }
 
-// NewQueueClient - create a new connection to the job queue. connType can
-//             either be ConsumerConnection or publisherConnection
+// NewQueueClient creates a new connection to the queue. connType can either be
+// consumerConnection or publisherConnection
 func NewQueueClient(cfg *QueueConfig, connType int) (*QueueClient, error) {
 	dialStr := createConnectionURL(
 		cfg.Username, cfg.Password, cfg.Host, cfg.VHost, cfg.Port)
@@ -118,12 +119,12 @@ func NewQueueClient(cfg *QueueConfig, connType int) (*QueueClient, error) {
 	return c, nil
 }
 
-// Close - closes an established connection to the job queue
+// Close the connection to the queue
 func (c *QueueClient) Close() error {
 	return c.Conn.Close()
 }
 
-// publish - publish data (as JSON) to an exchange using the given routing key
+// publish data (as JSON) to an exchange using the given routing key
 func (c *QueueClient) publish(exchange string, key string, data interface{}) error {
 	body, err := json.Marshal(data)
 	if err != nil {

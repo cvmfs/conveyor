@@ -18,7 +18,7 @@ import (
 // MaxJobDuration is the number of seconds that a job is allowed to take
 const MaxJobDuration = 2 * 3600
 
-// JobSpecification - job submission Specification
+// JobSpecification contains all the parameters of a new job which is to be submitted
 type JobSpecification struct {
 	Repository     string
 	Payload        string
@@ -29,13 +29,15 @@ type JobSpecification struct {
 	Dependencies   []string
 }
 
-// UnprocessedJob - a job submission that has been assigned and ID
+// UnprocessedJob describes a job which has been submitted, having been assigned
+// a unique ID
 type UnprocessedJob struct {
 	ID uuid.UUID
 	JobSpecification
 }
 
-// ProcessedJob - a processed job
+// ProcessedJob describes a completed job. Additional fields with respect to an
+// unprocessed job are related to the execution time of the job and its completion status
 type ProcessedJob struct {
 	UnprocessedJob
 	StartTime    time.Time
@@ -44,37 +46,38 @@ type ProcessedJob struct {
 	ErrorMessage string
 }
 
-// JobStatus - a pair of job ID and the completion status
+// JobStatus holds a job ID and its completion status
 type JobStatus struct {
 	ID         uuid.UUID
 	Successful bool
 }
 
-// BasicReply - basic reply with status and optional error cause
+// BasicReply is a status message and optional error cause
 type BasicReply struct {
 	Status string // "ok" || "error"
 	Reason string `json:",omitempty"`
 }
 
-// GetJobStatusReply - Return type of the GetJob query
+// GetJobStatusReply is the return type of the GetJob query
 type GetJobStatusReply struct {
 	BasicReply
 	IDs  []JobStatus    `json:",omitempty"`
 	Jobs []ProcessedJob `json:",omitempty"`
 }
 
-// PostNewJobReply - return type of the PostNewJob action
+// PostNewJobReply is the return type of the PostNewJob action
 type PostNewJobReply struct {
 	BasicReply
 	ID uuid.UUID
 }
 
-// PostJobStatusReply - return value of the PutJobStatus action
+// PostJobStatusReply is the return value of the PutJobStatus action
 type PostJobStatusReply struct {
 	BasicReply
 }
 
-// Prepare - prepare a job specification for submissions
+// Prepare a job specification for submission: normalizes the repository path and embeds
+// the transaction script in the job description, if the script is a local file
 func (spec *JobSpecification) Prepare() error {
 	if spec.RepositoryPath[0] != '/' {
 		spec.RepositoryPath = "/" + spec.RepositoryPath
@@ -93,7 +96,7 @@ func (spec *JobSpecification) Prepare() error {
 	return nil
 }
 
-// Process - process a job (download and unpack payload, run script etc.)
+// Process a job (download and unpack payload, run script etc.)
 func (j *UnprocessedJob) process(tempDir string) error {
 	// Create target dir if needed
 	targetDir := path.Join(
@@ -139,7 +142,7 @@ func (j *UnprocessedJob) process(tempDir string) error {
 	return nil
 }
 
-// packScript - packs a script into a gzipped, base64 encoded buffer
+// packScript into a gzipped, base64 encoded buffer
 func packScript(script string) (string, error) {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
@@ -158,8 +161,7 @@ func packScript(script string) (string, error) {
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
-// unpackScript - unpacks a script from a gzipped, base64 encoded buffer
-//                and saves it to disk at `dest`
+// unpackScript from a gzipped, base64 encoded buffer and saves it to disk at `dest`
 func unpackScript(body string, dest string) error {
 	buf, err := base64.StdEncoding.DecodeString(body)
 	if err != nil {

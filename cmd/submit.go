@@ -42,15 +42,13 @@ var submitCmd = &cobra.Command{
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
 
-		cvmfs.LogInfo.Printf("Job description:\n%+v\n", spec)
-
 		if err := spec.Prepare(); err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not create job object"))
 			os.Exit(1)
 		}
 
-		client, err := cvmfs.NewJobClient(keys, cfg)
+		client, err := cvmfs.NewJobClient(cfg, keys)
 		if err != nil {
 			cvmfs.LogError.Println("could not start job client")
 			os.Exit(1)
@@ -64,8 +62,7 @@ var submitCmd = &cobra.Command{
 		}
 
 		if stat.Status != "ok" {
-			cvmfs.LogError.Println(
-				errors.New(fmt.Sprintf("posting new job failed: %v", stat.Reason)))
+			fmt.Printf("{\"Status\": \"error\", \"Reason\": \"%v\"}\n", stat.Reason)
 			os.Exit(1)
 		}
 
@@ -73,12 +70,6 @@ var submitCmd = &cobra.Command{
 
 		// Optionally wait for completion of the job
 		if *wait {
-			client, err := cvmfs.NewJobClient(keys, cfg)
-			if err != nil {
-				cvmfs.LogError.Println(
-					errors.Wrap(err, "could not create job client"))
-				os.Exit(1)
-			}
 			stats, err := client.WaitForJobs([]string{id.String()}, spec.Repository)
 			if err != nil {
 				cvmfs.LogError.Println(

@@ -22,8 +22,9 @@ type JobClient struct {
 	qcl       *QueueClient
 }
 
-// NewJobClient constructs a new JobClient object
-func NewJobClient(keys *Keys, cfg *Config) (*JobClient, error) {
+// NewJobClient constructs a new JobClient object using a configuration object and a set
+// of keys
+func NewJobClient(cfg *Config, keys *Keys) (*JobClient, error) {
 	q, err := NewQueueClient(&cfg.Queue, consumerConnection)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create queue connection")
@@ -31,7 +32,13 @@ func NewJobClient(keys *Keys, cfg *Config) (*JobClient, error) {
 	return &JobClient{keys, cfg.HTTPEndpoints(), q}, nil
 }
 
-// SubscribeNewJobs - subscribes to new job messages
+// Close all the internal connections of the object
+func (c *JobClient) Close() {
+	c.qcl.Close()
+}
+
+// SubscribeNewJobs returns a channel with new job messages coming from the conveyor
+// server
 func (c *JobClient) SubscribeNewJobs(keyID string) (<-chan amqp.Delivery, error) {
 	ch, err := c.qcl.Chan.Consume(
 		c.qcl.NewJobQueue.Name, "", false, false, false, false, nil)
@@ -42,7 +49,7 @@ func (c *JobClient) SubscribeNewJobs(keyID string) (<-chan amqp.Delivery, error)
 	return ch, nil
 }
 
-// WaitForJobs wait for the completion of a set of jobs referenced through theirs
+// WaitForJobs waits for the completion of a set of jobs referenced through theirs
 // unique ids. The job status is obtained from the completed job notification channel
 // of the job queue and from the job server
 func (c *JobClient) WaitForJobs(ids []string, repo string) ([]JobStatus, error) {
@@ -102,7 +109,7 @@ L:
 	return st, nil
 }
 
-// GetJobStatus gets the status of a set of jobs from the server
+// GetJobStatus queries the status of a set of jobs from the server
 func (c *JobClient) GetJobStatus(ids []string, repo string) (*GetJobStatusReply, error) {
 	req, err := http.NewRequest("GET", c.endpoints.CompletedJobs(true), nil)
 	if err != nil {
@@ -185,6 +192,9 @@ func (c *JobClient) PostJobStatus(job *ProcessedJob) (*PostJobStatusReply, error
 	return &stat, nil
 }
 
+// postMsg makes a POST request to the conveyor server located at "url" with the body
+// provided in the "msg" slice. The message is signed with the key corresponding to
+// "repository"
 func (c *JobClient) postMsg(msg []byte, repository string, url string) ([]byte, error) {
 	// Compute message HMAC
 	keyID, secret, err := c.keys.getKeyForRepo(repository)
