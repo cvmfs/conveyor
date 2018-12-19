@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -59,7 +58,7 @@ func query(ids []string, client *JobClient, repo string, results chan<- JobStatu
 	ch := make(chan error)
 
 	go func() {
-		w := defaultWaiter()
+		w := DefaultWaiter()
 		retry := 0
 
 	L:
@@ -79,7 +78,7 @@ func query(ids []string, client *JobClient, repo string, results chan<- JobStatu
 				results <- j
 			}
 
-			w.wait()
+			w.Wait()
 			select {
 			case <-quit:
 				break L
@@ -91,37 +90,4 @@ func query(ids []string, client *JobClient, repo string, results chan<- JobStatu
 	}()
 
 	return ch
-}
-
-const initRetryDelay = 5   // seconds
-const maxRetryDelay = 1800 // seconds
-
-type waiter struct {
-	currentDelay int
-	initDelay    int
-	maxDelay     int
-}
-
-func defaultWaiter() waiter {
-	return waiter{
-		currentDelay: initRetryDelay,
-		initDelay:    initRetryDelay,
-		maxDelay:     maxRetryDelay,
-	}
-}
-
-func newWaiter(initDelay, maxDelay int) waiter {
-	return waiter{initDelay, initDelay, maxDelay}
-}
-
-func (w *waiter) wait() {
-	time.Sleep(time.Duration(w.currentDelay) * time.Second)
-	w.currentDelay *= 2
-	if w.currentDelay > w.maxDelay {
-		w.currentDelay = w.maxDelay
-	}
-}
-
-func (w *waiter) reset() {
-	w.currentDelay = w.initDelay
 }
