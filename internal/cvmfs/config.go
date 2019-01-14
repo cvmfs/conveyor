@@ -38,8 +38,18 @@ type Config struct {
 
 // HTTPEndpoints holds the different HTTP end points of the conveyor job server
 type HTTPEndpoints struct {
-	base   string
-	basews string
+	base string
+}
+
+// NewHTTPEndpoints creates a new HTTPEndpoints object using a hostname and a port.
+// Prepends "http://" to the hostname if neither "http://"" nor "https://" are given
+func newHTTPEndpoints(host string, port int) HTTPEndpoints {
+	var prefix string
+	if !strings.HasPrefix(host, "http://") && !strings.HasPrefix(host, "https://") {
+		prefix = "http://"
+	}
+	base := fmt.Sprintf("%s%s:%v", prefix, host, port)
+	return HTTPEndpoints{base}
 }
 
 // NewJobs returns the endpoint for new jobs. If "withBase" is true, the base URL
@@ -64,19 +74,20 @@ func (o HTTPEndpoints) CompletedJobs(withBase bool) string {
 
 // HTTPEndpoints constructs an HTTPEndpoints object
 func (c *Config) HTTPEndpoints() HTTPEndpoints {
-	var prefix string
-	if !strings.HasPrefix(c.Host, "http://") {
-		prefix = "http://"
-	}
-	base := fmt.Sprintf("%s%s:%v", prefix, c.Host, c.Port)
-	basews := "ws:" + strings.TrimPrefix(base, "http:")
-	return HTTPEndpoints{base, basews}
+	return newHTTPEndpoints(c.Host, c.Port)
 }
 
 // ReadConfig - populate the config object using the global viper object
 // and the config file
 func ReadConfig() (*Config, error) {
-	srv := viper.Sub("server")
+	return readConfigFromViper(viper.GetViper())
+}
+
+func readConfigFromViper(v *viper.Viper) (*Config, error) {
+	srv := v.Sub("server")
+	if srv == nil {
+		return nil, fmt.Errorf("Could not read config; missing server section")
+	}
 	srv.SetDefault("port", 8080)
 	srv.SetDefault("keydir", "/etc/cvmfs/keys")
 	var cfg Config
@@ -84,7 +95,7 @@ func ReadConfig() (*Config, error) {
 		return nil, errors.Wrap(err, "could not read server configuration")
 	}
 
-	q := viper.Sub("queue")
+	q := v.Sub("queue")
 	if q != nil {
 		q.SetDefault("port", 5672)
 		q.SetDefault("vhost", "/cvmfs")
@@ -93,7 +104,7 @@ func ReadConfig() (*Config, error) {
 		}
 	}
 
-	db := viper.Sub("db")
+	db := v.Sub("db")
 	if db != nil {
 		db.SetDefault("port", 3306)
 		if err := db.Unmarshal(&cfg.Backend); err != nil {
