@@ -145,7 +145,7 @@ func (c *JobClient) GetJobStatus(
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("GET request failed: %v", resp.Status))
+		return nil, fmt.Errorf("GET request failed: %v", resp.Status)
 	}
 
 	buf2, err := ioutil.ReadAll(resp.Body)
@@ -233,7 +233,7 @@ func (c *JobClient) postMsg(
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Post request failed: %v", resp.Status))
+		return nil, fmt.Errorf("Post request failed: %v", resp.Status)
 	}
 
 	buf2, err := ioutil.ReadAll(resp.Body)

@@ -63,13 +63,11 @@ func initKeys() Keys {
 func (k *Keys) getKeyForRepo(repo string) (string, string, error) {
 	id, present := k.RepoKeys[repo]
 	if !present {
-		return "", "", errors.New(
-			fmt.Sprintf("Key not found for repository: %v", repo))
+		return "", "", fmt.Errorf("Key not found for repository: %v", repo)
 	}
 	secret, present := k.Secrets[id]
 	if !present {
-		return "", "", errors.New(
-			fmt.Sprintf("Secret not found for keyID: %v", id))
+		return "", "", fmt.Errorf("Secret not found for keyID: %v", id)
 	}
 
 	return id, secret, nil

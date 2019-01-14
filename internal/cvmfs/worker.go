@@ -100,8 +100,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 			}
 		}
 		if len(failed) > 0 {
-			err := errors.New(
-				fmt.Sprintf("failed job dependencies: %v", failed))
+			err := fmt.Errorf("failed job dependencies: %v", failed)
 			LogError.Println(err)
 			if err := w.postJobStatus(
 				&job, startTime, time.Now(), false, err.Error()); err != nil {
@@ -175,8 +174,7 @@ func (w *Worker) postJobStatus(
 	}
 
 	if pubStat.Status != "ok" {
-		return errors.New(
-			fmt.Sprintf("Posting job status request failed: %s", pubStat.Reason))
+		return fmt.Errorf("Posting job status request failed: %s", pubStat.Reason)
 	}
 
 	return nil
