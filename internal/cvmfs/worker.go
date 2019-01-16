@@ -32,9 +32,7 @@ type Worker struct {
 }
 
 // NewWorker creates a new Worker object using a config object
-func NewWorker(
-	cfg *Config, keys *Keys, tempDir string,
-	maxJobRetries int) (*Worker, error) {
+func NewWorker(cfg *Config, keys *Keys) (*Worker, error) {
 
 	client, err := NewJobClient(cfg, keys)
 	if err != nil {

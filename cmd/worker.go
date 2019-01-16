@@ -29,7 +29,6 @@ var workerCmd = &cobra.Command{
 
 		// Create temporary dir
 		tempDir := cfg.Worker.TempDir
-		maxJobRetries := cfg.Worker.JobRetries
 
 		os.RemoveAll(tempDir)
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
