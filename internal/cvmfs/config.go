@@ -104,45 +104,48 @@ func readConfigFromViper(v *viper.Viper) (*Config, error) {
 		return nil, errors.Wrap(err, "could not read server configuration")
 	}
 
+	cfg.Server.Port = 8080
 	srv := v.Sub("server")
 	if srv == nil {
 		return nil, fmt.Errorf("Could not read config; missing server section")
 	}
-	srv.SetDefault("port", 8080)
 	if err := srv.Unmarshal(&cfg.Server); err != nil {
 		return nil, errors.Wrap(err, "could not read server configuration")
 	}
 
+	cfg.Queue.Port = 5672
+	cfg.Queue.VHost = "/cvmfs/"
 	q := v.Sub("queue")
 	if q != nil {
-		q.SetDefault("port", 5672)
-		q.SetDefault("vhost", "/cvmfs")
 		if err := q.Unmarshal(&cfg.Queue); err != nil {
 			return nil, errors.Wrap(err, "could not read queue configuration")
 		}
 	}
 
+	cfg.Backend.Port = 3306
 	db := v.Sub("db")
 	if db != nil {
-		db.SetDefault("port", 3306)
 		if err := db.Unmarshal(&cfg.Backend); err != nil {
 			return nil, errors.Wrap(err, "could not read db configuration")
 		}
 	}
 
+	// worker name defaults to the hostname
+	name, err := defaultName()
+	if err != nil {
+		return nil, err
+	}
+	cfg.Worker.Name = name
+
+	// default temporary dir used for handling job artifacts
+	cfg.Worker.TempDir = "/tmp/conveyor-worker"
+
+	// maximum number of retries for processing a job before giving up
+	// and recording it as a failed job
+	cfg.Worker.JobRetries = 3
+
 	worker := v.Sub("worker")
 	if worker != nil {
-		// worker name defaults to the hostname
-		name, err := defaultName()
-		if err != nil {
-			return nil, err
-		}
-		worker.SetDefault("name", name)
-		// default temporary dir used for handling job artifacts
-		worker.SetDefault("temp_dir", "/tmp/conveyor-worker")
-		// maximum number of retries for processing a job before giving up
-		// and recording it as a failed job
-		worker.SetDefault("maxjobretries", 3)
 		if err := worker.Unmarshal(&cfg.Worker); err != nil {
 			return nil, errors.Wrap(err, "could not read worker configuration")
 		}
