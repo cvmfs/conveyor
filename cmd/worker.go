@@ -46,7 +46,7 @@ var workerCmd = &cobra.Command{
 		}
 		defer worker.Close()
 
-		cvmfs.LogInfo.Println("Starting worker loop")
+		cvmfs.LogInfo.Printf("Worker %v started.\n", cfg.Worker.Name)
 
 		if err := worker.Loop(); err != nil {
 			cvmfs.LogInfo.Println(errors.Wrap(err, "error in worker loop"))
