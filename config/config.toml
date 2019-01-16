@@ -1,8 +1,10 @@
+# Options common to multiple components (worker, server, etc.)
+keydir = "/etc/cvmfs/keys" # Default key dir
+
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]
 host = "JOB SERVICE HOST NAME"
 port = 8080
-keydir = "/etc/cvmfs/keys" # Default key dir
 
 # Queue configuration is used by conveyor server
 [queue]
@@ -20,3 +22,9 @@ username = "DB_USERNAME"
 password = "DB_PASSWORD"
 host = "DB_HOST NAME"
 post = 3306
+
+# Worker configuration
+[worker]
+# name = defaults to hostname
+jobretries = 3
+tempdir = "/tmp/conveyor-worker"

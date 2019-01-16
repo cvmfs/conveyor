@@ -9,11 +9,12 @@ import (
 )
 
 const fullConfig = `
+keydir = "/test/key/dir" # Default key dir
+
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]
 host = "job.service.host.name"
 port = 1111
-keydir = "/test/key/dir" # Default key dir
 
 # Queue configuration is used by conveyor server
 [queue]
@@ -31,14 +32,21 @@ username = "dbuser"
 password = "dbpass"
 host = "db.host.name"
 post = 3333
+
+# Worker configuration
+[worker]
+name = "jeff"
+jobretries = 11
+tempdir = "/tmp/dir"
 `
 
 const partialConfig = `
+keydir = "/test/key/dir" # Default key dir
+
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]
 host = "job.service.host.name"
 port = 1111
-keydir = "/test/key/dir" # Default key dir
 `
 
 const incompleteConfig = `
@@ -72,14 +80,27 @@ func TestReadFullConfig(t *testing.T) {
 		t.Errorf("Could not read config from Viper object")
 	}
 
-	if cfg.Host != "job.service.host.name" {
-		t.Errorf("Invalid hostname in config object")
-	}
-	if cfg.Port != 1111 {
-		t.Errorf("Invalid port in config object")
-	}
 	if cfg.KeyDir != "/test/key/dir" {
-		t.Errorf("Invalid key dir in config object")
+		t.Errorf("Invalid key dir: %v\n", cfg.KeyDir)
+	}
+
+	if cfg.Server.Host != "job.service.host.name" {
+		t.Errorf("Invalid hostname: %v\n", cfg.Server.Host)
+	}
+	if cfg.Server.Port != 1111 {
+		t.Errorf("Invalid port: %v\n", cfg.Server.Port)
+	}
+
+	if cfg.Worker.Name != "jeff" {
+		t.Errorf("Invalid worker name: %v\n", cfg.Worker.Name)
+	}
+
+	if cfg.Worker.TempDir != "/tmp/dir" {
+		t.Errorf("Invalid temp dir: %v\n", cfg.Worker.TempDir)
+	}
+
+	if cfg.Worker.JobRetries != 11 {
+		t.Errorf("Invalid max job retries: %v\n", cfg.Worker.JobRetries)
 	}
 }
 

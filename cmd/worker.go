@@ -8,9 +8,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var maxJobRetries *int
-var tempDir string
-
 var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "Run conveyor worker",
@@ -31,6 +28,9 @@ var workerCmd = &cobra.Command{
 		}
 
 		// Create temporary dir
+		tempDir := cfg.Worker.TempDir
+		maxJobRetries := cfg.Worker.JobRetries
+
 		os.RemoveAll(tempDir)
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
 			cvmfs.LogError.Println(
@@ -39,7 +39,7 @@ var workerCmd = &cobra.Command{
 		}
 		defer os.RemoveAll(tempDir)
 
-		worker, err := cvmfs.NewWorker(cfg, keys, tempDir, *maxJobRetries)
+		worker, err := cvmfs.NewWorker(cfg, keys, tempDir, maxJobRetries)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not create queue consumer"))
@@ -54,12 +54,4 @@ var workerCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
-}
-
-func init() {
-	maxJobRetries = workerCmd.Flags().Int(
-		"max-job-retries", 3, "maximum number of retries for processing a job before "+
-			"giving up and recording it as a failed job")
-	workerCmd.Flags().StringVar(
-		&tempDir, "temp-dir", "/tmp/conveyor-worker", "temporary directory for use during CVMFS transaction")
 }

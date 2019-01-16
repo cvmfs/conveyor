@@ -56,7 +56,7 @@ func startFrontEnd(cfg *Config, backend *serverBackend, keys *Keys) error {
 
 	srv := &http.Server{
 		Handler:      router,
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}

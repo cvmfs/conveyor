@@ -2,6 +2,7 @@ package cvmfs
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -27,13 +28,26 @@ type QueueConfig struct {
 	Port     int
 }
 
+// WorkerConfig - configuration of the Conveyor worker daemon
+type WorkerConfig struct {
+	Name       string
+	JobRetries int
+	TempDir    string
+}
+
+// ServerConfig - configuration of the Conveyor jov server
+type ServerConfig struct {
+	Host string
+	Port int
+}
+
 // Config - main configuration object
 type Config struct {
-	Host    string
-	Port    int
 	KeyDir  string
+	Server  ServerConfig
 	Queue   QueueConfig
 	Backend BackendConfig
+	Worker  WorkerConfig
 }
 
 // HTTPEndpoints holds the different HTTP end points of the conveyor job server
@@ -74,7 +88,7 @@ func (o HTTPEndpoints) CompletedJobs(withBase bool) string {
 
 // HTTPEndpoints constructs an HTTPEndpoints object
 func (c *Config) HTTPEndpoints() HTTPEndpoints {
-	return newHTTPEndpoints(c.Host, c.Port)
+	return newHTTPEndpoints(c.Server.Host, c.Server.Port)
 }
 
 // ReadConfig - populate the config object using the global viper object
@@ -84,14 +98,18 @@ func ReadConfig() (*Config, error) {
 }
 
 func readConfigFromViper(v *viper.Viper) (*Config, error) {
+	v.SetDefault("keydir", "/etc/cvmfs/keys")
+	var cfg Config
+	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, errors.Wrap(err, "could not read server configuration")
+	}
+
 	srv := v.Sub("server")
 	if srv == nil {
 		return nil, fmt.Errorf("Could not read config; missing server section")
 	}
 	srv.SetDefault("port", 8080)
-	srv.SetDefault("keydir", "/etc/cvmfs/keys")
-	var cfg Config
-	if err := srv.Unmarshal(&cfg); err != nil {
+	if err := srv.Unmarshal(&cfg.Server); err != nil {
 		return nil, errors.Wrap(err, "could not read server configuration")
 	}
 
@@ -112,5 +130,32 @@ func readConfigFromViper(v *viper.Viper) (*Config, error) {
 		}
 	}
 
+	worker := v.Sub("worker")
+	if worker != nil {
+		// worker name defaults to the hostname
+		name, err := defaultName()
+		if err != nil {
+			return nil, err
+		}
+		worker.SetDefault("name", name)
+		// default temporary dir used for handling job artifacts
+		worker.SetDefault("temp_dir", "/tmp/conveyor-worker")
+		// maximum number of retries for processing a job before giving up
+		// and recording it as a failed job
+		worker.SetDefault("maxjobretries", 3)
+		if err := worker.Unmarshal(&cfg.Worker); err != nil {
+			return nil, errors.Wrap(err, "could not read worker configuration")
+		}
+	}
+
 	return &cfg, nil
+}
+
+func defaultName() (string, error) {
+	name, err := os.Hostname()
+	if err != nil {
+		return "", errors.Wrap(err, "could not retrieve hostname")
+	}
+
+	return name, nil
 }
