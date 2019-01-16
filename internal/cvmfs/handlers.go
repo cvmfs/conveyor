@@ -61,93 +61,87 @@ func (m *hmacAuthorization) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-type getJobStatusHandler struct {
-	backend *serverBackend
+func makeGetJobStatusHandler(backend *serverBackend) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		full := false
+		if req.URL.Query().Get("full") != "false" {
+			full = true
+		}
+
+		ids := req.URL.Query()["id"]
+		status, err := backend.getJobStatus(ids, full)
+		if err != nil {
+			LogError.Println(errors.Wrap(err, "get job failed"))
+		}
+
+		rep, err := json.Marshal(status)
+		if err != nil {
+			httpWrapError(err, "JSON serialization failed", &w, http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(rep)
+	}
 }
 
-func (h getJobStatusHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	full := false
-	if req.URL.Query().Get("full") != "false" {
-		full = true
-	}
+func makePutNewJobHandler(backend *serverBackend) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		buf, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			httpWrapError(err, "reading request body failed", &w, http.StatusBadRequest)
+			return
+		}
 
-	ids := req.URL.Query()["id"]
-	status, err := h.backend.getJobStatus(ids, full)
-	if err != nil {
-		LogError.Println(errors.Wrap(err, "get job failed"))
-	}
+		var job JobSpecification
+		if err := json.Unmarshal(buf, &job); err != nil {
+			httpWrapError(err, "JSON deserialization of request failed", &w, http.StatusBadRequest)
+			return
+		}
 
-	rep, err := json.Marshal(status)
-	if err != nil {
-		httpWrapError(err, "JSON serialization failed", &w, http.StatusInternalServerError)
-		return
-	}
+		status, err := backend.putNewJob(&job)
+		if err != nil {
+			LogError.Println(errors.Wrap(err, "get job failed"))
+		}
 
-	w.Write(rep)
+		rep, err := json.Marshal(status)
+		if err != nil {
+			httpWrapError(
+				err, "JSON serialization of reply failed", &w,
+				http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(rep)
+	}
 }
 
-type putNewJobHandler struct {
-	backend *serverBackend
-}
+func makePutJobStatusHandler(backend *serverBackend) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		buf, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			httpWrapError(err, "reading request body failed", &w, http.StatusBadRequest)
+			return
+		}
 
-func (h putNewJobHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	buf, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		httpWrapError(err, "reading request body failed", &w, http.StatusBadRequest)
-		return
+		var job ProcessedJob
+		if err := json.Unmarshal(buf, &job); err != nil {
+			httpWrapError(err, "JSON deserialization of request failed", &w, http.StatusBadRequest)
+			return
+		}
+
+		status, err := backend.putJobStatus(&job)
+		if err != nil {
+			LogError.Println(errors.Wrap(err, "get job failed"))
+		}
+
+		rep, err := json.Marshal(status)
+		if err != nil {
+			httpWrapError(err, "JSON serialization of reply failed", &w, http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(rep)
 	}
-
-	var job JobSpecification
-	if err := json.Unmarshal(buf, &job); err != nil {
-		httpWrapError(err, "JSON deserialization of request failed", &w, http.StatusBadRequest)
-		return
-	}
-
-	status, err := h.backend.putNewJob(&job)
-	if err != nil {
-		LogError.Println(errors.Wrap(err, "get job failed"))
-	}
-
-	rep, err := json.Marshal(status)
-	if err != nil {
-		httpWrapError(
-			err, "JSON serialization of reply failed", &w,
-			http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(rep)
-}
-
-type putJobStatusHandler struct {
-	backend *serverBackend
-}
-
-func (h putJobStatusHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	buf, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		httpWrapError(err, "reading request body failed", &w, http.StatusBadRequest)
-		return
-	}
-
-	var job ProcessedJob
-	if err := json.Unmarshal(buf, &job); err != nil {
-		httpWrapError(err, "JSON deserialization of request failed", &w, http.StatusBadRequest)
-		return
-	}
-
-	status, err := h.backend.putJobStatus(&job)
-	if err != nil {
-		LogError.Println(errors.Wrap(err, "get job failed"))
-	}
-
-	rep, err := json.Marshal(status)
-	if err != nil {
-		httpWrapError(err, "JSON serialization of reply failed", &w, http.StatusInternalServerError)
-		return
-	}
-
-	w.Write(rep)
 }
 
 func httpError(msg string, w *http.ResponseWriter, code int) {

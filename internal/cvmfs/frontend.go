@@ -36,7 +36,7 @@ func startFrontEnd(cfg *Config, backend *serverBackend, keys *Keys) error {
 	r.Methods("POST")
 	r.Headers("Content-Type", "application/json")
 	r.Headers("Authorization", "")
-	r.Handler(putNewJobHandler{backend})
+	r.HandlerFunc(makePutNewJobHandler(backend))
 
 	// GET the status of multiple completed jobs
 	r = router.NewRoute()
@@ -44,7 +44,7 @@ func startFrontEnd(cfg *Config, backend *serverBackend, keys *Keys) error {
 	r.Methods("GET")
 	r.Queries("id", "", "full", "")
 	r.Headers("Authorization", "")
-	r.Handler(getJobStatusHandler{backend})
+	r.HandlerFunc(makeGetJobStatusHandler(backend))
 
 	// POST the completion status of a job
 	r = router.NewRoute()
@@ -52,7 +52,7 @@ func startFrontEnd(cfg *Config, backend *serverBackend, keys *Keys) error {
 	r.Methods("POST")
 	r.Headers("Content-Type", "application/json")
 	r.Headers("Authorization", "")
-	r.Handler(putJobStatusHandler{backend})
+	r.HandlerFunc(makePutJobStatusHandler(backend))
 
 	srv := &http.Server{
 		Handler:      router,
