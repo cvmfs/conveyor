@@ -131,12 +131,12 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 	}
 	defer tx.Rollback()
 
-	queryStr := "replace into Jobs values (?,?,?,?,?,?,?,?,?,?,?,?);"
+	queryStr := "replace into Jobs values (?,?,?,?,?,?,?,?,?,?,?,?,?);"
 
 	if _, err := tx.Exec(queryStr,
 		j.ID, j.Repository, j.Payload, j.RepositoryPath,
 		j.Script, j.ScriptArgs, j.TransferScript, strings.Join(j.Dependencies, ","),
-		j.StartTime, j.FinishTime, j.Successful, j.ErrorMessage); err != nil {
+		j.WorkerName, j.StartTime, j.FinishTime, j.Successful, j.ErrorMessage); err != nil {
 		reason := "executing SQL statement failed"
 		reply.Status = "error"
 		reply.Reason = reason
@@ -174,7 +174,7 @@ func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
 	if err := rows.Scan(
 		&st.ID, &st.Repository, &st.Payload, &st.RepositoryPath,
 		&st.Script, &st.ScriptArgs, &st.TransferScript,
-		&deps, &st.StartTime, &st.FinishTime,
+		&deps, &st.WorkerName, &st.StartTime, &st.FinishTime,
 		&st.Successful, &st.ErrorMessage); err != nil {
 		return nil, err
 	}

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS Jobs (
     ScriptArgs varchar(65535) NOT NULL,
     TransferScript boolean NOT NULL,
     Dependencies varchar(65535) NOT NULL,
+    WorkerName varchar(65535) NOT NULL,
     StartTime timestamp NOT NULL,
     FinishTime timestamp NOT NULL,
     Successful boolean NOT NULL,

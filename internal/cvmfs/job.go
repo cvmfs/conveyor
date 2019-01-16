@@ -42,6 +42,7 @@ type UnprocessedJob struct {
 // unprocessed job are related to the execution time of the job and its completion status
 type ProcessedJob struct {
 	UnprocessedJob
+	WorkerName   string
 	StartTime    time.Time
 	FinishTime   time.Time
 	Successful   bool

@@ -39,7 +39,7 @@ var workerCmd = &cobra.Command{
 		}
 		defer os.RemoveAll(tempDir)
 
-		worker, err := cvmfs.NewWorker(cfg, keys, tempDir, maxJobRetries)
+		worker, err := cvmfs.NewWorker(cfg, keys)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not create queue consumer"))

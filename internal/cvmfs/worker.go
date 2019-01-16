@@ -23,11 +23,12 @@ func init() {
 // Worker encapsulates the loop where job descriptions received from the conveyor server
 // are downloaded and processed
 type Worker struct {
+	name          string
+	maxJobRetries int
+	tempDir       string
 	client        *JobClient
 	keys          *Keys
 	endpoints     HTTPEndpoints
-	tempDir       string
-	maxJobRetries int
 }
 
 // NewWorker creates a new Worker object using a config object
@@ -41,7 +42,7 @@ func NewWorker(
 	}
 
 	return &Worker{
-		client, keys, cfg.HTTPEndpoints(), tempDir, maxJobRetries}, nil
+		cfg.Worker.Name, cfg.Worker.JobRetries, cfg.Worker.TempDir, client, keys, cfg.HTTPEndpoints()}, nil
 }
 
 // Close all the internal connections of the Worker object
@@ -83,7 +84,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 		depStatus, err := w.client.WaitForJobs(job.Dependencies, job.Repository)
 		if err != nil {
 			if err := w.postJobStatus(
-				&job, startTime, time.Now(), false, err.Error()); err != nil {
+				&job, w.name, startTime, time.Now(), false, err.Error()); err != nil {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
 			}
@@ -103,7 +104,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 			err := fmt.Errorf("failed job dependencies: %v", failed)
 			LogError.Println(err)
 			if err := w.postJobStatus(
-				&job, startTime, time.Now(), false, err.Error()); err != nil {
+				&job, w.name, startTime, time.Now(), false, err.Error()); err != nil {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
 			}
@@ -140,7 +141,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 
 	// Publish the processed job status to the job server
 	if err := w.postJobStatus(
-		&job, startTime, finishTime, success, errMsg); err != nil {
+		&job, w.name, startTime, finishTime, success, errMsg); err != nil {
 		msg.Nack(false, true)
 		return errors.Wrap(err, "posting job status to server failed")
 	}
@@ -157,10 +158,11 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 }
 
 func (w *Worker) postJobStatus(
-	j *UnprocessedJob, t0 time.Time, t1 time.Time, success bool, errMsg string) error {
+	j *UnprocessedJob, workerName string, t0 time.Time, t1 time.Time, success bool, errMsg string) error {
 
 	processed := ProcessedJob{
 		UnprocessedJob: *j,
+		WorkerName:     workerName,
 		StartTime:      t0,
 		FinishTime:     t1,
 		Successful:     success,
