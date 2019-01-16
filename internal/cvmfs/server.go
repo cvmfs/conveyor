@@ -162,8 +162,8 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 	}
 
 	LogInfo.Printf(
-		"Job inserted: %v, success: %v, start time: %v, finish time: %v\n",
-		j.ID, j.Successful, j.StartTime, j.FinishTime)
+		"Job inserted: %v, success: %v, start time: %v, finish time: %v, worker name: %v\n",
+		j.ID, j.Successful, j.StartTime, j.FinishTime, j.WorkerName)
 
 	return &reply, nil
 }
