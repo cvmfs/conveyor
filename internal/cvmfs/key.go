@@ -1,10 +1,11 @@
 package cvmfs
 
 import (
+	"bufio"
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"sort"
@@ -38,18 +39,43 @@ func ReadKeys(keyDir string) (*Keys, error) {
 	keys := initKeys()
 	for _, f := range files {
 		if strings.HasSuffix(f.Name(), ".gw") {
-			buf, err := ioutil.ReadFile(path.Join(keyDir, f.Name()))
+			input, err := os.Open(path.Join(keyDir, f.Name()))
 			if err != nil {
-				return nil, errors.Wrap(
-					err, fmt.Sprintf("could not read key file: %v", f))
+				return nil, errors.Wrap(err, fmt.Sprintf("could not open key file: %v", f))
 			}
-			tokens := strings.Split(string(buf), " ")
-			keys.Secrets[tokens[1]] = tokens[2]
+			keyID, secret, err := readKey(input)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not read key file")
+			}
 			repoName := strings.TrimSuffix(f.Name(), ".gw")
-			keys.RepoKeys[repoName] = tokens[1]
+			keys.RepoKeys[repoName] = keyID
+			keys.Secrets[keyID] = secret
 		}
 	}
 	return &keys, nil
+}
+
+func readKey(reader io.Reader) (string, string, error) {
+	body := make([]byte, 0)
+	bufReader := bufio.NewReader(reader)
+	for {
+		buf := make([]byte, bufReader.Size())
+		n, err := bufReader.Read(buf)
+		if err != nil && err != io.EOF {
+			return "", "", errors.Wrap(err, "could not read input")
+		}
+		if n != 0 {
+			body = append(body, buf[:n]...)
+		} else {
+			break
+		}
+	}
+	tokens := strings.Split(string(body), " ")
+	if len(tokens) != 3 {
+		return "", "", fmt.Errorf("invalid format")
+	}
+
+	return tokens[1], tokens[2], nil
 }
 
 func initKeys() Keys {

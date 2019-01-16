@@ -1,9 +1,11 @@
 package cvmfs
 
 import (
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -85,9 +87,14 @@ func (spec *JobSpecification) Prepare() error {
 
 	if spec.Script != "" {
 		if spec.TransferScript {
-			s, err := packScript(spec.Script)
+			f, err := os.Open(spec.Script)
 			if err != nil {
-				return errors.Wrap(err, "could not load script")
+				return errors.Wrap(err, "could not open script")
+			}
+			defer f.Close()
+			s, err := packScript(f)
+			if err != nil {
+				return errors.Wrap(err, "could not pack script")
 			}
 			spec.Script = s
 		}
@@ -124,7 +131,12 @@ func (j *UnprocessedJob) process(tempDir string) error {
 		if needsUnpacking {
 			var err error
 			scriptFile = path.Join(tempDir, "transaction.sh")
-			err = unpackScript(j.Script, scriptFile)
+			f, err := os.Create(scriptFile)
+			if err != nil {
+				return errors.Wrap(err, "creating destination file failed")
+			}
+			defer f.Close()
+			err = unpackScript(j.Script, f)
 			if err != nil {
 				return errors.Wrap(err, "unpacking transaction script failed")
 			}
@@ -143,26 +155,36 @@ func (j *UnprocessedJob) process(tempDir string) error {
 }
 
 // packScript into a gzipped, base64 encoded buffer
-func packScript(script string) (string, error) {
-	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
+func packScript(reader io.Reader) (string, error) {
+	var output bytes.Buffer
+	gz := gzip.NewWriter(&output)
 
-	data, err := ioutil.ReadFile(script)
-	if err != nil {
-		return "", errors.Wrap(err, "could not read script file")
+	input := make([]byte, 0)
+	bufReader := bufio.NewReader(reader)
+	for {
+		buf := make([]byte, bufReader.Size())
+		n, err := bufReader.Read(buf)
+		if err != nil && err != io.EOF {
+			return "", errors.Wrap(err, "could not read input")
+		}
+		if n != 0 {
+			input = append(input, buf[:n]...)
+		} else {
+			break
+		}
 	}
-	if _, err := gz.Write(data); err != nil {
+	if _, err := gz.Write(input); err != nil {
 		return "", errors.Wrap(err, "could not compress script")
 	}
 	if err := gz.Close(); err != nil {
 		return "", errors.Wrap(err, "could not close gzip compressor")
 	}
 
-	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+	return base64.StdEncoding.EncodeToString(output.Bytes()), nil
 }
 
 // unpackScript from a gzipped, base64 encoded buffer and saves it to disk at `dest`
-func unpackScript(body string, dest string) error {
+func unpackScript(body string, dest io.Writer) error {
 	buf, err := base64.StdEncoding.DecodeString(body)
 	if err != nil {
 		return errors.Wrap(err, "base64 decoding failed")
@@ -176,8 +198,8 @@ func unpackScript(body string, dest string) error {
 	if err != nil {
 		return errors.Wrap(err, "decompression failed")
 	}
-	if err := ioutil.WriteFile(dest, rawbuf, 0755); err != nil {
-		return errors.Wrap(err, "writing to disk failed")
+	if _, err := dest.Write(rawbuf); err != nil {
+		return errors.Wrap(err, "writing failed")
 	}
 
 	return nil
