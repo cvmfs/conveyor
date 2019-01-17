@@ -5,7 +5,7 @@ set -e
 SCRIPT_LOCATION=$(cd "$(dirname "$0")"; pwd)
 
 if [ $# -lt 1 ]; then
-  echo "Usage: $0 <CernVM-FS source directory (the same as the build directory)> [NIGHTLY_NUMBER]"
+  echo "Usage: $0 <Source directory (the same as the build directory)> [NIGHTLY_NUMBER]"
   echo "This script builds packages for the current platform."
   exit 1
 fi
