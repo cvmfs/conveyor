@@ -172,7 +172,7 @@ func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
 	var st ProcessedJob
 	var deps string
 	if err := rows.Scan(
-		&st.ID, &st.Repository, &st.Payload, &st.RepositoryPath,
+		&st.ID, &st.JobName, &st.Repository, &st.Payload, &st.RepositoryPath,
 		&st.Script, &st.ScriptArgs, &st.TransferScript,
 		&deps, &st.WorkerName, &st.StartTime, &st.FinishTime,
 		&st.Successful, &st.ErrorMessage); err != nil {
