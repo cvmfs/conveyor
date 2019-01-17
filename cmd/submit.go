@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var jobName string
 var repo string
 var payload string
 var path string
@@ -38,7 +39,7 @@ var submitCmd = &cobra.Command{
 		}
 
 		spec := &cvmfs.JobSpecification{
-			Repository: repo, Payload: payload, RepositoryPath: path,
+			JobName: jobName, Repository: repo, Payload: payload, RepositoryPath: path,
 			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
 			Dependencies: *deps}
 
@@ -88,6 +89,7 @@ var submitCmd = &cobra.Command{
 }
 
 func init() {
+	submitCmd.Flags().StringVar(&jobName, "job-name", "", "name of the job")
 	submitCmd.Flags().StringVar(&repo, "repo", "", "target CVMFS repository")
 	submitCmd.MarkFlagRequired("repo")
 	submitCmd.Flags().StringVar(&payload, "payload", "", "payload URL")

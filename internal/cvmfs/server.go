@@ -131,10 +131,10 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 	}
 	defer tx.Rollback()
 
-	queryStr := "replace into Jobs values (?,?,?,?,?,?,?,?,?,?,?,?,?);"
+	queryStr := "replace into Jobs values (?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
 
 	if _, err := tx.Exec(queryStr,
-		j.ID, j.Repository, j.Payload, j.RepositoryPath,
+		j.ID, j.JobName, j.Repository, j.Payload, j.RepositoryPath,
 		j.Script, j.ScriptArgs, j.TransferScript, strings.Join(j.Dependencies, ","),
 		j.WorkerName, j.StartTime, j.FinishTime, j.Successful, j.ErrorMessage); err != nil {
 		reason := "executing SQL statement failed"

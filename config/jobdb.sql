@@ -2,6 +2,7 @@ USE devcvmfs;
 
 CREATE TABLE IF NOT EXISTS Jobs (
     ID char(36) NOT NULL UNIQUE PRIMARY KEY,
+    JobName varchar(65535) NOT NULL,
     Repository varchar(65535) NOT NULL,
     Payload varchar(65535) NOT NULL,
     RepositoryPath varchar(65535) NOT NULL,
