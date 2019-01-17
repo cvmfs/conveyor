@@ -9,15 +9,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var jobName string
-var repo string
-var payload string
-var path string
-var script string
-var scriptArgs string
-var transferScript *bool
-var deps *[]string
-var wait *bool
+type submitCmdVars struct {
+	jobName        string
+	repo           string
+	payload        string
+	path           string
+	script         string
+	scriptArgs     string
+	transferScript *bool
+	deps           *[]string
+	wait           *bool
+}
+
+var subvs submitCmdVars
 
 var submitCmd = &cobra.Command{
 	Use:   "submit",
@@ -39,9 +43,8 @@ var submitCmd = &cobra.Command{
 		}
 
 		spec := &cvmfs.JobSpecification{
-			JobName: jobName, Repository: repo, Payload: payload, RepositoryPath: path,
-			Script: script, ScriptArgs: scriptArgs, TransferScript: *transferScript,
-			Dependencies: *deps}
+			JobName: subvs.jobName, Repository: subvs.repo, Payload: subvs.payload,
+			RepositoryPath: subvs.path, Script: subvs.script, ScriptArgs: subvs.scriptArgs, TransferScript: *subvs.transferScript, Dependencies: *subvs.deps}
 
 		if err := spec.Prepare(); err != nil {
 			cvmfs.LogError.Println(
@@ -70,7 +73,7 @@ var submitCmd = &cobra.Command{
 		id := stat.ID
 
 		// Optionally wait for completion of the job
-		if *wait {
+		if *subvs.wait {
 			stats, err := client.WaitForJobs([]string{id.String()}, spec.Repository)
 			if err != nil {
 				cvmfs.LogError.Println(
@@ -89,18 +92,18 @@ var submitCmd = &cobra.Command{
 }
 
 func init() {
-	submitCmd.Flags().StringVar(&jobName, "job-name", "", "name of the job")
-	submitCmd.Flags().StringVar(&repo, "repo", "", "target CVMFS repository")
+	submitCmd.Flags().StringVar(&subvs.jobName, "job-name", "", "name of the job")
+	submitCmd.Flags().StringVar(&subvs.repo, "repo", "", "target CVMFS repository")
 	submitCmd.MarkFlagRequired("repo")
-	submitCmd.Flags().StringVar(&payload, "payload", "", "payload URL")
-	submitCmd.Flags().StringVar(&path, "path", "/", "target path inside the repository")
+	submitCmd.Flags().StringVar(&subvs.payload, "payload", "", "payload URL")
+	submitCmd.Flags().StringVar(&subvs.path, "path", "/", "target path inside the repository")
 	submitCmd.Flags().StringVar(
-		&script, "script", "", "script to run at the end of CVMFS transaction")
+		&subvs.script, "script", "", "script to run at the end of CVMFS transaction")
 	submitCmd.Flags().StringVar(
-		&scriptArgs, "script-args", "", "arguments of the transaction script")
-	transferScript = submitCmd.Flags().Bool(
+		&subvs.scriptArgs, "script-args", "", "arguments of the transaction script")
+	subvs.transferScript = submitCmd.Flags().Bool(
 		"transfer-script", false, "transaction script is a local file which should be sent")
-	deps = submitCmd.Flags().StringSlice(
+	subvs.deps = submitCmd.Flags().StringSlice(
 		"deps", []string{}, "comma-separate list of job dependency UUIDs")
-	wait = submitCmd.Flags().Bool("wait", false, "wait for completion of the submitted job")
+	subvs.wait = submitCmd.Flags().Bool("wait", false, "wait for completion of the submitted job")
 }

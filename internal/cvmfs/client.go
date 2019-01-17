@@ -118,7 +118,7 @@ L:
 
 // GetJobStatus queries the status of a set of jobs from the server
 func (c *JobClient) GetJobStatus(
-	ids []string, repo string, quit <-chan struct{}) (*GetJobStatusReply, error) {
+	ids []string, repo string, full bool, quit <-chan struct{}) (*GetJobStatusReply, error) {
 
 	req, err := http.NewRequest("GET", c.endpoints.CompletedJobs(true), nil)
 	if err != nil {
@@ -126,7 +126,11 @@ func (c *JobClient) GetJobStatus(
 	}
 	q := req.URL.Query()
 	q["id"] = ids
-	q.Set("full", "false")
+	if full {
+		q.Set("full", "true")
+	} else {
+		q.Set("full", "false")
+	}
 	req.URL.RawQuery = q.Encode()
 
 	// Compute message HMAC
@@ -337,7 +341,7 @@ func query(
 				break L
 			default:
 			}
-			reply, err := client.GetJobStatus(ids, repo, quit)
+			reply, err := client.GetJobStatus(ids, repo, false, quit)
 			if err != nil {
 				// Only forward the error value if there wasn't any cancellation
 				if _, cancellation := err.(*RequestCancelled); !cancellation {

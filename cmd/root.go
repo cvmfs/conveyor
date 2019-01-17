@@ -30,6 +30,7 @@ func init() {
 		"log-timestamps",
 		false,
 		"include timestamps in logging output")
+	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(submitCmd)
 	rootCmd.AddCommand(workerCmd)
