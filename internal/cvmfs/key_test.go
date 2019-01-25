@@ -40,3 +40,25 @@ func TestReadKey(t *testing.T) {
 		}
 	})
 }
+
+func TestHMAC(t *testing.T) {
+	rdr := strings.NewReader(goodTestKey)
+	_, secret, err := readKey(rdr)
+	if err != nil {
+		t.Errorf("could not read key")
+	}
+
+	msg1 := []byte("Hello is it me you're looking for?")
+	msg2 := msg1[1:]
+
+	hmac := computeHMAC(msg1, secret)
+
+	if !checkHMAC(msg1, hmac, secret) {
+		t.Errorf("HMAC verification failed")
+	}
+
+	// msg2 should produce a different HMAC
+	if checkHMAC(msg2, hmac, secret) {
+		t.Errorf("HMAC of msg2 should not be the same as for msg1")
+	}
+}
