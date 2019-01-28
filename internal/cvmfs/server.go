@@ -29,8 +29,10 @@ func StartServer(cfg *Config, keys *Keys) error {
 
 // serverBackend encapsulates the server state
 type serverBackend struct {
-	db  *sql.DB
-	pub *QueueClient
+	db                   *sql.DB
+	pub                  *QueueClient
+	newJobExchange       string
+	completedJobExchange string
 }
 
 // startBackEnd initializes the backend of the job server
@@ -49,7 +51,7 @@ func startBackEnd(cfg *Config) (*serverBackend, error) {
 		return nil, errors.Wrap(err, "could not create publisher connection")
 	}
 
-	return &serverBackend{db, pub}, nil
+	return &serverBackend{db, pub, cfg.Queue.NewJobExchange, cfg.Queue.CompletedJobExchange}, nil
 }
 
 // Close the connection to the database and the queue
@@ -112,7 +114,7 @@ func (b *serverBackend) putNewJob(j *JobSpecification) (*PostNewJobReply, error)
 
 	job := UnprocessedJob{ID: id, JobSpecification: *j}
 
-	if err := b.pub.publish(newJobExchange, "", &job); err != nil {
+	if err := b.pub.publish(b.newJobExchange, "", &job); err != nil {
 		return nil, errors.Wrap(err, "job description publishing failed")
 	}
 	return &reply, nil
@@ -157,7 +159,7 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 	} else {
 		routingKey = failedKey
 	}
-	if err := b.pub.publish(completedJobExchange, routingKey, &status); err != nil {
+	if err := b.pub.publish(b.completedJobExchange, routingKey, &status); err != nil {
 		return nil, errors.Wrap(err, "publishing job status notification failed")
 	}
 

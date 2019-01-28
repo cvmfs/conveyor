@@ -11,13 +11,6 @@ import (
 )
 
 const (
-	// newJobExchange - name of RabbitMQ exchange for new jobs
-	newJobExchange string = "jobs.new"
-	// newJobQueue - name of the RabbitMQ queue for new jobs
-	newJobQueue string = "jobs.new"
-
-	// completedJobExchange - name of the RabbitMQ exchange for finished jobs
-	completedJobExchange string = "jobs.done"
 	// successKey - routing/binding key for successful jobs
 	successKey string = "success"
 	// failedKey - routing/binding key for failed jobs
@@ -61,14 +54,14 @@ func NewQueueClient(cfg *QueueConfig, connType int) (*QueueClient, error) {
 	// The exchange for publishing new jobs (to be processed) is durable and
 	// non auto-deleted
 	if err := channel.ExchangeDeclare(
-		newJobExchange, "direct", true, false, false, false, nil); err != nil {
+		cfg.NewJobExchange, "direct", true, false, false, false, nil); err != nil {
 		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
 	// The exchange for publishing completedd job notifications is not-durable and
 	// non auto-deleted
 	if err := channel.ExchangeDeclare(
-		completedJobExchange, "topic", false, false, false, false, nil); err != nil {
+		cfg.CompletedJobExchange, "topic", false, false, false, false, nil); err != nil {
 		return nil, errors.Wrap(err, "could not declare exchange")
 	}
 
@@ -78,13 +71,13 @@ func NewQueueClient(cfg *QueueConfig, connType int) (*QueueClient, error) {
 	if connType == consumerConnection {
 		// Declare and bind a queue for new job notifications (round-robin)
 		// This queue is durable, non auto-deleted, non exclusive
-		q1, err := channel.QueueDeclare(newJobQueue, true, false, false, false, nil)
+		q1, err := channel.QueueDeclare(cfg.NewJobQueue, true, false, false, false, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not declare new job queue")
 		}
 
 		if err := channel.QueueBind(
-			q1.Name, "", newJobExchange, false, nil); err != nil {
+			q1.Name, "", cfg.NewJobExchange, false, nil); err != nil {
 			return nil, errors.Wrap(err, "could not bind new job queue")
 		}
 
@@ -99,7 +92,7 @@ func NewQueueClient(cfg *QueueConfig, connType int) (*QueueClient, error) {
 		}
 
 		if err := channel.QueueBind(
-			q2.Name, "#", completedJobExchange, false, nil); err != nil {
+			q2.Name, "#", cfg.CompletedJobExchange, false, nil); err != nil {
 			return nil, errors.Wrap(err, "could not bind completed job queue")
 		}
 

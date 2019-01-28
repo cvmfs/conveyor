@@ -21,11 +21,14 @@ type BackendConfig struct {
 
 // QueueConfig - configuration of message queue (RabbitMQ)
 type QueueConfig struct {
-	Username string
-	Password string
-	Host     string
-	VHost    string
-	Port     int
+	Username             string
+	Password             string
+	Host                 string
+	VHost                string
+	Port                 int
+	NewJobExchange       string `mapstructure:"new_job_exchange"`
+	NewJobQueue          string `mapstructure:"new_job_queue"`
+	CompletedJobExchange string `mapstructure:"completed_job_exchange"`
 }
 
 // WorkerConfig - configuration of the Conveyor worker daemon
@@ -115,6 +118,10 @@ func readConfigFromViper(v *viper.Viper) (*Config, error) {
 
 	cfg.Queue.Port = 5672
 	cfg.Queue.VHost = "/cvmfs/"
+	cfg.Queue.NewJobExchange = "jobs.new"
+	cfg.Queue.NewJobQueue = "jobs.new"
+	cfg.Queue.CompletedJobExchange = "jobs.done"
+
 	q := v.Sub("queue")
 	if q != nil {
 		if err := q.Unmarshal(&cfg.Queue); err != nil {

@@ -23,6 +23,9 @@ password = "qpass"
 host = "queue.host.name"
 port = 2222
 vhost = "/cvmfs"
+new_job_exchange = "nje"
+new_job_queue = "njq"
+completed_job_exchange = "cje"
 
 # Job server backend configuration is only used by conveyor server
 [db]
@@ -89,6 +92,22 @@ func TestReadFullConfig(t *testing.T) {
 	}
 	if cfg.Server.Port != 1111 {
 		t.Errorf("Invalid port: %v\n", cfg.Server.Port)
+	}
+
+	if cfg.Queue.NewJobExchange != "nje" {
+		t.Errorf(
+			"Invalid name of new job exchange: %v\n",
+			cfg.Queue.NewJobExchange)
+	}
+	if cfg.Queue.NewJobQueue != "njq" {
+		t.Errorf(
+			"Invalid name of new job queue: %v\n",
+			cfg.Queue.NewJobQueue)
+	}
+	if cfg.Queue.CompletedJobExchange != "cje" {
+		t.Errorf(
+			"Invalid name of completed job exchange: %v\n",
+			cfg.Queue.CompletedJobExchange)
 	}
 
 	if cfg.Worker.Name != "jeff" {
