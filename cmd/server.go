@@ -21,7 +21,7 @@ var serverCmd = &cobra.Command{
 		}
 		cvmfs.LogInfo.Println("CVMFS job server starting")
 
-		keys, err := cvmfs.ReadKeys(cfg.KeyDir)
+		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not read API key from file"))

@@ -32,7 +32,7 @@ var checkCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		keys, err := cvmfs.ReadKeys(cfg.KeyDir)
+		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {
 			cvmfs.LogError.Println(
 				errors.Wrap(err, "could not read API keys from file"))

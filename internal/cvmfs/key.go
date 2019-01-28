@@ -24,9 +24,9 @@ type Keys struct {
 	RepoKeys map[string]string // map from repository name to keyId
 }
 
-// ReadKeys from the given directory. The function attempts to load keys from any file
+// LoadKeys from the given directory. The function attempts to load keys from any file
 // CVMFS gateway key file (*.gw) in the given directory
-func ReadKeys(keyDir string) (*Keys, error) {
+func LoadKeys(keyDir string) (*Keys, error) {
 	d, err := os.Open(keyDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "opening key dir failed")
@@ -49,6 +49,9 @@ func ReadKeys(keyDir string) (*Keys, error) {
 			}
 			repoName := strings.TrimSuffix(f.Name(), ".gw")
 			keys.RepoKeys[repoName] = keyID
+			if sec, found := keys.Secrets[keyID]; found && sec != secret {
+				return nil, fmt.Errorf("multiple private keys for public key id: %v", keyID)
+			}
 			keys.Secrets[keyID] = secret
 		}
 	}
