@@ -71,7 +71,7 @@ func makeGetJobStatusHandler(backend *serverBackend) http.HandlerFunc {
 		ids := req.URL.Query()["id"]
 		status, err := backend.getJobStatus(ids, full)
 		if err != nil {
-			LogError.Println(errors.Wrap(err, "get job failed"))
+			Log.Errorln(errors.Wrap(err, "get job failed"))
 		}
 
 		rep, err := json.Marshal(status)
@@ -100,7 +100,7 @@ func makePutNewJobHandler(backend *serverBackend) http.HandlerFunc {
 
 		status, err := backend.putNewJob(&job)
 		if err != nil {
-			LogError.Println(errors.Wrap(err, "get job failed"))
+			Log.Errorln(errors.Wrap(err, "get job failed"))
 		}
 
 		rep, err := json.Marshal(status)
@@ -131,7 +131,7 @@ func makePutJobStatusHandler(backend *serverBackend) http.HandlerFunc {
 
 		status, err := backend.putJobStatus(&job)
 		if err != nil {
-			LogError.Println(errors.Wrap(err, "get job failed"))
+			Log.Errorln(errors.Wrap(err, "get job failed"))
 		}
 
 		rep, err := json.Marshal(status)
@@ -145,11 +145,11 @@ func makePutJobStatusHandler(backend *serverBackend) http.HandlerFunc {
 }
 
 func httpError(msg string, w *http.ResponseWriter, code int) {
-	LogError.Println(errors.New(msg))
+	Log.Errorln(errors.New(msg))
 	http.Error(*w, msg, code)
 }
 
 func httpWrapError(err error, msg string, w *http.ResponseWriter, code int) {
-	LogError.Println(errors.Wrap(err, msg))
+	Log.Errorln(errors.Wrap(err, msg))
 	http.Error(*w, msg, code)
 }

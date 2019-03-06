@@ -39,11 +39,11 @@ func init() {
 }
 
 func initConfig() {
-	cvmfs.InitLogging(os.Stdout, os.Stderr, *logTimestamps)
+	cvmfs.InitLogging(os.Stderr, *logTimestamps)
 
 	viper.SetConfigFile(cfgFile)
 	if err := viper.ReadInConfig(); err != nil {
-		cvmfs.LogError.Println(errors.Wrap(err, "could not read config"))
+		cvmfs.Log.Errorln(errors.Wrap(err, "could not read config"))
 		os.Exit(1)
 	}
 }
@@ -51,7 +51,7 @@ func initConfig() {
 // Execute the root command of the application
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		cvmfs.LogError.Println(err)
+		cvmfs.Log.Errorln(err)
 		os.Exit(1)
 	}
 }

@@ -2,23 +2,18 @@ package cvmfs
 
 import (
 	"io"
-	"log"
+
+	"github.com/Sirupsen/logrus"
 )
 
-var (
-	// LogInfo is the logging sink for normal messages
-	LogInfo *log.Logger
-	// LogError is the logging sink reserved for error messages
-	LogError *log.Logger
-)
+// Log is the application-wide logger
+var Log *logrus.Logger
 
-// InitLogging initializes the Info and Error loggers
-func InitLogging(infoHandle io.Writer, errorHandle io.Writer, logTimestamps bool) {
-	flags := 0
-	if logTimestamps {
-		flags = log.Ldate | log.Ltime
-	}
-
-	LogInfo = log.New(infoHandle, "INFO: ", flags)
-	LogError = log.New(errorHandle, "ERROR: ", flags)
+// InitLogging initializes the logger
+func InitLogging(hd io.Writer, logTimestamps bool) {
+	Log = logrus.New()
+	formatter := new(logrus.JSONFormatter)
+	formatter.DisableTimestamp = !logTimestamps
+	Log.SetFormatter(formatter)
+	Log.SetOutput(hd)
 }

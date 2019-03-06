@@ -116,7 +116,7 @@ func (j *UnprocessedJob) process(tempDir string) error {
 
 	// Download and unpack the payload, if given
 	if j.Payload != "" {
-		LogInfo.Println("Downloading payload:", j.Payload)
+		Log.Infoln("Downloading payload:", j.Payload)
 		if err := getter.Get(targetDir, j.Payload); err != nil {
 			return errors.Wrap(err, "could not download payload")
 		}
@@ -125,7 +125,7 @@ func (j *UnprocessedJob) process(tempDir string) error {
 	// Run the transaction script, if specified
 	if j.Script != "" {
 		needsUnpacking := j.TransferScript
-		LogInfo.Printf(
+		Log.Infof(
 			"Running transaction script: %v (needs unpacking: %v)\n",
 			j.Script, needsUnpacking)
 

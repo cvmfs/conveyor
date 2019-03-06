@@ -102,7 +102,7 @@ func NewQueueClient(cfg *QueueConfig, connType int) (*QueueClient, error) {
 			ch := c.Chan.NotifyClose(make(chan *amqp.Error))
 			err, ok := <-ch
 			if ok {
-				LogError.Println(
+				Log.Errorln(
 					errors.Wrap(err, "connection to job queue closed"))
 				os.Exit(1)
 			}

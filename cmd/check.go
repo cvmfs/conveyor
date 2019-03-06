@@ -28,20 +28,20 @@ var checkCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := cvmfs.ReadConfig()
 		if err != nil {
-			cvmfs.LogError.Println(err)
+			cvmfs.Log.Errorln(err)
 			os.Exit(1)
 		}
 
 		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {
-			cvmfs.LogError.Println(
+			cvmfs.Log.Errorln(
 				errors.Wrap(err, "could not read API keys from file"))
 			os.Exit(1)
 		}
 
 		client, err := cvmfs.NewJobClient(cfg, keys)
 		if err != nil {
-			cvmfs.LogError.Println("could not start job client")
+			cvmfs.Log.Errorln("could not start job client")
 			os.Exit(1)
 		}
 
@@ -49,7 +49,7 @@ var checkCmd = &cobra.Command{
 		if *chkvs.wait {
 			_, err := client.WaitForJobs(*chkvs.ids, chkvs.repo)
 			if err != nil {
-				cvmfs.LogError.Println(
+				cvmfs.Log.Errorln(
 					errors.Wrap(err, "waiting for job completion failed"))
 				os.Exit(1)
 			}
@@ -58,7 +58,7 @@ var checkCmd = &cobra.Command{
 		quit := make(chan struct{})
 		stats, err := client.GetJobStatus(*chkvs.ids, chkvs.repo, *chkvs.extended, quit)
 		if err != nil {
-			cvmfs.LogError.Println(
+			cvmfs.Log.Errorln(
 				errors.Wrap(err, "error checking job status"))
 			os.Exit(1)
 		}
@@ -68,7 +68,7 @@ var checkCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		cvmfs.LogInfo.Println("Completed jobs:")
+		cvmfs.Log.Infoln("Completed jobs:")
 		if *chkvs.extended {
 			for _, j := range stats.Jobs {
 				printStatus(j.ID, j)
@@ -84,8 +84,7 @@ var checkCmd = &cobra.Command{
 func printStatus(id uuid.UUID, st interface{}) {
 	buf, err := json.Marshal(&st)
 	if err != nil {
-		cvmfs.LogError.Printf(
-			"could not serialize status of job %v to JSON", id)
+		cvmfs.Log.Errorf("could not serialize status of job %v to JSON", id)
 	} else {
 		fmt.Println(string(buf))
 	}

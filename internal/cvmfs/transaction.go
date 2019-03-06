@@ -16,14 +16,14 @@ func runTransaction(repository, subpath string, task func() error) error {
 	// Close any existing transactions
 	abortTransaction(repository, false)
 
-	LogInfo.Println("Opening CVMFS transaction for:", fullPath)
+	Log.Infoln("Opening CVMFS transaction for:", fullPath)
 
 	abort := false
 	defer func() {
 		if abort {
-			LogError.Println("Aborting CVMFS transaction")
+			Log.Errorln("Aborting CVMFS transaction")
 			if err := abortTransaction(repository, true); err != nil {
-				LogError.Println(
+				Log.Errorln(
 					errors.Wrap(err, "could not abort CVMFS transaction"))
 			}
 		}
@@ -41,7 +41,7 @@ func runTransaction(repository, subpath string, task func() error) error {
 		}
 	}
 
-	LogInfo.Println("Publishing CVMFS transaction")
+	Log.Infoln("Publishing CVMFS transaction")
 	if err := commitTransaction(repository, true); err != nil {
 		abort = true
 		return errors.Wrap(err, "could not commit CVMFS transaction")

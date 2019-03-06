@@ -60,7 +60,7 @@ func (w *Worker) Loop() error {
 
 	for msg := range ch {
 		if err := w.handle(&msg); err != nil {
-			LogError.Println(errors.Wrap(err, "Error in job handler"))
+			Log.Errorln(errors.Wrap(err, "Error in job handler"))
 		}
 	}
 
@@ -100,7 +100,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 		}
 		if len(failed) > 0 {
 			err := fmt.Errorf("failed job dependencies: %v", failed)
-			LogError.Println(err)
+			Log.Errorln(err)
 			if err := w.postJobStatus(
 				&job, w.name, startTime, time.Now(), false, err.Error()); err != nil {
 				msg.Nack(false, true)
@@ -109,7 +109,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 		}
 	}
 
-	LogInfo.Println("Start publishing job:", job.ID.String())
+	Log.Infoln("Start publishing job:", job.ID.String())
 
 	task := func() error {
 		return job.process(w.tempDir)
@@ -123,11 +123,11 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 		if err != nil {
 			wrappedErr := errors.Wrap(err, "could not run CVMFS transaction")
 			errMsg = wrappedErr.Error()
-			LogError.Println(wrappedErr)
+			Log.Errorln(wrappedErr)
 			retry++
-			LogInfo.Printf("Transaction failed.")
+			Log.Infof("Transaction failed.")
 			if retry <= w.maxJobRetries {
-				LogInfo.Printf(" Retrying: %v/%v\n", retry, w.maxJobRetries)
+				Log.Infof(" Retrying: %v/%v\n", retry, w.maxJobRetries)
 			}
 		} else {
 			success = true
@@ -149,7 +149,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 	if success {
 		result = "success"
 	}
-	LogInfo.Printf(
+	Log.Infof(
 		"Finished publishing job: %v, %v\n", job.ID.String(), result)
 
 	return nil

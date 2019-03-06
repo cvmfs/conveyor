@@ -80,7 +80,7 @@ func (c *JobClient) WaitForJobs(ids []string, repo string) ([]JobStatus, error) 
 	queryResults := make(chan JobStatus)
 	ch := query(ids, c, repo, queryResults, quit)
 
-	LogInfo.Println("Waiting for jobs")
+	Log.Infoln("Waiting for jobs")
 
 L:
 	for {
@@ -91,13 +91,13 @@ L:
 			}
 		case j := <-notifications:
 			jobStatuses[j.ID] = j.Successful
-			LogInfo.Println("(Notification) job finished:", j)
+			Log.Infoln("(Notification) job finished:", j)
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				break L
 			}
 		case j := <-queryResults:
 			jobStatuses[j.ID] = j.Successful
-			LogInfo.Println("(Query result) job finished:", j)
+			Log.Infoln("(Query result) job finished:", j)
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				break L
 			}
@@ -106,7 +106,7 @@ L:
 		}
 	}
 
-	LogInfo.Println("All jobs complete. Continuing")
+	Log.Infoln("All jobs complete. Continuing")
 
 	st := []JobStatus{}
 	for k, v := range jobStatuses {
@@ -302,7 +302,7 @@ func listen(
 			case j := <-jobs:
 				var stat JobStatus
 				if err := json.Unmarshal(j.Body, &stat); err != nil {
-					LogError.Println(err)
+					Log.Errorln(err)
 					j.Nack(false, false)
 					os.Exit(1) // Is there a better way to handle this than restarting?
 				}

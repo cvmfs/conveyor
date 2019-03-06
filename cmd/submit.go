@@ -31,13 +31,13 @@ var submitCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := cvmfs.ReadConfig()
 		if err != nil {
-			cvmfs.LogError.Println(err)
+			cvmfs.Log.Errorln(err)
 			os.Exit(1)
 		}
 
 		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {
-			cvmfs.LogError.Println(
+			cvmfs.Log.Errorln(
 				errors.Wrap(err, "could not read API keys from file"))
 			os.Exit(1)
 		}
@@ -47,20 +47,20 @@ var submitCmd = &cobra.Command{
 			RepositoryPath: subvs.path, Script: subvs.script, ScriptArgs: subvs.scriptArgs, TransferScript: *subvs.transferScript, Dependencies: *subvs.deps}
 
 		if err := spec.Prepare(); err != nil {
-			cvmfs.LogError.Println(
+			cvmfs.Log.Errorln(
 				errors.Wrap(err, "could not create job object"))
 			os.Exit(1)
 		}
 
 		client, err := cvmfs.NewJobClient(cfg, keys)
 		if err != nil {
-			cvmfs.LogError.Println("could not start job client")
+			cvmfs.Log.Errorln("could not start job client")
 			os.Exit(1)
 		}
 
 		stat, err := client.PostNewJob(spec)
 		if err != nil {
-			cvmfs.LogError.Println(
+			cvmfs.Log.Errorln(
 				errors.Wrap(err, "could not post new job"))
 			os.Exit(1)
 		}
@@ -76,7 +76,7 @@ var submitCmd = &cobra.Command{
 		if *subvs.wait {
 			stats, err := client.WaitForJobs([]string{id.String()}, spec.Repository)
 			if err != nil {
-				cvmfs.LogError.Println(
+				cvmfs.Log.Errorln(
 					errors.Wrap(err, "waiting for job completion failed"))
 				os.Exit(1)
 			}
