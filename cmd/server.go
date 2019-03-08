@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/cvmfs/conveyor/internal/cvmfs"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -16,21 +15,19 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cfg, err := cvmfs.ReadConfig()
 		if err != nil {
-			cvmfs.Log.Errorln(err)
+			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
-		cvmfs.Log.Infoln("CVMFS job server starting")
+		cvmfs.Log.Info().Msg("CVMFS job server starting")
 
 		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {
-			cvmfs.Log.Errorln(
-				errors.Wrap(err, "could not read API key from file"))
+			cvmfs.Log.Error().Err(err).Msg("could not read API key from file")
 			os.Exit(1)
 		}
 
 		if err := cvmfs.StartServer(cfg, keys); err != nil {
-			cvmfs.Log.Errorln(
-				errors.Wrap(err, "could not start conveyor server"))
+			cvmfs.Log.Error().Err(err).Msg("could not start conveyor server")
 			os.Exit(1)
 		}
 	},

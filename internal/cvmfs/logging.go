@@ -3,17 +3,18 @@ package cvmfs
 import (
 	"io"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 // Log is the application-wide logger
-var Log *logrus.Logger
+var Log zerolog.Logger
 
 // InitLogging initializes the logger
-func InitLogging(hd io.Writer, logTimestamps bool) {
-	Log = logrus.New()
-	formatter := new(logrus.JSONFormatter)
-	formatter.DisableTimestamp = !logTimestamps
-	Log.SetFormatter(formatter)
-	Log.SetOutput(hd)
+func InitLogging(sink io.Writer, logTimestamps bool) {
+	l := zerolog.New(sink)
+	if logTimestamps {
+		Log = l.With().Timestamp().Logger()
+	} else {
+		Log = l
+	}
 }

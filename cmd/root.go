@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/cvmfs/conveyor/internal/cvmfs"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -43,7 +42,7 @@ func initConfig() {
 
 	viper.SetConfigFile(cfgFile)
 	if err := viper.ReadInConfig(); err != nil {
-		cvmfs.Log.Errorln(errors.Wrap(err, "could not read config"))
+		cvmfs.Log.Error().Err(err).Msg("could not read config")
 		os.Exit(1)
 	}
 }
@@ -51,7 +50,7 @@ func initConfig() {
 // Execute the root command of the application
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		cvmfs.Log.Errorln(err)
+		cvmfs.Log.Error().Err(err).Msg("could not run main command")
 		os.Exit(1)
 	}
 }

@@ -22,8 +22,9 @@ func (m *hmacAuthorization) Middleware(next http.Handler) http.Handler {
 		authHeader := req.Header.Get("Authorization")
 		tokens := strings.Split(authHeader, " ")
 		if len(tokens) != 2 {
-			httpError(
-				"Missing or incomplete Authorization header",
+			httpWrapError(
+				errors.New("Missing or incomplete Authorization header"),
+				"Invalid request",
 				&w, http.StatusUnauthorized)
 			return
 		}
@@ -53,7 +54,7 @@ func (m *hmacAuthorization) Middleware(next http.Handler) http.Handler {
 		}
 
 		if !checkHMAC(buf, HMAC, key) {
-			httpError("Invalid HMAC", &w, http.StatusForbidden)
+			httpWrapError(errors.New("Invalid HMAC"), "Invalid request", &w, http.StatusForbidden)
 			return
 		}
 
@@ -71,7 +72,7 @@ func makeGetJobStatusHandler(backend *serverBackend) http.HandlerFunc {
 		ids := req.URL.Query()["id"]
 		status, err := backend.getJobStatus(ids, full)
 		if err != nil {
-			Log.Errorln(errors.Wrap(err, "get job failed"))
+			Log.Error().Err(err).Msg("backend request failed")
 		}
 
 		rep, err := json.Marshal(status)
@@ -100,7 +101,7 @@ func makePutNewJobHandler(backend *serverBackend) http.HandlerFunc {
 
 		status, err := backend.putNewJob(&job)
 		if err != nil {
-			Log.Errorln(errors.Wrap(err, "get job failed"))
+			Log.Error().Err(err).Msg("backend request failed")
 		}
 
 		rep, err := json.Marshal(status)
@@ -131,7 +132,7 @@ func makePutJobStatusHandler(backend *serverBackend) http.HandlerFunc {
 
 		status, err := backend.putJobStatus(&job)
 		if err != nil {
-			Log.Errorln(errors.Wrap(err, "get job failed"))
+			Log.Error().Err(err).Msg("backend request failed")
 		}
 
 		rep, err := json.Marshal(status)
@@ -144,12 +145,7 @@ func makePutJobStatusHandler(backend *serverBackend) http.HandlerFunc {
 	}
 }
 
-func httpError(msg string, w *http.ResponseWriter, code int) {
-	Log.Errorln(errors.New(msg))
-	http.Error(*w, msg, code)
-}
-
 func httpWrapError(err error, msg string, w *http.ResponseWriter, code int) {
-	Log.Errorln(errors.Wrap(err, msg))
+	Log.Error().Err(err).Msg(msg)
 	http.Error(*w, msg, code)
 }

@@ -163,9 +163,13 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 		return nil, errors.Wrap(err, "publishing job status notification failed")
 	}
 
-	Log.Infof(
-		"Job inserted: %v, success: %v, start time: %v, finish time: %v, worker name: %v\n",
-		j.ID, j.Successful, j.StartTime, j.FinishTime, j.WorkerName)
+	Log.Info().
+		Str("job_id", j.ID.String()).
+		Bool("success", j.Successful).
+		Time("start_time", j.StartTime).
+		Time("finish_time", j.FinishTime).
+		Str("worker", j.WorkerName).
+		Msg("job inserted")
 
 	return &reply, nil
 }

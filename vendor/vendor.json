@@ -3,12 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "otyc6UVl+zcTnkoVBtRPjRTeA4M=",
-			"path": "github.com/Sirupsen/logrus",
-			"revision": "d7b6bf5e4d26448fd977d07d745a2a66097ddecb",
-			"revisionTime": "2019-03-06T13:14:08Z"
-		},
-		{
 			"checksumSHA1": "xQa9nYKTa3nfViMxvAAUXSdZgNU=",
 			"path": "github.com/aws/aws-sdk-go/aws",
 			"revision": "50e2f0627dec4e2508ea825884a551ecd393425c",
@@ -364,6 +358,24 @@
 			"revisionTime": "2018-10-23T23:59:46Z"
 		},
 		{
+			"checksumSHA1": "1rkfCM21LQGc6Eo5uCbAfyluKY4=",
+			"path": "github.com/rs/zerolog",
+			"revision": "651d361cfeb9d0f5b9f1d14b162c66c82509ef6d",
+			"revisionTime": "2019-03-05T00:41:18Z"
+		},
+		{
+			"checksumSHA1": "73NzoKIiJU6h4v6hg9eM4t7V/zw=",
+			"path": "github.com/rs/zerolog/internal/cbor",
+			"revision": "651d361cfeb9d0f5b9f1d14b162c66c82509ef6d",
+			"revisionTime": "2019-03-05T00:41:18Z"
+		},
+		{
+			"checksumSHA1": "e0b96rsdqg3fNtCDQOdZA4M+MNo=",
+			"path": "github.com/rs/zerolog/internal/json",
+			"revision": "651d361cfeb9d0f5b9f1d14b162c66c82509ef6d",
+			"revisionTime": "2019-03-05T00:41:18Z"
+		},
+		{
 			"checksumSHA1": "Tutue3nEgM/87jitUcYv6ODwyNE=",
 			"path": "github.com/satori/go.uuid",
 			"revision": "b2ce2384e17bbe0c6d34077efa39dbab3e09123b",
@@ -442,22 +454,10 @@
 			"revisionTime": "2018-10-28T18:44:06Z"
 		},
 		{
-			"checksumSHA1": "QU00lGkD/G00hoTs2qG7q4xsLVc=",
-			"path": "golang.org/x/crypto/ssh/terminal",
-			"revision": "8dd112bcdc25174059e45e07517d9fc663123347",
-			"revisionTime": "2019-02-28T09:13:53Z"
-		},
-		{
 			"checksumSHA1": "wh1tKBQCSprBCm/M5eGTDpSCJvY=",
 			"path": "golang.org/x/sys/unix",
 			"revision": "93218def8b18e66adbdab3eca8ec334700329f1f",
 			"revisionTime": "2018-11-16T16:03:55Z"
-		},
-		{
-			"checksumSHA1": "Hu8GoQK1euwtE4UjrhXepmk2NM8=",
-			"path": "golang.org/x/sys/windows",
-			"revision": "a98ae47d97a5abb3a3e9045da36315f9f8312970",
-			"revisionTime": "2019-03-05T06:55:27Z"
 		},
 		{
 			"checksumSHA1": "o3YChxWLvyCmkAn/ZNBj9HC9zKw=",
