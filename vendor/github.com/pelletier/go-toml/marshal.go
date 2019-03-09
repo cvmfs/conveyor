@@ -16,15 +16,17 @@ const (
 	tagFieldComment = "comment"
 	tagCommented    = "commented"
 	tagMultiline    = "multiline"
+	tagDefault      = "default"
 )
 
 type tomlOpts struct {
-	name      string
-	comment   string
-	commented bool
-	multiline bool
-	include   bool
-	omitempty bool
+	name         string
+	comment      string
+	commented    bool
+	multiline    bool
+	include      bool
+	omitempty    bool
+	defaultValue string
 }
 
 type encOpts struct {
@@ -37,17 +39,19 @@ var encOptsDefaults = encOpts{
 }
 
 type annotation struct {
-	tag       string
-	comment   string
-	commented string
-	multiline string
+	tag          string
+	comment      string
+	commented    string
+	multiline    string
+	defaultValue string
 }
 
 var annotationDefault = annotation{
-	tag:       tagFieldName,
-	comment:   tagFieldComment,
-	commented: tagCommented,
-	multiline: tagMultiline,
+	tag:          tagFieldName,
+	comment:      tagFieldComment,
+	commented:    tagCommented,
+	multiline:    tagMultiline,
+	defaultValue: tagDefault,
 }
 
 var timeType = reflect.TypeOf(time.Time{})
@@ -244,9 +248,17 @@ func (e *Encoder) SetTagMultiline(v string) *Encoder {
 
 func (e *Encoder) marshal(v interface{}) ([]byte, error) {
 	mtype := reflect.TypeOf(v)
-	if mtype.Kind() != reflect.Struct {
-		return []byte{}, errors.New("Only a struct can be marshaled to TOML")
+
+	switch mtype.Kind() {
+	case reflect.Struct, reflect.Map:
+	case reflect.Ptr:
+		if mtype.Elem().Kind() != reflect.Struct {
+			return []byte{}, errors.New("Only pointer to struct can be marshaled to TOML")
+		}
+	default:
+		return []byte{}, errors.New("Only a struct or map can be marshaled to TOML")
 	}
+
 	sval := reflect.ValueOf(v)
 	if isCustomMarshaler(mtype) {
 		return callCustomMarshaler(sval)
@@ -395,6 +407,14 @@ func (t *Tree) Marshal() ([]byte, error) {
 // The following struct annotations are supported:
 //
 //   toml:"Field" Overrides the field's name to map to.
+//   default:"foo" Provides a default value.
+//
+// For default values, only fields of the following types are supported:
+//   * string
+//   * bool
+//   * int
+//   * int64
+//   * float64
 //
 // See Marshal() documentation for types mapping table.
 func Unmarshal(data []byte, v interface{}) error {
@@ -470,7 +490,14 @@ func (d *Decoder) valueFromTree(mtype reflect.Type, tval *Tree) (reflect.Value, 
 			opts := tomlOptions(mtypef, an)
 			if opts.include {
 				baseKey := opts.name
-				keysToTry := []string{baseKey, strings.ToLower(baseKey), strings.ToTitle(baseKey)}
+				keysToTry := []string{
+					baseKey,
+					strings.ToLower(baseKey),
+					strings.ToTitle(baseKey),
+					strings.ToLower(string(baseKey[0])) + baseKey[1:],
+				}
+
+				found := false
 				for _, key := range keysToTry {
 					exists := tval.Has(key)
 					if !exists {
@@ -482,7 +509,41 @@ func (d *Decoder) valueFromTree(mtype reflect.Type, tval *Tree) (reflect.Value, 
 						return mval, formatError(err, tval.GetPosition(key))
 					}
 					mval.Field(i).Set(mvalf)
+					found = true
 					break
+				}
+
+				if !found && opts.defaultValue != "" {
+					mvalf := mval.Field(i)
+					var val interface{} = nil
+					var err error = nil
+					switch mvalf.Kind() {
+					case reflect.Bool:
+						val, err = strconv.ParseBool(opts.defaultValue)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					case reflect.Int:
+						val, err = strconv.Atoi(opts.defaultValue)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					case reflect.String:
+						val = opts.defaultValue
+					case reflect.Int64:
+						val, err = strconv.ParseInt(opts.defaultValue, 10, 64)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					case reflect.Float64:
+						val, err = strconv.ParseFloat(opts.defaultValue, 64)
+						if err != nil {
+							return mval.Field(i), err
+						}
+					default:
+						return mval.Field(i), fmt.Errorf("unsuported field type for default option")
+					}
+					mval.Field(i).Set(reflect.ValueOf(val))
 				}
 			}
 		}
@@ -633,7 +694,16 @@ func tomlOptions(vf reflect.StructField, an annotation) tomlOpts {
 	}
 	commented, _ := strconv.ParseBool(vf.Tag.Get(an.commented))
 	multiline, _ := strconv.ParseBool(vf.Tag.Get(an.multiline))
-	result := tomlOpts{name: vf.Name, comment: comment, commented: commented, multiline: multiline, include: true, omitempty: false}
+	defaultValue := vf.Tag.Get(tagDefault)
+	result := tomlOpts{
+		name:         vf.Name,
+		comment:      comment,
+		commented:    commented,
+		multiline:    multiline,
+		include:      true,
+		omitempty:    false,
+		defaultValue: defaultValue,
+	}
 	if parse[0] != "" {
 		if parse[0] == "-" && len(parse) == 1 {
 			result.include = false

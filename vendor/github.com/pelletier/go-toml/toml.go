@@ -292,6 +292,34 @@ func (t *Tree) SetPathWithComment(keys []string, comment string, commented bool,
 	subtree.values[keys[len(keys)-1]] = toInsert
 }
 
+// Delete removes a key from the tree.
+// Key is a dot-separated path (e.g. a.b.c).
+func (t *Tree) Delete(key string) error {
+	keys, err := parseKey(key)
+	if err != nil {
+		return err
+	}
+	return t.DeletePath(keys)
+}
+
+// Delete removes a key from the tree.
+// Keys is an array of path elements (e.g. {"a","b","c"}).
+func (t *Tree) DeletePath(keys []string) error {
+	keyLen := len(keys)
+	if keyLen == 1 {
+		delete(t.values, keys[0])
+		return nil
+	}
+	tree := t.GetPath(keys[:keyLen-1])
+	item := keys[keyLen-1]
+	switch node := tree.(type) {
+	case *Tree:
+		delete(node.values, item)
+		return nil
+	}
+	return errors.New("no such key to delete")
+}
+
 // createSubTree takes a tree and a key and create the necessary intermediate
 // subtrees to create a subtree at that point. In-place.
 //
@@ -333,8 +361,37 @@ func LoadBytes(b []byte) (tree *Tree, err error) {
 			err = errors.New(r.(string))
 		}
 	}()
+
+	if len(b) >= 4 && (hasUTF32BigEndianBOM4(b) || hasUTF32LittleEndianBOM4(b)) {
+		b = b[4:]
+	} else if len(b) >= 3 && hasUTF8BOM3(b) {
+		b = b[3:]
+	} else if len(b) >= 2 && (hasUTF16BigEndianBOM2(b) || hasUTF16LittleEndianBOM2(b)) {
+		b = b[2:]
+	}
+
 	tree = parseToml(lexToml(b))
 	return
+}
+
+func hasUTF16BigEndianBOM2(b []byte) bool {
+	return b[0] == 0xFE && b[1] == 0xFF
+}
+
+func hasUTF16LittleEndianBOM2(b []byte) bool {
+	return b[0] == 0xFF && b[1] == 0xFE
+}
+
+func hasUTF8BOM3(b []byte) bool {
+	return b[0] == 0xEF && b[1] == 0xBB && b[2] == 0xBF
+}
+
+func hasUTF32BigEndianBOM4(b []byte) bool {
+	return b[0] == 0x00 && b[1] == 0x00 && b[2] == 0xFE && b[3] == 0xFF
+}
+
+func hasUTF32LittleEndianBOM4(b []byte) bool {
+	return b[0] == 0xFF && b[1] == 0xFE && b[2] == 0x00 && b[3] == 0x00
 }
 
 // LoadReader creates a Tree from any io.Reader.
