@@ -16,7 +16,7 @@ vhost = "/"
 
 # Job server backend configuration is only used by conveyor server
 [db]
-type = "pgx"
+type = "postgres"
 database = "devcvmfs"
 username = "DB_USERNAME"
 password = "DB_PASSWORD"

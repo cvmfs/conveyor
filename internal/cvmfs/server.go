@@ -35,6 +35,7 @@ func StartServer(cfg *Config, keys *Keys) error {
 // serverBackend encapsulates the server state
 type serverBackend struct {
 	db                   *sql.DB
+	dbAdapter            databaseAdapter
 	pub                  *QueueClient
 	newJobExchange       string
 	completedJobExchange string
@@ -42,7 +43,17 @@ type serverBackend struct {
 
 // startBackEnd initializes the backend of the job server
 func startBackEnd(cfg *Config) (*serverBackend, error) {
-	db, err := sql.Open(cfg.Backend.Type, createDataSrcName(&cfg.Backend))
+	adapter, err := newDatabaseAdapter(cfg.Backend.Type)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not crate database query adapter")
+	}
+
+	db, err := sql.Open(
+		adapter.driverName(),
+		adapter.dataSourceName(
+			cfg.Backend.Username, cfg.Backend.Password, cfg.Backend.Host, cfg.Backend.Port,
+			cfg.Backend.Database))
+
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create SQL connection")
 	}
@@ -51,7 +62,7 @@ func startBackEnd(cfg *Config) (*serverBackend, error) {
 		return nil, errors.Wrap(err, "connection ping failed")
 	}
 
-	currentSchemaVersion, err := getSchemaVersion(db)
+	currentSchemaVersion, err := getSchemaVersion(db, adapter)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not retrieve current DB schema version")
 	}
@@ -66,7 +77,7 @@ func startBackEnd(cfg *Config) (*serverBackend, error) {
 		return nil, errors.Wrap(err, "could not create publisher connection")
 	}
 
-	return &serverBackend{db, pub, cfg.Queue.NewJobExchange, cfg.Queue.CompletedJobExchange}, nil
+	return &serverBackend{db, adapter, pub, cfg.Queue.NewJobExchange, cfg.Queue.CompletedJobExchange}, nil
 }
 
 // Close the connection to the database and the queue
@@ -79,13 +90,11 @@ func (b *serverBackend) Close() {
 func (b *serverBackend) getJobStatus(ids []string, full bool) (*GetJobStatusReply, error) {
 	reply := GetJobStatusReply{BasicReply: BasicReply{Status: "ok", Reason: ""}}
 
-	queryStr := "select * from Jobs where Jobs.ID in ("
+	queryStr := b.dbAdapter.jobStatusQuery(len(ids))
 	params := make([]interface{}, len(ids))
 	for i, v := range ids[0 : len(ids)-1] {
-		queryStr += fmt.Sprintf("$%v, ", i+1)
 		params[i] = v
 	}
-	queryStr += fmt.Sprintf("$%v);", len(ids))
 	params[len(ids)-1] = ids[len(ids)-1]
 
 	rows, err := b.db.Query(queryStr, params...)
@@ -148,27 +157,7 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 	}
 	defer tx.Rollback()
 
-	row := tx.QueryRow("select ID from Jobs where ID == $1;", j.ID)
-	if err != nil {
-		reason := "SQL query failed"
-		reply.Status = "error"
-		reply.Reason = reason
-		return &reply, errors.Wrap(err, reason)
-	}
-
-	var queryStr string
-	var i uuid.UUID
-	if row.Scan(&i) == sql.ErrNoRows {
-		queryStr = "insert into Jobs (ID,JobName,Repository,Payload,RepositoryPath,Script,ScriptArgs," +
-			"TransferScript,Dependencies,WorkerName,StartTime,FinishTime,Successful,ErrorMessage) " +
-			"values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14);"
-	} else {
-		queryStr = "update Jobs set (ID = $1, JobName = $2, Repository = $3, Payload = $4," +
-			"RepositoryPath = $5, Script = $6, ScriptArgs = $7, TransferScript = $8, Dependencies = $9," +
-			"WorkerName = $10, StartTime = $11, FinishTime = $12, Successful = $13, ErrorMessage = $14) " +
-			"where Jobs.ID == $1;"
-	}
-
+	queryStr := b.dbAdapter.insertOrUpdateJobStatement()
 	if _, err := tx.Exec(queryStr,
 		j.ID, j.JobName, j.Repository, j.Payload, j.RepositoryPath,
 		j.Script, j.ScriptArgs, j.TransferScript, strings.Join(j.Dependencies, ","),
@@ -226,18 +215,8 @@ func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
 	return &st, nil
 }
 
-func createDataSrcName(cfg *BackendConfig) string {
-	// return fmt.Sprintf(
-	// 	"%s:%s@tcp(%s:%v)/%s?parseTime=true",
-	// 	cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
-	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%v/%s?sslmode=disable",
-		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
-}
-
-func getSchemaVersion(db *sql.DB) (int, error) {
-	rows, err := db.Query(
-		"select VersionNumber from SchemaVersion where SchemaVersion.ValidTo is NULL")
+func getSchemaVersion(db *sql.DB, adapter databaseAdapter) (int, error) {
+	rows, err := db.Query(adapter.checkSingleJobQuery())
 	if err != nil {
 		return 0, errors.Wrap(err, "SQL query failed")
 	}
