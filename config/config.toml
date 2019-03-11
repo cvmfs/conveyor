@@ -16,12 +16,12 @@ vhost = "/"
 
 # Job server backend configuration is only used by conveyor server
 [db]
-type = "mysql"
+type = "pgx"
 database = "devcvmfs"
 username = "DB_USERNAME"
 password = "DB_PASSWORD"
 host = "DB_HOST NAME"
-post = 3306
+post = 5432
 
 # Worker configuration
 [worker]

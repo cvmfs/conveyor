@@ -129,7 +129,7 @@ func readConfigFromViper(v *viper.Viper) (*Config, error) {
 		}
 	}
 
-	cfg.Backend.Port = 3306
+	cfg.Backend.Port = 5432
 	db := v.Sub("db")
 	if db != nil {
 		if err := db.Unmarshal(&cfg.Backend); err != nil {

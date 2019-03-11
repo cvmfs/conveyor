@@ -5,10 +5,15 @@ import (
 	"fmt"
 	"strings"
 
-	_ "github.com/go-sql-driver/mysql" // Import and register the MySQL driver
+	_ "github.com/jackc/pgx/stdlib" // Import and register the PostgreSQL driver
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/pkg/errors"
+)
+
+const (
+	// SchemaVersion is the latest schema version of the job database
+	SchemaVersion = 1
 )
 
 // StartServer starts the conveyor server component. This function will block until
@@ -46,6 +51,16 @@ func startBackEnd(cfg *Config) (*serverBackend, error) {
 		return nil, errors.Wrap(err, "connection ping failed")
 	}
 
+	currentSchemaVersion, err := getSchemaVersion(db)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve current DB schema version")
+	}
+	if currentSchemaVersion != SchemaVersion {
+		return nil, fmt.Errorf(
+			"invalid schema version: latest = %v, database = %v",
+			SchemaVersion, currentSchemaVersion)
+	}
+
 	pub, err := NewQueueClient(&cfg.Queue, publisherConnection)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create publisher connection")
@@ -67,10 +82,10 @@ func (b *serverBackend) getJobStatus(ids []string, full bool) (*GetJobStatusRepl
 	queryStr := "select * from Jobs where Jobs.ID in ("
 	params := make([]interface{}, len(ids))
 	for i, v := range ids[0 : len(ids)-1] {
-		queryStr += "?, "
+		queryStr += fmt.Sprintf("$%v, ", i+1)
 		params[i] = v
 	}
-	queryStr += "?);"
+	queryStr += fmt.Sprintf("$%v);", len(ids))
 	params[len(ids)-1] = ids[len(ids)-1]
 
 	rows, err := b.db.Query(queryStr, params...)
@@ -133,7 +148,26 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 	}
 	defer tx.Rollback()
 
-	queryStr := "replace into Jobs values (?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+	row := tx.QueryRow("select ID from Jobs where ID == $1;", j.ID)
+	if err != nil {
+		reason := "SQL query failed"
+		reply.Status = "error"
+		reply.Reason = reason
+		return &reply, errors.Wrap(err, reason)
+	}
+
+	var queryStr string
+	var i uuid.UUID
+	if row.Scan(&i) == sql.ErrNoRows {
+		queryStr = "insert into Jobs (ID,JobName,Repository,Payload,RepositoryPath,Script,ScriptArgs," +
+			"TransferScript,Dependencies,WorkerName,StartTime,FinishTime,Successful,ErrorMessage) " +
+			"values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14);"
+	} else {
+		queryStr = "update Jobs set (ID = $1, JobName = $2, Repository = $3, Payload = $4," +
+			"RepositoryPath = $5, Script = $6, ScriptArgs = $7, TransferScript = $8, Dependencies = $9," +
+			"WorkerName = $10, StartTime = $11, FinishTime = $12, Successful = $13, ErrorMessage = $14) " +
+			"where Jobs.ID == $1;"
+	}
 
 	if _, err := tx.Exec(queryStr,
 		j.ID, j.JobName, j.Repository, j.Payload, j.RepositoryPath,
@@ -144,6 +178,7 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 		reply.Reason = reason
 		return &reply, errors.Wrap(err, reason)
 	}
+
 	err = tx.Commit()
 	if err != nil {
 		reason := "committing SQL transaction failed"
@@ -192,7 +227,32 @@ func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
 }
 
 func createDataSrcName(cfg *BackendConfig) string {
+	// return fmt.Sprintf(
+	// 	"%s:%s@tcp(%s:%v)/%s?parseTime=true",
+	// 	cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
 	return fmt.Sprintf(
-		"%s:%s@tcp(%s:%v)/%s?parseTime=true",
+		"postgres://%s:%s@%s:%v/%s?sslmode=disable",
 		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database)
+}
+
+func getSchemaVersion(db *sql.DB) (int, error) {
+	rows, err := db.Query(
+		"select VersionNumber from SchemaVersion where SchemaVersion.ValidTo is NULL")
+	if err != nil {
+		return 0, errors.Wrap(err, "SQL query failed")
+	}
+	defer rows.Close()
+
+	maxSchemaVersion := 0
+	for rows.Next() {
+		var ver int
+		if err := rows.Scan(&ver); err != nil {
+			return 0, errors.Wrap(err, "SQL query scan failed")
+		}
+		if ver > maxSchemaVersion {
+			maxSchemaVersion = ver
+		}
+	}
+
+	return maxSchemaVersion, nil
 }

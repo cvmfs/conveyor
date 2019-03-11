@@ -23,5 +23,3 @@ CREATE TABLE IF NOT EXISTS Jobs (
     Successful boolean NOT NULL,
     ErrorMessage varchar(65535) NOT NULL
 );
-
-CREATE UNIQUE INDEX UUID on Jobs (ID);
