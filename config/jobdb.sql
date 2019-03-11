@@ -1,4 +1,11 @@
-USE devcvmfs;
+CREATE TABLE IF NOT EXISTS SchemaVersion (
+    VersionNumber int NOT NULL UNIQUE PRIMARY KEY,
+    ValidFrom timestamp NOT NULL,
+    ValidTo timestamp
+);
+
+INSERT INTO SchemaVersion (VersionNumber, ValidFrom)
+    VALUES (1, NOW());
 
 CREATE TABLE IF NOT EXISTS Jobs (
     ID char(36) NOT NULL UNIQUE PRIMARY KEY,
@@ -16,3 +23,5 @@ CREATE TABLE IF NOT EXISTS Jobs (
     Successful boolean NOT NULL,
     ErrorMessage varchar(65535) NOT NULL
 );
+
+CREATE UNIQUE INDEX UUID on Jobs (ID);
