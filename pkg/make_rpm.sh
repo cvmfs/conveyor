@@ -30,12 +30,9 @@ echo "Version: $VERSION"
 echo "Release: $RELEASE"
 
 
-###  Build package (with GOPATH inside project)
+###  Build package
 
 echo "Building package"
-mkdir -p ${BUILD_LOCATION}/gopath/src/github.com/cvmfs
-ln -fs ${BUILD_LOCATION} ${BUILD_LOCATION}/gopath/src/github.com/cvmfs/${PROJECT_NAME}
-export GOPATH="${BUILD_LOCATION}/gopath"
 cd ${BUILD_LOCATION}
 go build
 
@@ -98,4 +95,3 @@ cp -v ./rpms/src/*.rpm $BUILD_LOCATION/RPMS
 ### Clean up
 
 rm -rf ${BUILD_LOCATION}/togo
-rm -rf ${BUILD_LOCATION}/gopath

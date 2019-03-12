@@ -12,9 +12,9 @@ import (
 	"path"
 	"time"
 
+	"github.com/google/uuid"
 	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
 
 // MaxJobDuration is the number of seconds that a job is allowed to take

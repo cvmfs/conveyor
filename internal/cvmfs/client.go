@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/streadway/amqp"
 
 	"github.com/pkg/errors"

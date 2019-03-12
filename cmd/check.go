@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/cvmfs/conveyor/internal/cvmfs"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 

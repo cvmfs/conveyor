@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	// Import and register the PostgreSQL and MySQL drivers
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/jackc/pgx/stdlib"
-	uuid "github.com/satori/go.uuid"
+	_ "github.com/go-sql-driver/mysql" // Import and register the MySQL driver
+	"github.com/google/uuid"
+	_ "github.com/jackc/pgx/stdlib" // Import and register the PostgreSQL driver
 
 	"github.com/pkg/errors"
 )
@@ -131,10 +130,7 @@ func (b *serverBackend) getJobStatus(ids []string, full bool) (*GetJobStatusRepl
 
 // putNewJob publishes a new (unprocessed) job
 func (b *serverBackend) putNewJob(j *JobSpecification) (*PostNewJobReply, error) {
-	id, err := uuid.NewV1()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not generate UUID")
-	}
+	id := uuid.New()
 
 	reply := PostNewJobReply{BasicReply{Status: "ok", Reason: ""}, id}
 
