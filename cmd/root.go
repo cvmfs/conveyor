@@ -17,6 +17,7 @@ var rootCmd = &cobra.Command{
 
 var cfgFile string
 var logTimestamps *bool
+var jobWaitTimeout int
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -29,6 +30,11 @@ func init() {
 		"log-timestamps",
 		false,
 		"include timestamps in logging output")
+	rootCmd.PersistentFlags().IntVar(
+		&jobWaitTimeout,
+		"timeout",
+		7200,
+		"timeout (in seconds) when waiting for jobs")
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(submitCmd)

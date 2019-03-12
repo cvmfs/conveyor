@@ -17,9 +17,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// MaxJobDuration is the number of seconds that a job is allowed to take
-const MaxJobDuration = 2 * 3600
-
 // JobSpecification contains all the parameters of a new job which is to be submitted
 type JobSpecification struct {
 	JobName        string

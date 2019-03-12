@@ -46,11 +46,12 @@ type ServerConfig struct {
 
 // Config - main configuration object
 type Config struct {
-	KeyDir  string
-	Server  ServerConfig
-	Queue   QueueConfig
-	Backend BackendConfig
-	Worker  WorkerConfig
+	KeyDir         string
+	JobWaitTimeout int
+	Server         ServerConfig
+	Queue          QueueConfig
+	Backend        BackendConfig
+	Worker         WorkerConfig
 }
 
 // HTTPEndpoints holds the different HTTP end points of the conveyor job server
@@ -102,6 +103,7 @@ func ReadConfig() (*Config, error) {
 
 func readConfigFromViper(v *viper.Viper) (*Config, error) {
 	v.SetDefault("keydir", "/etc/cvmfs/keys")
+	v.SetDefault("timeout", 7200)
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, errors.Wrap(err, "could not read server configuration")

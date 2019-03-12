@@ -18,6 +18,9 @@ var workerCmd = &cobra.Command{
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
+		if rootCmd.PersistentFlags().Changed("timeout") {
+			cfg.JobWaitTimeout = jobWaitTimeout
+		}
 
 		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {

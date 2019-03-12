@@ -59,7 +59,8 @@ func (c *JobClient) SubscribeNewJobs(keyID string) (<-chan amqp.Delivery, error)
 // WaitForJobs waits for the completion of a set of jobs referenced through theirs
 // unique ids. The job status is obtained from the completed job notification channel
 // of the job queue and from the job server
-func (c *JobClient) WaitForJobs(ids []string, repo string) ([]JobStatus, error) {
+func (c *JobClient) WaitForJobs(
+	ids []string, repo string, timeout int) ([]JobStatus, error) {
 	idMap := make(map[string]bool)
 	for _, id := range ids {
 		idMap[id] = false
@@ -109,7 +110,7 @@ L:
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				break L
 			}
-		case <-time.After(MaxJobDuration * time.Second):
+		case <-time.After(time.Duration(timeout) * time.Second):
 			return []JobStatus{}, errors.New("timeout")
 		}
 	}

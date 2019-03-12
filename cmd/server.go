@@ -18,6 +18,9 @@ var serverCmd = &cobra.Command{
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
+		if rootCmd.PersistentFlags().Changed("timeout") {
+			cfg.JobWaitTimeout = jobWaitTimeout
+		}
 		cvmfs.Log.Info().Msg("CVMFS job server starting")
 
 		keys, err := cvmfs.LoadKeys(cfg.KeyDir)

@@ -31,6 +31,9 @@ var checkCmd = &cobra.Command{
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
+		if rootCmd.PersistentFlags().Changed("timeout") {
+			cfg.JobWaitTimeout = jobWaitTimeout
+		}
 
 		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {
@@ -46,7 +49,7 @@ var checkCmd = &cobra.Command{
 
 		// Optionally wait for completion of the jobs
 		if *chkvs.wait {
-			_, err := client.WaitForJobs(*chkvs.ids, chkvs.repo)
+			_, err := client.WaitForJobs(*chkvs.ids, chkvs.repo, jobWaitTimeout)
 			if err != nil {
 				cvmfs.Log.Error().Err(err).Msg("waiting for job completion failed")
 				os.Exit(1)

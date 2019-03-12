@@ -29,6 +29,7 @@ type Worker struct {
 	client        *JobClient
 	keys          *Keys
 	endpoints     HTTPEndpoints
+	timeout       int
 }
 
 // NewWorker creates a new Worker object using a config object
@@ -40,7 +41,8 @@ func NewWorker(cfg *Config, keys *Keys) (*Worker, error) {
 	}
 
 	return &Worker{
-		cfg.Worker.Name, cfg.Worker.JobRetries, cfg.Worker.TempDir, client, keys, cfg.HTTPEndpoints()}, nil
+		cfg.Worker.Name, cfg.Worker.JobRetries, cfg.Worker.TempDir,
+		client, keys, cfg.HTTPEndpoints(), cfg.JobWaitTimeout}, nil
 }
 
 // Close all the internal connections of the Worker object
@@ -79,7 +81,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 
 	if len(job.Dependencies) > 0 {
 		// Wait for job dependencies to finish
-		depStatus, err := w.client.WaitForJobs(job.Dependencies, job.Repository)
+		depStatus, err := w.client.WaitForJobs(job.Dependencies, job.Repository, w.timeout)
 		if err != nil {
 			if err := w.postJobStatus(
 				&job, w.name, startTime, time.Now(), false, err.Error()); err != nil {

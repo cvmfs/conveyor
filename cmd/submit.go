@@ -33,6 +33,9 @@ var submitCmd = &cobra.Command{
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
+		if rootCmd.PersistentFlags().Changed("timeout") {
+			cfg.JobWaitTimeout = jobWaitTimeout
+		}
 
 		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
 		if err != nil {
@@ -72,7 +75,8 @@ var submitCmd = &cobra.Command{
 
 		// Optionally wait for completion of the job
 		if *subvs.wait {
-			stats, err := client.WaitForJobs([]string{id.String()}, spec.Repository)
+			stats, err := client.WaitForJobs(
+				[]string{id.String()}, spec.Repository, jobWaitTimeout)
 			if err != nil {
 				cvmfs.Log.Error().
 					Err(err).
