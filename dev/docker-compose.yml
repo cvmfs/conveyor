@@ -1,16 +1,13 @@
 version: "3"
 services:
-  mariadb:
-    image: mariadb:5.5
+  pg:
+    image: postgres:11
     environment:
-      - "MYSQL_ROOT_PASSWORD=password"
-      - "MYSQL_DATABASE=devcvmfs"
-      - "MYSQL_USER=cvmfs_db"
-      - "MYSQL_PASSWORD=password"
+      - "POSTGRES_PASSWORD=password"
     volumes:
-      - "/opt/cvmfs-publisher-data/mysql:/var/lib/mysql"
+      - "/opt/conveyor-data/postgresql:/var/lib/postgresql/data"
     ports:
-      - "3306:3306"
+      - "5432:5432"
   rmq:
     image: rabbitmq:3-management
     hostname: rabbit00
@@ -18,7 +15,7 @@ services:
       - "RABBITMQ_ERLANG_COOKIE=secret"
       - "RABBITMQ_NODENAME=rabbit@rabbit00"
     volumes:
-      - "/opt/cvmfs-publisher-data/rabbitmq:/var/lib/rabbitmq"
+      - "/opt/conveyor-data/rabbitmq:/var/lib/rabbitmq"
     ports:
       - "15672:15672"
       - "5672:5672"
