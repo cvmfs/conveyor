@@ -218,7 +218,7 @@ func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
 }
 
 func getSchemaVersion(db *sql.DB, adapter databaseAdapter) (int, error) {
-	rows, err := db.Query(adapter.checkSingleJobQuery())
+	rows, err := db.Query(adapter.schemaVersionQuery())
 	if err != nil {
 		return 0, errors.Wrap(err, "SQL query failed")
 	}
