@@ -51,44 +51,15 @@ func (a *postgresAdapter) jobStatusQuery(numIds int) string {
 }
 
 func (a *postgresAdapter) insertOrUpdateJobStatement() string {
-	return `
-INSERT INTO Jobs
-(
-	ID,
-	JobName,
-	Repository,
-	Payload,
-	RepositoryPath,
-	Script,
-	ScriptArgs,
-	TransferScript,
-	Dependencies,
-	WorkerName,
-	StartTime,
-	FinishTime,
-	Successful,
-	ErrorMessage
-)
-VALUES
-(
-	$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
-)
-ON CONFLICT DO UPDATE
-SET     ID = EXCLUDED.ID,
-	   	JobName = EXCLUDED.JobName,
-	   	Repository = EXCLUDED.RepositoryName,
-       	Payload = EXCLUDED.Payload,
-	   	RepositoryPath = EXCLUDED.RepositoryPath,
-		Script = EXCLUDED.Script,
-		ScriptArgs = EXCLUDED.ScriptArgs,
-		TransferScript = EXCLUDED.TransferScript,
-		Dependencies = EXCLUDED.Dependencies,
-		WorkerName = EXCLUDED.WorkerName,
-		StartTime = EXCLUDED.StartTime,
-		FinishTime = EXCLUDED.FinishTime,
-		Successful = EXCLUDED.Successful,
-		ErrorMessage = EXCLUDED.ErrorMessage);
-`
+	return "INSERT INTO Jobs (ID, JobName, Repository, Payload, RepositoryPath, Script," +
+		"ScriptArgs, TransferScript, Dependencies, WorkerName, StartTime, FinishTime, Successful, ErrorMessage) " +
+		"VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) " +
+		"ON CONFLICT (ID) DO UPDATE " +
+		"SET ID = EXCLUDED.ID, JobName = EXCLUDED.JobName, Repository = EXCLUDED.Repository, " +
+		"Payload = EXCLUDED.Payload, RepositoryPath = EXCLUDED.RepositoryPath, Script = EXCLUDED.Script, " +
+		"ScriptArgs = EXCLUDED.ScriptArgs, TransferScript = EXCLUDED.TransferScript, " +
+		"Dependencies = EXCLUDED.Dependencies, WorkerName = EXCLUDED.WorkerName, StartTime = EXCLUDED.StartTime, " +
+		"FinishTime = EXCLUDED.FinishTime, Successful = EXCLUDED.Successful, ErrorMessage = EXCLUDED.ErrorMessage;"
 }
 
 // MySQLAdapter provides adapted queries and configuration strings for the Postgres driver:
