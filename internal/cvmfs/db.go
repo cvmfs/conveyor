@@ -38,11 +38,11 @@ func (a *postgresAdapter) dataSourceName(user, pass, host string, port int, data
 }
 
 func (a *postgresAdapter) schemaVersionQuery() string {
-	return "select VersionNumber from SchemaVersion where SchemaVersion.ValidTo is NULL"
+	return "SELECT VersionNumber FROM SchemaVersion WHERE SchemaVersion.ValidTo IS NULL"
 }
 
 func (a *postgresAdapter) jobStatusQuery(numIds int) string {
-	queryStr := "select * from Jobs where Jobs.ID in ("
+	queryStr := "SELECT * FROM Jobs WHERE Jobs.ID IN ("
 	for i := 0; i < numIds-1; i++ {
 		queryStr += fmt.Sprintf("$%v, ", i+1)
 	}
@@ -75,11 +75,11 @@ func (a *mySQLAdapter) dataSourceName(user, pass, host string, port int, databas
 }
 
 func (a *mySQLAdapter) schemaVersionQuery() string {
-	return "select VersionNumber from SchemaVersion where SchemaVersion.ValidTo is NULL"
+	return "SELECT VersionNumber FROM SchemaVersion WHERE SchemaVersion.ValidTo IS NULL"
 }
 
 func (a *mySQLAdapter) jobStatusQuery(numIds int) string {
-	queryStr := "select * from Jobs where Jobs.ID in ("
+	queryStr := "SELECT * FROM Jobs WHERE Jobs.ID IN ("
 	for i := 0; i < numIds-1; i++ {
 		queryStr += "?, "
 	}
@@ -88,5 +88,5 @@ func (a *mySQLAdapter) jobStatusQuery(numIds int) string {
 }
 
 func (a *mySQLAdapter) insertOrUpdateJobStatement() string {
-	return "replace into Jobs values (?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
+	return "REPLACE INTO Jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);"
 }
