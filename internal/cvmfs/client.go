@@ -91,13 +91,21 @@ L:
 			}
 		case j := <-notifications:
 			jobStatuses[j.ID] = j.Successful
-			Log.Info().Msgf("(Notification) job finished: %v", j)
+			Log.Info().
+				Str("source", "notification").
+				Str("job_id", j.ID.String()).
+				Bool("success", j.Successful).
+				Msg("job finished")
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				break L
 			}
 		case j := <-queryResults:
 			jobStatuses[j.ID] = j.Successful
-			Log.Info().Msgf("(Query result) job finished: %v", j)
+			Log.Info().
+				Str("source", "query").
+				Str("job_id", j.ID.String()).
+				Bool("success", j.Successful).
+				Msgf("(Query result) job finished: %v", j)
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				break L
 			}

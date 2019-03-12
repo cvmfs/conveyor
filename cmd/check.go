@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -60,7 +61,7 @@ var checkCmd = &cobra.Command{
 		}
 
 		if stats.Status != "ok" {
-			fmt.Printf("{\"Status\": \"error\", \"Reason\": \"%v\"}\n", stats.Reason)
+			cvmfs.Log.Error().Err(errors.New(stats.Reason)).Msg("job failed")
 			os.Exit(1)
 		}
 

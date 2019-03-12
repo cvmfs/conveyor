@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"fmt"
+	"errors"
 	"os"
 
 	"github.com/cvmfs/conveyor/internal/cvmfs"
@@ -62,7 +62,9 @@ var submitCmd = &cobra.Command{
 		}
 
 		if stat.Status != "ok" {
-			fmt.Printf("{\"Status\": \"error\", \"Reason\": \"%v\"}\n", stat.Reason)
+			cvmfs.Log.Error().
+				Err(errors.New(stat.Reason)).
+				Msg("job failed")
 			os.Exit(1)
 		}
 
@@ -72,17 +74,21 @@ var submitCmd = &cobra.Command{
 		if *subvs.wait {
 			stats, err := client.WaitForJobs([]string{id.String()}, spec.Repository)
 			if err != nil {
-				cvmfs.Log.Error().Err(err).Msg("waiting for job completion failed")
+				cvmfs.Log.Error().
+					Err(err).
+					Msg("waiting for job completion failed")
 				os.Exit(1)
 			}
 
 			if !stats[0].Successful {
-				fmt.Printf("{\"Status\": \"error\", \"ID\": \"%s\"}\n", id)
+				cvmfs.Log.Error().
+					Str("job_id", id.String()).
+					Msg("job dependency failed")
 				os.Exit(1)
 			}
 		}
 
-		fmt.Printf("{\"Status\": \"ok\", \"ID\": \"%s\"}\n", id)
+		cvmfs.Log.Info().Str("job_id", id.String()).Msg("job submitted successfully")
 	},
 }
 
