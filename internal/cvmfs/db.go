@@ -52,7 +52,7 @@ func (a *postgresAdapter) jobStatusQuery(numIds int) string {
 }
 
 func (a *postgresAdapter) checkSingleJobQuery() string {
-	return "select ID from Jobs where ID == $1;"
+	return "select ID from Jobs where ID = $1;"
 }
 
 func (a *postgresAdapter) insertOrUpdateJobStatement() string {
@@ -122,7 +122,7 @@ func (a *mySQLAdapter) jobStatusQuery(numIds int) string {
 }
 
 func (a *mySQLAdapter) checkSingleJobQuery() string {
-	return "select ID from Jobs where Jobs.ID == $1;"
+	return "select ID from Jobs where Jobs.ID = $1;"
 }
 
 func (a *mySQLAdapter) insertOrUpdateJobStatement() string {
