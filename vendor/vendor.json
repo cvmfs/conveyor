@@ -411,6 +411,48 @@
 			"revisionTime": "2018-09-06T18:38:39Z"
 		},
 		{
+			"checksumSHA1": "jJKaJ+e78OBb0/c0BxiD9IpCGFQ=",
+			"path": "github.com/jackc/pgx",
+			"revision": "051e69d512355b5d5dd6f8b92970105ee36e0579",
+			"revisionTime": "2019-03-08T21:27:02Z"
+		},
+		{
+			"checksumSHA1": "rsDmBQ/jGFUN2t6G4c3ohkKGKdQ=",
+			"path": "github.com/jackc/pgx/chunkreader",
+			"revision": "051e69d512355b5d5dd6f8b92970105ee36e0579",
+			"revisionTime": "2019-03-08T21:27:02Z"
+		},
+		{
+			"checksumSHA1": "wArf/u0cmHsLafG2tOcjVUUXQBw=",
+			"path": "github.com/jackc/pgx/internal/sanitize",
+			"revision": "051e69d512355b5d5dd6f8b92970105ee36e0579",
+			"revisionTime": "2019-03-08T21:27:02Z"
+		},
+		{
+			"checksumSHA1": "OCtOmvS8BLHQAyQXJ/Ub8QxKz0s=",
+			"path": "github.com/jackc/pgx/pgio",
+			"revision": "051e69d512355b5d5dd6f8b92970105ee36e0579",
+			"revisionTime": "2019-03-08T21:27:02Z"
+		},
+		{
+			"checksumSHA1": "w6Hghi30r0tT0EJMpcBa0xE6S8Y=",
+			"path": "github.com/jackc/pgx/pgproto3",
+			"revision": "051e69d512355b5d5dd6f8b92970105ee36e0579",
+			"revisionTime": "2019-03-08T21:27:02Z"
+		},
+		{
+			"checksumSHA1": "5RzrME9V3/F5WsJPRCXtWo0Fah4=",
+			"path": "github.com/jackc/pgx/pgtype",
+			"revision": "051e69d512355b5d5dd6f8b92970105ee36e0579",
+			"revisionTime": "2019-03-08T21:27:02Z"
+		},
+		{
+			"checksumSHA1": "8ZcgJLvwBY4obkT1yR/QTO8rBYc=",
+			"path": "github.com/jackc/pgx/stdlib",
+			"revision": "051e69d512355b5d5dd6f8b92970105ee36e0579",
+			"revisionTime": "2019-03-08T21:27:02Z"
+		},
+		{
 			"checksumSHA1": "blwbl9vPvRLtL5QlZgfpLvsFiZ4=",
 			"origin": "github.com/aws/aws-sdk-go/vendor/github.com/jmespath/go-jmespath",
 			"path": "github.com/jmespath/go-jmespath",

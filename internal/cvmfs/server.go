@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	_ "github.com/jackc/pgx/stdlib" // Import and register the PostgreSQL driver
+	// Import and register the PostgreSQL and MySQL drivers
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/jackc/pgx/stdlib"
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/pkg/errors"
