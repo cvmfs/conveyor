@@ -34,7 +34,8 @@ echo "Release: $RELEASE"
 
 echo "Building package"
 cd ${BUILD_LOCATION}
-GOPATH=${BUILD_LOCATION}/../go go build
+export GOPATH=${GOPATH:=${BUILD_LOCATION}/../go}
+go build
 
 
 ### Create togo project
