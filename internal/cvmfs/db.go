@@ -11,7 +11,6 @@ type databaseAdapter interface {
 	dataSourceName(user, pass, host string, port int, database string) string
 	schemaVersionQuery() string
 	jobStatusQuery(numIds int) string
-	checkSingleJobQuery() string
 	insertOrUpdateJobStatement() string
 }
 
@@ -49,10 +48,6 @@ func (a *postgresAdapter) jobStatusQuery(numIds int) string {
 	}
 	queryStr += fmt.Sprintf("$%v);", numIds)
 	return queryStr
-}
-
-func (a *postgresAdapter) checkSingleJobQuery() string {
-	return "select ID from Jobs where ID = $1;"
 }
 
 func (a *postgresAdapter) insertOrUpdateJobStatement() string {
@@ -119,10 +114,6 @@ func (a *mySQLAdapter) jobStatusQuery(numIds int) string {
 	}
 	queryStr += "?);"
 	return queryStr
-}
-
-func (a *mySQLAdapter) checkSingleJobQuery() string {
-	return "select ID from Jobs where Jobs.ID = $1;"
 }
 
 func (a *mySQLAdapter) insertOrUpdateJobStatement() string {
