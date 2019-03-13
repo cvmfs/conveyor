@@ -9,11 +9,9 @@ if [ "x$(systemctl list-unit-files | grep conveyor-server.service)" != "x" ]; th
 fi
 
 if [ "x$(systemctl list-unit-files | grep conveyor-worker@)" != "x" ]; then
-	instance=$(systemctl list-unit-files | grep conveyor-worker@ | grep -o -P '(?<=@).*(?=\.)')
-	systemctl stop conveyor-worker@$instance
+	systemctl stop 'conveyor-worker@*'
 fi
 
 if [ "x$(systemctl list-unit-files | grep conveyor-server@)" != "x" ]; then
-	instance=$(systemctl list-unit-files | grep conveyor-server@ | grep -o -P '(?<=@).*(?=\.)')
-	systemctl stop conveyor-server@$instance
+	systemctl stop 'conveyor-server@*'
 fi
