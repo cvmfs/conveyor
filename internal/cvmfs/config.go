@@ -34,8 +34,8 @@ type QueueConfig struct {
 // WorkerConfig - configuration of the Conveyor worker daemon
 type WorkerConfig struct {
 	Name       string
-	JobRetries int
-	TempDir    string
+	JobRetries int    `mapstructure:"job_retries"`
+	TempDir    string `mapstructure:"temp_dir"`
 }
 
 // ServerConfig - configuration of the Conveyor jov server
@@ -46,8 +46,8 @@ type ServerConfig struct {
 
 // Config - main configuration object
 type Config struct {
-	KeyDir         string
-	JobWaitTimeout int
+	KeyDir         string `mapstructure:"key_dir"`
+	JobWaitTimeout int    `mapstructure:"job_wait_timeout"`
 	Server         ServerConfig
 	Queue          QueueConfig
 	Backend        BackendConfig

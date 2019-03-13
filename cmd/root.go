@@ -32,7 +32,7 @@ func init() {
 		"include timestamps in logging output")
 	rootCmd.PersistentFlags().IntVar(
 		&jobWaitTimeout,
-		"timeout",
+		"job-wait-timeout",
 		7200,
 		"timeout (in seconds) when waiting for jobs")
 	rootCmd.AddCommand(checkCmd)

@@ -1,5 +1,6 @@
 # Options common to multiple components (worker, server, etc.)
 keydir = "/etc/cvmfs/keys" # Default key dir
+job_wait_timeout = 7200 # max number of seconds to wait for jobs to complete
 
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]
@@ -26,5 +27,5 @@ post = 5432
 # Worker configuration
 [worker]
 # name = defaults to hostname
-jobretries = 3
-tempdir = "/tmp/conveyor-worker"
+job_retries = 3
+temp_dir = "/tmp/conveyor-worker"
