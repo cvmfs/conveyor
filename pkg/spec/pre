@@ -1,9 +1,19 @@
 %pre
 
-if [ "x$(systemctl list-unit-files | grep conveyor-worker)" != "x" ]; then
+if [ "x$(systemctl list-unit-files | grep conveyor-worker.service)" != "x" ]; then
 	systemctl stop conveyor-worker
 fi
 
-if [ "x$(systemctl list-unit-files | grep conveyor-server)" != "x" ]; then
+if [ "x$(systemctl list-unit-files | grep conveyor-server.service)" != "x" ]; then
 	systemctl stop conveyor-server
+fi
+
+if [ "x$(systemctl list-unit-files | grep conveyor-worker@)" != "x" ]; then
+	instance=$(systemctl list-unit-files | grep conveyor-worker@ | grep -o -P '(?<=@).*(?=\.)')
+	systemctl stop conveyor-worker@$instance
+fi
+
+if [ "x$(systemctl list-unit-files | grep conveyor-server@)" != "x" ]; then
+	instance=$(systemctl list-unit-files | grep conveyor-server@ | grep -o -P '(?<=@).*(?=\.)')
+	systemctl stop conveyor-server@$instance
 fi

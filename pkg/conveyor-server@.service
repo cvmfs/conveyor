@@ -1,15 +1,15 @@
 [Unit]
-Description=CernVM-FS Conveyor worker
+Description=CernVM-FS Conveyor server
 After=syslog.target network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/conveyor worker
-PIDFile=/var/run/conveyor-worker.pid
+ExecStart=/usr/bin/conveyor server
+PIDFile=/var/run/conveyor-server.pid
 StandardOutput=journal
 Restart=always
 RestartSec=5
-User=root
+User=%I
 
 [Install]
 WantedBy=multi-user.target

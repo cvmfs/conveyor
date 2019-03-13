@@ -61,10 +61,10 @@ togo file exclude root/usr/bin
 ### Add other files to togo project root
 
 mkdir -p ${TOGO_PROJECT}/root/etc/systemd/system
-cp -v ${SCRIPT_LOCATION}/conveyor-worker.service ${TOGO_PROJECT}/root/etc/systemd/system/
-cp -v ${SCRIPT_LOCATION}/conveyor-server.service ${TOGO_PROJECT}/root/etc/systemd/system/
-togo file flag config-nr root/etc/systemd/system/conveyor-worker.service
-togo file flag config-nr root/etc/systemd/system/conveyor-server.service
+cp -v ${SCRIPT_LOCATION}/conveyor-worker@.service ${TOGO_PROJECT}/root/etc/systemd/system/
+cp -v ${SCRIPT_LOCATION}/conveyor-server@.service ${TOGO_PROJECT}/root/etc/systemd/system/
+togo file flag config-nr root/etc/systemd/system/conveyor-worker@.service
+togo file flag config-nr root/etc/systemd/system/conveyor-server@.service
 togo file exclude root/etc/systemd/system
 
 mkdir -p ${TOGO_PROJECT}/root/etc/cvmfs/conveyor
