@@ -4,24 +4,24 @@ job_wait_timeout = 7200 # max number of seconds to wait for jobs to complete
 
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]
-host = "JOB SERVICE HOST NAME"
+host = "UNSET"
 port = 8080
 
 # Queue configuration is used by conveyor server
 [queue]
-username = "QUEUE USER NAME"
-password = "QUEUE USER PASSWORD"
-host = "QUEUE HOST NAME"
+username = "UNSET"
+password = "UNSET"
+host = "UNSET"
 port = 5672
 vhost = "/"
 
 # Job server backend configuration is only used by conveyor server
 [db]
-type = "postgres"
-database = "devcvmfs"
-username = "DB_USERNAME"
-password = "DB_PASSWORD"
-host = "DB_HOST NAME"
+type = "UNSET" # postgres | mysql
+database = "UNSET"
+username = "UNSET"
+password = "UNSET"
+host = "UNSET"
 post = 5432
 
 # Worker configuration

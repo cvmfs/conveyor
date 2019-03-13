@@ -13,7 +13,7 @@ var serverCmd = &cobra.Command{
 	Long:  "Start the job server",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := cvmfs.ReadConfig()
+		cfg, err := cvmfs.ReadConfig(cvmfs.ServerProfile)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)

@@ -8,7 +8,27 @@ import (
 	"github.com/spf13/viper"
 )
 
-const fullConfig = `
+const clientConfig = `
+shared_key = "TESTKEY" # Default key dir
+
+# Job server configuration is used by conveyor {submit, consumer, server}
+[server]
+host = "job.service.host.name"
+port = 1111
+
+# Queue configuration is used by conveyor server
+[queue]
+username = "quser"
+password = "qpass"
+host = "queue.host.name"
+port = 2222
+vhost = "/cvmfs"
+new_job_exchange = "nje"
+new_job_queue = "njq"
+completed_job_exchange = "cje"
+`
+
+const serverConfig = `
 shared_key = "TESTKEY" # Default key dir
 
 # Job server configuration is used by conveyor {submit, consumer, server}
@@ -35,6 +55,26 @@ username = "dbuser"
 password = "dbpass"
 host = "db.host.name"
 post = 3333
+`
+
+const workerConfig = `
+shared_key = "TESTKEY" # Default key dir
+
+# Job server configuration is used by conveyor {submit, consumer, server}
+[server]
+host = "job.service.host.name"
+port = 1111
+
+# Queue configuration is used by conveyor server
+[queue]
+username = "quser"
+password = "qpass"
+host = "queue.host.name"
+port = 2222
+vhost = "/cvmfs"
+new_job_exchange = "nje"
+new_job_queue = "njq"
+completed_job_exchange = "cje"
 
 # Worker configuration
 [worker]
@@ -73,12 +113,12 @@ func PrepareViperHelper(t *testing.T, cfg string) (*viper.Viper, error) {
 	return v, nil
 }
 
-func TestReadFullConfig(t *testing.T) {
-	v, err := PrepareViperHelper(t, fullConfig)
+func TestReadClientConfig(t *testing.T) {
+	v, err := PrepareViperHelper(t, clientConfig)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	cfg, err := readConfigFromViper(v)
+	cfg, err := readConfigFromViper(v, ClientProfile)
 	if err != nil {
 		t.Errorf("Could not read config from Viper object")
 	}
@@ -92,6 +132,17 @@ func TestReadFullConfig(t *testing.T) {
 	}
 	if cfg.Server.Port != 1111 {
 		t.Errorf("Invalid port: %v\n", cfg.Server.Port)
+	}
+}
+
+func TestReadServerConfig(t *testing.T) {
+	v, err := PrepareViperHelper(t, serverConfig)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	cfg, err := readConfigFromViper(v, ServerProfile)
+	if err != nil {
+		t.Errorf("Could not read config from Viper object")
 	}
 
 	if cfg.Queue.NewJobExchange != "nje" {
@@ -109,6 +160,17 @@ func TestReadFullConfig(t *testing.T) {
 			"Invalid name of completed job exchange: %v\n",
 			cfg.Queue.CompletedJobExchange)
 	}
+}
+
+func TestReadWorkerConfig(t *testing.T) {
+	v, err := PrepareViperHelper(t, workerConfig)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	cfg, err := readConfigFromViper(v, WorkerProfile)
+	if err != nil {
+		t.Errorf("Could not read config from Viper object")
+	}
 
 	if cfg.Worker.Name != "jeff" {
 		t.Errorf("Invalid worker name: %v\n", cfg.Worker.Name)
@@ -120,26 +182,6 @@ func TestReadFullConfig(t *testing.T) {
 
 	if cfg.Worker.JobRetries != 11 {
 		t.Errorf("Invalid max job retries: %v\n", cfg.Worker.JobRetries)
-	}
-}
-
-func TestReadPartialConfig(t *testing.T) {
-	v, err := PrepareViperHelper(t, partialConfig)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	if _, err := readConfigFromViper(v); err != nil {
-		t.Errorf("Could not read config from Viper object")
-	}
-}
-
-func TestReadIncompleteConfig(t *testing.T) {
-	v, err := PrepareViperHelper(t, incompleteConfig)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-	if _, err := readConfigFromViper(v); err == nil {
-		t.Errorf("Reading an incomplete configuration should result in an error")
 	}
 }
 

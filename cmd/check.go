@@ -26,7 +26,7 @@ var checkCmd = &cobra.Command{
 	Long:  "check the status of a submitted job",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := cvmfs.ReadConfig()
+		cfg, err := cvmfs.ReadConfig(cvmfs.ClientProfile)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)

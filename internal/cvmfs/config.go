@@ -9,6 +9,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	// ClientProfile is used by the submit and check commands
+	ClientProfile = iota
+	// ServerProfile is used by the server command
+	ServerProfile
+	// WorkerProfile is used by the worker command
+	WorkerProfile
+)
+
 // BackendConfig - database backend configuration for the conveyor job server DB backend
 type BackendConfig struct {
 	Type     string
@@ -96,24 +105,24 @@ func (c *Config) HTTPEndpoints() HTTPEndpoints {
 }
 
 // ReadConfig - populate the config object using the global viper object
-// and the config file
-func ReadConfig() (*Config, error) {
-	return readConfigFromViper(viper.GetViper())
+// and the config file, based on profile (client, worker, or server).
+// The different sections may not needed in all profiles
+func ReadConfig(profile int) (*Config, error) {
+	return readConfigFromViper(viper.GetViper(), profile)
 }
 
-func readConfigFromViper(v *viper.Viper) (*Config, error) {
-	var cfg Config
-	cfg.SharedKey = "UNSET"
-	cfg.JobWaitTimeout = 7200
+func readConfigFromViper(v *viper.Viper, profile int) (*Config, error) {
+	// Create new config object with default values
+	cfg, err := newConfig()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create default configuration")
+	}
+
+	// Read configuration file (Viper)
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, errors.Wrap(err, "could not read server configuration")
 	}
 
-	if cfg.SharedKey == "UNSET" || cfg.SharedKey == "" {
-		return nil, errors.New("shared API key is unset")
-	}
-
-	cfg.Server.Port = 8080
 	srv := v.Sub("server")
 	if srv == nil {
 		return nil, fmt.Errorf("Could not read config; missing server section")
@@ -122,12 +131,6 @@ func readConfigFromViper(v *viper.Viper) (*Config, error) {
 		return nil, errors.Wrap(err, "could not read server configuration")
 	}
 
-	cfg.Queue.Port = 5672
-	cfg.Queue.VHost = "/cvmfs/"
-	cfg.Queue.NewJobExchange = "jobs.new"
-	cfg.Queue.NewJobQueue = "jobs.new"
-	cfg.Queue.CompletedJobExchange = "jobs.done"
-
 	q := v.Sub("queue")
 	if q != nil {
 		if err := q.Unmarshal(&cfg.Queue); err != nil {
@@ -135,13 +138,59 @@ func readConfigFromViper(v *viper.Viper) (*Config, error) {
 		}
 	}
 
-	cfg.Backend.Port = 5432
-	db := v.Sub("db")
-	if db != nil {
-		if err := db.Unmarshal(&cfg.Backend); err != nil {
-			return nil, errors.Wrap(err, "could not read db configuration")
+	if profile == ServerProfile {
+		db := v.Sub("db")
+		if db != nil {
+			if err := db.Unmarshal(&cfg.Backend); err != nil {
+				return nil, errors.Wrap(err, "could not read db configuration")
+			}
 		}
 	}
+
+	if profile == WorkerProfile {
+		worker := v.Sub("worker")
+		if worker != nil {
+			if err := worker.Unmarshal(&cfg.Worker); err != nil {
+				return nil, errors.Wrap(err, "could not read worker configuration")
+			}
+		}
+	}
+
+	// Apply overrides from environment variables (for credentials)
+	overrideWithEnvVars(cfg, profile)
+
+	// Check that all mandatory parameters are set
+	if err := validateConfig(cfg, profile); err != nil {
+		return nil, errors.Wrap(err, "invalid configuration")
+	}
+
+	return cfg, nil
+}
+
+func defaultName() (string, error) {
+	name, err := os.Hostname()
+	if err != nil {
+		return "", errors.Wrap(err, "could not retrieve hostname")
+	}
+
+	return name, nil
+}
+
+func newConfig() (*Config, error) {
+	var cfg Config
+
+	cfg.SharedKey = "UNSET"
+	cfg.JobWaitTimeout = 7200
+
+	cfg.Server.Port = 8080
+
+	cfg.Queue.Port = 5672
+	cfg.Queue.VHost = "/cvmfs/"
+	cfg.Queue.NewJobExchange = "jobs.new"
+	cfg.Queue.NewJobQueue = "jobs.new"
+	cfg.Queue.CompletedJobExchange = "jobs.done"
+
+	cfg.Backend.Port = 5432
 
 	// worker name defaults to the hostname
 	name, err := defaultName()
@@ -157,21 +206,64 @@ func readConfigFromViper(v *viper.Viper) (*Config, error) {
 	// and recording it as a failed job
 	cfg.Worker.JobRetries = 3
 
-	worker := v.Sub("worker")
-	if worker != nil {
-		if err := worker.Unmarshal(&cfg.Worker); err != nil {
-			return nil, errors.Wrap(err, "could not read worker configuration")
-		}
-	}
-
 	return &cfg, nil
 }
 
-func defaultName() (string, error) {
-	name, err := os.Hostname()
-	if err != nil {
-		return "", errors.Wrap(err, "could not retrieve hostname")
+func overrideWithEnvVars(cfg *Config, profile int) {
+	setFromEnvVar(&cfg.SharedKey, "CONVEYOR_SHARED_KEY")
+	setFromEnvVar(&cfg.Queue.Username, "CONVEYOR_QUEUE_USER")
+	setFromEnvVar(&cfg.Queue.Password, "CONVEYOR_QUEUE_PASS")
+	if profile == ServerProfile {
+		setFromEnvVar(&cfg.Backend.Username, "CONVEYOR_DB_USER")
+		setFromEnvVar(&cfg.Backend.Password, "CONVEYOR_DB_PASS")
+	}
+}
+
+func validateConfig(cfg *Config, profile int) error {
+	if isUnset(cfg.SharedKey) {
+		return errors.New("shared API key is unset")
 	}
 
-	return name, nil
+	if isUnset(cfg.Queue.Username) {
+		return errors.New("RabbitMQ username is unset")
+	}
+	if isUnset(cfg.Queue.Password) {
+		return errors.New("RabbitMQ password is unset")
+	}
+	if isUnset(cfg.Queue.Host) {
+		return errors.New("RabbitMQ hostname is unset")
+	}
+
+	if profile == ServerProfile {
+		if isUnset(cfg.Backend.Type) {
+			return errors.New("Database type is unset")
+		}
+		if isUnset(cfg.Backend.Database) {
+			return errors.New("Database name is unset")
+		}
+		if isUnset(cfg.Backend.Username) {
+			return errors.New("Database username is unset")
+		}
+		if isUnset(cfg.Backend.Password) {
+			return errors.New("Database password is unset")
+		}
+		if isUnset(cfg.Backend.Host) {
+			return errors.New("Database hostname is unset")
+		}
+	}
+
+	return nil
+}
+
+func isUnset(v string) bool {
+	return (v == "UNSET" || v == "")
+}
+
+// Set the value of p from the environment variable if it is set.
+// If envVar is empty, the value of p is unchanged
+func setFromEnvVar(p *string, envVar string) {
+	t := os.Getenv(envVar)
+	if t != "" {
+		*p = t
+	}
 }
