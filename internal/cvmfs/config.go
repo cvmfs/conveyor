@@ -46,7 +46,7 @@ type ServerConfig struct {
 
 // Config - main configuration object
 type Config struct {
-	KeyDir         string `mapstructure:"key_dir"`
+	SharedKey      string `mapstructure:"shared_key"`
 	JobWaitTimeout int    `mapstructure:"job_wait_timeout"`
 	Server         ServerConfig
 	Queue          QueueConfig
@@ -102,11 +102,15 @@ func ReadConfig() (*Config, error) {
 }
 
 func readConfigFromViper(v *viper.Viper) (*Config, error) {
-	v.SetDefault("keydir", "/etc/cvmfs/keys")
-	v.SetDefault("timeout", 7200)
 	var cfg Config
+	cfg.SharedKey = "UNSET"
+	cfg.JobWaitTimeout = 7200
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, errors.Wrap(err, "could not read server configuration")
+	}
+
+	if cfg.SharedKey == "UNSET" || cfg.SharedKey == "" {
+		return nil, errors.New("shared API key is unset")
 	}
 
 	cfg.Server.Port = 8080

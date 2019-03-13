@@ -37,12 +37,6 @@ var submitCmd = &cobra.Command{
 			cfg.JobWaitTimeout = jobWaitTimeout
 		}
 
-		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
-		if err != nil {
-			cvmfs.Log.Error().Err(err).Msg("could not read API keys from file")
-			os.Exit(1)
-		}
-
 		spec := &cvmfs.JobSpecification{
 			JobName: subvs.jobName, Repository: subvs.repo, Payload: subvs.payload,
 			RepositoryPath: subvs.path, Script: subvs.script, ScriptArgs: subvs.scriptArgs, TransferScript: *subvs.transferScript, Dependencies: *subvs.deps}
@@ -52,7 +46,7 @@ var submitCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		client, err := cvmfs.NewJobClient(cfg, keys)
+		client, err := cvmfs.NewJobClient(cfg)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("could not start job client")
 			os.Exit(1)

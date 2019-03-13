@@ -1,5 +1,5 @@
 # Options common to multiple components (worker, server, etc.)
-keydir = "/etc/cvmfs/keys" # Default key dir
+shared_key = "UNSET" # api key shared by server, worker, submit.
 job_wait_timeout = 7200 # max number of seconds to wait for jobs to complete
 
 # Job server configuration is used by conveyor {submit, consumer, server}

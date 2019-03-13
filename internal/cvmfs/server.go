@@ -19,14 +19,14 @@ const (
 
 // StartServer starts the conveyor server component. This function will block until
 // the server finishes.
-func StartServer(cfg *Config, keys *Keys) error {
+func StartServer(cfg *Config) error {
 	backend, err := startBackEnd(cfg)
 	if err != nil {
 		return errors.Wrap(err, "could not start service back-end")
 	}
 	defer backend.Close()
 
-	if err := startFrontEnd(cfg, backend, keys); err != nil {
+	if err := startFrontEnd(cfg, backend); err != nil {
 		return errors.Wrap(err, "could not start service front-end")
 	}
 

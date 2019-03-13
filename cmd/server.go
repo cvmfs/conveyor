@@ -23,13 +23,7 @@ var serverCmd = &cobra.Command{
 		}
 		cvmfs.Log.Info().Msg("CVMFS job server starting")
 
-		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
-		if err != nil {
-			cvmfs.Log.Error().Err(err).Msg("could not read API key from file")
-			os.Exit(1)
-		}
-
-		if err := cvmfs.StartServer(cfg, keys); err != nil {
+		if err := cvmfs.StartServer(cfg); err != nil {
 			cvmfs.Log.Error().Err(err).Msg("could not start conveyor server")
 			os.Exit(1)
 		}

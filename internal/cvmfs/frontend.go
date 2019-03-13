@@ -10,13 +10,13 @@ import (
 )
 
 // startFrontEnd initializes the HTTP frontend of the job server
-func startFrontEnd(cfg *Config, backend *serverBackend, keys *Keys) error {
+func startFrontEnd(cfg *Config, backend *serverBackend) error {
 	endpoints := cfg.HTTPEndpoints()
 
 	router := mux.NewRouter()
 
 	// Add the HMAC authorization middleware
-	authz := hmacAuthorization{keys}
+	authz := hmacAuthorization{cfg.SharedKey}
 	router.Use(authz.Middleware)
 
 	var r *mux.Route

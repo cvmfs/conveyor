@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -14,22 +13,13 @@ import (
 // hmacAuthorization implements the Middleware interface and checks the HMAC signature of
 // incoming requests
 type hmacAuthorization struct {
-	keys *Keys
+	sharedKey string
 }
 
 func (m *hmacAuthorization) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authHeader := req.Header.Get("Authorization")
-		tokens := strings.Split(authHeader, " ")
-		if len(tokens) != 2 {
-			httpWrapError(
-				errors.New("Missing or incomplete Authorization header"),
-				"Invalid request",
-				&w, http.StatusUnauthorized)
-			return
-		}
-		key := m.keys.Secrets[tokens[0]]
-		HMAC, err := base64.StdEncoding.DecodeString(tokens[1])
+		HMAC, err := base64.StdEncoding.DecodeString(authHeader)
 		if err != nil {
 			httpWrapError(err, "Could not base64 decode HMAC", &w, http.StatusBadRequest)
 			return
@@ -53,7 +43,7 @@ func (m *hmacAuthorization) Middleware(next http.Handler) http.Handler {
 			buf = []byte(req.URL.RawQuery)
 		}
 
-		if !checkHMAC(buf, HMAC, key) {
+		if !checkHMAC(buf, HMAC, m.sharedKey) {
 			httpWrapError(errors.New("Invalid HMAC"), "Invalid request", &w, http.StatusForbidden)
 			return
 		}

@@ -9,7 +9,7 @@ import (
 )
 
 const fullConfig = `
-keydir = "/test/key/dir" # Default key dir
+shared_key = "TESTKEY" # Default key dir
 
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]
@@ -39,12 +39,12 @@ post = 3333
 # Worker configuration
 [worker]
 name = "jeff"
-jobretries = 11
-tempdir = "/tmp/dir"
+job_retries = 11
+temp_dir = "/tmp/dir"
 `
 
 const partialConfig = `
-keydir = "/test/key/dir" # Default key dir
+shared_key = "TESTKEY" # Default key dir
 
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]
@@ -83,8 +83,8 @@ func TestReadFullConfig(t *testing.T) {
 		t.Errorf("Could not read config from Viper object")
 	}
 
-	if cfg.KeyDir != "/test/key/dir" {
-		t.Errorf("Invalid key dir: %v\n", cfg.KeyDir)
+	if cfg.SharedKey != "TESTKEY" {
+		t.Errorf("Invalid key dir: %v\n", cfg.SharedKey)
 	}
 
 	if cfg.Server.Host != "job.service.host.name" {

@@ -22,12 +22,6 @@ var workerCmd = &cobra.Command{
 			cfg.JobWaitTimeout = jobWaitTimeout
 		}
 
-		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
-		if err != nil {
-			cvmfs.Log.Error().Err(err).Msg("could not read API keys from file")
-			os.Exit(1)
-		}
-
 		// Create temporary dir
 		tempDir := cfg.Worker.TempDir
 
@@ -38,7 +32,7 @@ var workerCmd = &cobra.Command{
 		}
 		defer os.RemoveAll(tempDir)
 
-		worker, err := cvmfs.NewWorker(cfg, keys)
+		worker, err := cvmfs.NewWorker(cfg)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("could not create queue consumer")
 			os.Exit(1)

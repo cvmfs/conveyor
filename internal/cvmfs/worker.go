@@ -27,22 +27,22 @@ type Worker struct {
 	maxJobRetries int
 	tempDir       string
 	client        *JobClient
-	keys          *Keys
+	sharedKey     string
 	endpoints     HTTPEndpoints
 	timeout       int
 }
 
 // NewWorker creates a new Worker object using a config object
-func NewWorker(cfg *Config, keys *Keys) (*Worker, error) {
+func NewWorker(cfg *Config) (*Worker, error) {
 
-	client, err := NewJobClient(cfg, keys)
+	client, err := NewJobClient(cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create a queue client")
 	}
 
 	return &Worker{
 		cfg.Worker.Name, cfg.Worker.JobRetries, cfg.Worker.TempDir,
-		client, keys, cfg.HTTPEndpoints(), cfg.JobWaitTimeout}, nil
+		client, cfg.SharedKey, cfg.HTTPEndpoints(), cfg.JobWaitTimeout}, nil
 }
 
 // Close all the internal connections of the Worker object
@@ -55,7 +55,7 @@ func (w *Worker) Close() {
 func (w *Worker) Loop() error {
 	// Select the lowest alphabetical keyID to be used for signing the subscription request
 	// This is an arbitrary choice which has no impact on the content of the messages.
-	ch, err := w.client.SubscribeNewJobs(w.keys.firstKeyID())
+	ch, err := w.client.SubscribeNewJobs(w.sharedKey)
 	if err != nil {
 		return errors.Wrap(err, "could not start job subscription")
 	}

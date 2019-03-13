@@ -35,13 +35,7 @@ var checkCmd = &cobra.Command{
 			cfg.JobWaitTimeout = jobWaitTimeout
 		}
 
-		keys, err := cvmfs.LoadKeys(cfg.KeyDir)
-		if err != nil {
-			cvmfs.Log.Error().Err(err).Msg("could not read API keys from file")
-			os.Exit(1)
-		}
-
-		client, err := cvmfs.NewJobClient(cfg, keys)
+		client, err := cvmfs.NewJobClient(cfg)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("could not start job client")
 			os.Exit(1)

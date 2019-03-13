@@ -24,19 +24,19 @@ const queryRetryDelay = 30
 
 // JobClient offers functionality for interacting with the job server
 type JobClient struct {
-	keys      *Keys
+	sharedKey string
 	endpoints HTTPEndpoints
 	qcl       *QueueClient
 }
 
 // NewJobClient constructs a new JobClient object using a configuration object and a set
 // of keys
-func NewJobClient(cfg *Config, keys *Keys) (*JobClient, error) {
+func NewJobClient(cfg *Config) (*JobClient, error) {
 	q, err := NewQueueClient(&cfg.Queue, consumerConnection)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create queue connection")
 	}
-	return &JobClient{keys, cfg.HTTPEndpoints(), q}, nil
+	return &JobClient{cfg.SharedKey, cfg.HTTPEndpoints(), q}, nil
 }
 
 // Close all the internal connections of the object
@@ -143,13 +143,9 @@ func (c *JobClient) GetJobStatus(
 	req.URL.RawQuery = q.Encode()
 
 	// Compute message HMAC
-	keyID, secret, err := c.keys.getKeyForRepo(repo)
-	if err != nil {
-		return nil, errors.Wrap(err, "Could not retrieve request signing key")
-	}
 	buf := []byte(req.URL.RawQuery)
-	hmac := base64.StdEncoding.EncodeToString(computeHMAC(buf, secret))
-	req.Header.Add("Authorization", fmt.Sprintf("%v %v", keyID, hmac))
+	hmac := base64.StdEncoding.EncodeToString(computeHMAC(buf, c.sharedKey))
+	req.Header.Add("Authorization", fmt.Sprintf("%v", hmac))
 
 	resp, err := makeRequest(req, quit)
 	if err != nil {
@@ -223,11 +219,7 @@ func (c *JobClient) postMsg(
 	msg []byte, repository, url string, quit <-chan struct{}) ([]byte, error) {
 
 	// Compute message HMAC
-	keyID, secret, err := c.keys.getKeyForRepo(repository)
-	if err != nil {
-		return nil, errors.Wrap(err, "Could not retrieve request signing key")
-	}
-	hmac := base64.StdEncoding.EncodeToString(computeHMAC(msg, secret))
+	hmac := base64.StdEncoding.EncodeToString(computeHMAC(msg, c.sharedKey))
 
 	rdr := bytes.NewReader(msg)
 
@@ -236,7 +228,7 @@ func (c *JobClient) postMsg(
 	if err != nil {
 		errors.Wrap(err, "could not create POST request")
 	}
-	req.Header.Add("Authorization", fmt.Sprintf("%v %v", keyID, hmac))
+	req.Header.Add("Authorization", fmt.Sprintf("%v", hmac))
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := makeRequest(req, quit)
