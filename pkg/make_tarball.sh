@@ -49,7 +49,7 @@ cp -v ${BUILD_LOCATION}/config/create_schema_postgres.sql ${PKG_WS}/
 cp -v ${BUILD_LOCATION}/pkg/*.service ${PKG_WS}/
 
 cd ${PKG_WS}
-tar czf ${TARBALL_OUT}/conveyor-${CONVEYOR_VERSION}-${CONVEYOR_RELEASE}.Linux.x86_64.tar.gz ./*
+tar czf ${TARBALL_OUT}/conveyor-${VERSION}-${RELEASE}.Linux.x86_64.tar.gz ./*
 cd ${BUILD_LOCATION}
 
 ### Clean up
