@@ -12,7 +12,7 @@ var rootCmd = &cobra.Command{
 	Use:     "conveyor",
 	Short:   "CernVM-FS Conveyor",
 	Long:    "CernVM-FS Conveyor - Higher-level publishing tools for CVMFS repositories",
-	Version: "0.9.0",
+	Version: "0.1.0",
 }
 
 var cfgFile string
