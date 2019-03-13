@@ -26,5 +26,6 @@ if [ ! -z "$NIGHTLY_NUMBER" ]; then
     PACKAGE_VERSION=0.$NIGHTLY_NUMBER
 fi
 
-# Create an RPM from the tarball
+# Create an RPM
 ${SCRIPT_LOCATION}/../pkg/make_rpm.sh ${BUILD_LOCATION} ${CONVEYOR_VERSION} ${PACKAGE_VERSION}
+${SCRIPT_LOCATION}/../pkg/make_tarball.sh ${BUILD_LOCATION} ${CONVEYOR_VERSION} ${PACKAGE_VERSION}
