@@ -36,7 +36,7 @@ func runTransaction(repository, subpath string, task func() error) error {
 	if !mock {
 		if err := task(); err != nil {
 			abort = true
-			return errors.Wrap(err, "coult not run task during transaction")
+			return errors.Wrap(err, "could not run task during transaction")
 		}
 	}
 

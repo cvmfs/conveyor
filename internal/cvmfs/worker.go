@@ -121,7 +121,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 	errMsg := ""
 	retry := 0
 	for retry <= w.maxJobRetries {
-		err := runTransaction(job.Repository, job.RepositoryPath, task)
+		err := runTransaction(job.Repository, job.LeasePath, task)
 		if err != nil {
 			errMsg = err.Error()
 			Log.Error().Err(err).Msg("Error in job handler")

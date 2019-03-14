@@ -1,15 +1,11 @@
 package cvmfs
 
 import (
-	"bufio"
-	"bytes"
-	"compress/gzip"
-	"encoding/base64"
-	"io"
-	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,14 +15,11 @@ import (
 
 // JobSpecification contains all the parameters of a new job which is to be submitted
 type JobSpecification struct {
-	JobName        string
-	Repository     string
-	Payload        string
-	RepositoryPath string
-	Script         string
-	ScriptArgs     string
-	TransferScript bool
-	Dependencies   []string
+	JobName      string
+	Repository   string
+	Payload      string
+	LeasePath    string
+	Dependencies []string
 }
 
 // UnprocessedJob describes a job which has been submitted, having been assigned
@@ -77,75 +70,44 @@ type PostJobStatusReply struct {
 	BasicReply
 }
 
-// Prepare a job specification for submission: normalizes the repository path and embeds
+// Prepare a job specification for submission: normalizes the lease path and embeds
 // the transaction script in the job description, if the script is a local file
-func (spec *JobSpecification) Prepare() error {
-	if spec.RepositoryPath[0] != '/' {
-		spec.RepositoryPath = "/" + spec.RepositoryPath
+func (spec *JobSpecification) Prepare() {
+	if spec.LeasePath[0] != '/' {
+		spec.LeasePath = "/" + spec.LeasePath
 	}
-
-	if spec.Script != "" {
-		if spec.TransferScript {
-			f, err := os.Open(spec.Script)
-			if err != nil {
-				return errors.Wrap(err, "could not open script")
-			}
-			defer f.Close()
-			s, err := packScript(f)
-			if err != nil {
-				return errors.Wrap(err, "could not pack script")
-			}
-			spec.Script = s
-		}
-	}
-
-	return nil
 }
 
 // Process a job (download and unpack payload, run script etc.)
 func (j *UnprocessedJob) process(tempDir string) error {
-	// Create target dir if needed
-	targetDir := path.Join(
-		"/cvmfs", j.Repository, j.RepositoryPath)
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return errors.Wrap(err, "could not create target dir")
-	}
-
-	// Download and unpack the payload, if given
 	if j.Payload != "" {
-		Log.Info().Msgf("Downloading payload: %v", j.Payload)
-		if err := getter.Get(targetDir, j.Payload); err != nil {
+		// Parse the payload string
+		tokens := strings.Split(j.Payload, "|")
+		if tokens[0] != "script" || len(tokens) < 2 {
+			return errors.New("invalid payload string")
+		}
+		scriptURL := tokens[1]
+		var scriptArg string
+		if len(tokens) > 2 {
+			scriptArg = tokens[2]
+		}
+
+		u, err := url.Parse(scriptURL)
+		if err != nil {
+			return errors.New("could not parse payload script URL")
+		}
+		scriptFile := path.Join(tempDir, u.Path)
+
+		// Download the script into the temp directory
+		Log.Info().Str("url", scriptURL).Msg("downloading transaction script")
+		if err := getter.GetAny(tempDir, scriptURL); err != nil {
 			return errors.Wrap(err, "could not download payload")
 		}
-	}
 
-	// Run the transaction script, if specified
-	if j.Script != "" {
-		needsUnpacking := j.TransferScript
-		Log.Info().Msgf(
-			"Running transaction script: %v (needs unpacking: %v)\n",
-			j.Script, needsUnpacking)
-
-		var scriptFile string
-		if needsUnpacking {
-			var err error
-			scriptFile = path.Join(tempDir, "transaction.sh")
-			f, err := os.Create(scriptFile)
-			if err != nil {
-				return errors.Wrap(err, "creating destination file failed")
-			}
-			defer f.Close()
-			err = unpackScript(j.Script, f)
-			if err != nil {
-				return errors.Wrap(err, "unpacking transaction script failed")
-			}
-		} else {
-			scriptFile = j.Script
-		}
-
-		err := runScript(
-			scriptFile, j.Repository, j.RepositoryPath, j.ScriptArgs)
-		if err != nil {
+		// Run the script from the root of the repository; the repository name,
+		// the lease path, and the optional argument from the payload strin are
+		// passed as arguments to the string
+		if err := runScript(scriptFile, j.Repository, j.LeasePath, scriptArg); err != nil {
 			return errors.Wrap(err, "running transaction script failed")
 		}
 	}
@@ -153,59 +115,8 @@ func (j *UnprocessedJob) process(tempDir string) error {
 	return nil
 }
 
-// packScript into a gzipped, base64 encoded buffer
-func packScript(reader io.Reader) (string, error) {
-	var output bytes.Buffer
-	gz := gzip.NewWriter(&output)
-
-	input := make([]byte, 0)
-	bufReader := bufio.NewReader(reader)
-	for {
-		buf := make([]byte, bufReader.Size())
-		n, err := bufReader.Read(buf)
-		if err != nil && err != io.EOF {
-			return "", errors.Wrap(err, "could not read input")
-		}
-		if n != 0 {
-			input = append(input, buf[:n]...)
-		} else {
-			break
-		}
-	}
-	if _, err := gz.Write(input); err != nil {
-		return "", errors.Wrap(err, "could not compress script")
-	}
-	if err := gz.Close(); err != nil {
-		return "", errors.Wrap(err, "could not close gzip compressor")
-	}
-
-	return base64.StdEncoding.EncodeToString(output.Bytes()), nil
-}
-
-// unpackScript from a gzipped, base64 encoded buffer and saves it to disk at `dest`
-func unpackScript(body string, dest io.Writer) error {
-	buf, err := base64.StdEncoding.DecodeString(body)
-	if err != nil {
-		return errors.Wrap(err, "base64 decoding failed")
-	}
-	rd := bytes.NewReader(buf)
-	gz, err := gzip.NewReader(rd)
-	if err != nil {
-		return errors.Wrap(err, "gzip reader construction failed")
-	}
-	rawbuf, err := ioutil.ReadAll(gz)
-	if err != nil {
-		return errors.Wrap(err, "decompression failed")
-	}
-	if _, err := dest.Write(rawbuf); err != nil {
-		return errors.Wrap(err, "writing failed")
-	}
-
-	return nil
-}
-
-func runScript(script string, repo string, repoPath string, args string) error {
-	cmd := exec.Command(script, repo, repoPath, args)
+func runScript(script string, repo string, leasePath string, arg string) error {
+	cmd := exec.Command(script, repo, leasePath, arg)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Dir = path.Join("/cvmfs", repo)

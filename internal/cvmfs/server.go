@@ -157,9 +157,9 @@ func (b *serverBackend) putJobStatus(j *ProcessedJob) (*PostJobStatusReply, erro
 
 	queryStr := b.dbAdapter.insertOrUpdateJobStatement()
 	if _, err := tx.Exec(queryStr,
-		j.ID, j.JobName, j.Repository, j.Payload, j.RepositoryPath,
-		j.Script, j.ScriptArgs, j.TransferScript, strings.Join(j.Dependencies, ","),
-		j.WorkerName, j.StartTime, j.FinishTime, j.Successful, j.ErrorMessage); err != nil {
+		j.ID, j.JobName, j.Repository, j.Payload, j.LeasePath,
+		strings.Join(j.Dependencies, ","), j.WorkerName, j.StartTime,
+		j.FinishTime, j.Successful, j.ErrorMessage); err != nil {
 		reason := "executing SQL statement failed"
 		reply.Status = "error"
 		reply.Reason = reason
@@ -200,8 +200,7 @@ func scanRow(rows *sql.Rows) (*ProcessedJob, error) {
 	var st ProcessedJob
 	var deps string
 	if err := rows.Scan(
-		&st.ID, &st.JobName, &st.Repository, &st.Payload, &st.RepositoryPath,
-		&st.Script, &st.ScriptArgs, &st.TransferScript,
+		&st.ID, &st.JobName, &st.Repository, &st.Payload, &st.LeasePath,
 		&deps, &st.WorkerName, &st.StartTime, &st.FinishTime,
 		&st.Successful, &st.ErrorMessage); err != nil {
 		return nil, err

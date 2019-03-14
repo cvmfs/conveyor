@@ -6,11 +6,11 @@ ids=""
 for i in $(seq 1 10) ; do
     id=$(./conveyor submit \
          --repo test-sw.hsf.org \
-         --payload ${staging_server}/ripgrep-0.$i.0-x86_64-unknown-linux-musl.tar.gz \
-         --path /ripgrep-0.$i.0 | tail -1 | jq -r .ID)
+         --lease-path /ripgrep-0.$i.0 \
+         --payload "script|${staging_server}/test_transaction.sh?checksum=sha1:93620246284670561aab3845771f9ac31893554a|${staging_server}/ripgrep/ripgrep-0.$i.0-x86_64-unknown-linux-musl.tar.gz" | tail -1 | jq -r .ID)
     ids="$ids $id"
 done
 ids=$(echo $ids | tr ' ' ,)
 
 # Submit a final job depending on all the previous ones
-./conveyor submit --repo test-sw.hsf.org --deps "$ids" --script /usr/local/bin/list_all_versions.sh --wait
+./conveyor submit --repo test-sw.hsf.org --deps "$ids" --wait

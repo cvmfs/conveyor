@@ -9,15 +9,12 @@ import (
 )
 
 type submitCmdVars struct {
-	jobName        string
-	repo           string
-	payload        string
-	path           string
-	script         string
-	scriptArgs     string
-	transferScript *bool
-	deps           *[]string
-	wait           *bool
+	jobName   string
+	repo      string
+	payload   string
+	leasePath string
+	deps      *[]string
+	wait      *bool
 }
 
 var subvs submitCmdVars
@@ -39,12 +36,9 @@ var submitCmd = &cobra.Command{
 
 		spec := &cvmfs.JobSpecification{
 			JobName: subvs.jobName, Repository: subvs.repo, Payload: subvs.payload,
-			RepositoryPath: subvs.path, Script: subvs.script, ScriptArgs: subvs.scriptArgs, TransferScript: *subvs.transferScript, Dependencies: *subvs.deps}
+			LeasePath: subvs.leasePath, Dependencies: *subvs.deps}
 
-		if err := spec.Prepare(); err != nil {
-			cvmfs.Log.Error().Err(err).Msg("could not create job object")
-			os.Exit(1)
-		}
+		spec.Prepare()
 
 		client, err := cvmfs.NewJobClient(cfg)
 		if err != nil {
@@ -95,13 +89,7 @@ func init() {
 	submitCmd.Flags().StringVar(&subvs.repo, "repo", "", "target CVMFS repository")
 	submitCmd.MarkFlagRequired("repo")
 	submitCmd.Flags().StringVar(&subvs.payload, "payload", "", "payload URL")
-	submitCmd.Flags().StringVar(&subvs.path, "path", "/", "target path inside the repository")
-	submitCmd.Flags().StringVar(
-		&subvs.script, "script", "", "script to run at the end of CVMFS transaction")
-	submitCmd.Flags().StringVar(
-		&subvs.scriptArgs, "script-args", "", "arguments of the transaction script")
-	subvs.transferScript = submitCmd.Flags().Bool(
-		"transfer-script", false, "transaction script is a local file which should be sent")
+	submitCmd.Flags().StringVar(&subvs.leasePath, "lease-path", "/", "leased path inside the repository")
 	subvs.deps = submitCmd.Flags().StringSlice(
 		"deps", []string{}, "comma-separate list of job dependency UUIDs")
 	subvs.wait = submitCmd.Flags().Bool("wait", false, "wait for completion of the submitted job")
