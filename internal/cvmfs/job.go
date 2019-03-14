@@ -104,6 +104,11 @@ func (j *UnprocessedJob) process(tempDir string) error {
 			return errors.Wrap(err, "could not download payload")
 		}
 
+		// Make downloaded script file executable
+		if err := os.Chmod(scriptFile, 0755); err != nil {
+			return errors.Wrap(err, "could not make transaction script executable")
+		}
+
 		// Run the script from the root of the repository; the repository name,
 		// the lease path, and the optional argument from the payload strin are
 		// passed as arguments to the string
