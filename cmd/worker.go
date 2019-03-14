@@ -13,6 +13,8 @@ var workerCmd = &cobra.Command{
 	Long:  "Run the conveyor worker daemon",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
+		cvmfs.InitLogging(os.Stderr, *logTimestamps)
+
 		cfg, err := cvmfs.ReadConfig(cvmfs.WorkerProfile)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("config error")

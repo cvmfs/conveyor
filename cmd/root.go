@@ -44,8 +44,6 @@ func init() {
 }
 
 func initConfig() {
-	cvmfs.InitLogging(os.Stderr, *logTimestamps)
-
 	viper.SetConfigFile(cfgFile)
 	if err := viper.ReadInConfig(); err != nil {
 		cvmfs.Log.Error().Err(err).Msg("could not read config")
