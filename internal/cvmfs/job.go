@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	getter "github.com/hashicorp/go-getter"
 	"github.com/pkg/errors"
 )
 
@@ -100,7 +99,7 @@ func (j *UnprocessedJob) process(tempDir string) error {
 
 		// Download the script into the temp directory
 		Log.Info().Str("url", scriptURL).Msg("downloading transaction script")
-		if err := getter.GetAny(tempDir, scriptURL); err != nil {
+		if err := downloadFile(tempDir, scriptURL, downloadTimeout); err != nil {
 			return errors.Wrap(err, "could not download payload")
 		}
 
