@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # This is an example payload script to be run during a CernVM-FS transaction
 
 # CernVM-FS repository
