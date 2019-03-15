@@ -16,13 +16,12 @@ echo "  - Repository: $repository"
 echo "  - Lease path: $lease_path"
 echo "  - Archive:    $archive"
 
-echo "- Changing directory to the root of the repository"
-
-cd /cvmfs/$repository
+repository_root=/cvmfs/${repository}
 
 echo "- Creating leased path, if needed"
 
-mkdir -p $lease_path && cd $lease_path
+mkdir -p ${repository_root}/$lease_path
+cd ${repository_root}/$lease_path
 
 echo "- Downloading archive"
 
