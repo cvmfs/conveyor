@@ -1,6 +1,7 @@
 package cvmfs
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -28,19 +29,24 @@ func downloadFile(destDir, src string, timeoutSec int) error {
 		return errors.Wrap(err, "could not parse source URL")
 	}
 	fileName := srcURL.Path
-
-	checksum := srcURL.Query().Get("checksum")
-	digest, checksumType, err := parseChecksum(checksum)
-	if err != nil {
-		return errors.Wrap(
-			err, fmt.Sprintf("invalid checksum query parameter %v\n", checksum))
-	}
-
 	targetFile := path.Join(destDir, fileName)
 
-	// If the target file exists and has the correct digest, skip download
-	if digest != "" && checkDigest(targetFile, digest, checksumType) == nil {
-		return nil
+	checksum := srcURL.Query().Get("checksum")
+	hasChecksum := len(checksum) > 0
+	digest := make([]byte, 0)
+	var algorithm string
+	if hasChecksum {
+		var err error
+		digest, algorithm, err = parseChecksum(checksum)
+		if err != nil {
+			return errors.Wrap(
+				err, fmt.Sprintf("invalid checksum query parameter %v\n", checksum))
+		}
+
+		// If the target file exists and has the correct digest, skip download
+		if checkDigest(targetFile, digest, algorithm) == nil {
+			return nil
+		}
 	}
 
 	client := http.Client{
@@ -54,16 +60,16 @@ func downloadFile(destDir, src string, timeoutSec int) error {
 
 	fout, err := os.OpenFile(targetFile, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		errors.Wrap(err, "could not create destination file")
+		return errors.Wrap(err, "could not create destination file")
 	}
 	defer fout.Close()
 
 	if _, err := io.Copy(fout, rep.Body); err != nil {
-		errors.Wrap(err, "could not read reply body")
+		return errors.Wrap(err, "could not read reply body")
 	}
 
-	if digest != "" {
-		if err := checkDigest(targetFile, digest, checksumType); err != nil {
+	if hasChecksum {
+		if err := checkDigest(targetFile, digest, algorithm); err != nil {
 			return errors.Wrap(
 				err, "destination file failed integrity check")
 		}
@@ -72,45 +78,51 @@ func downloadFile(destDir, src string, timeoutSec int) error {
 	return nil
 }
 
-func parseChecksum(checksum string) (string, string, error) {
-	var digest string
-	var checksumType string
-	if checksum != "" {
-		tokens := strings.Split(checksum, ":")
-		if len(tokens) > 1 {
-			checksumType = tokens[0]
-			digest = tokens[1]
-		} else {
-			digest = tokens[0]
-			switch len(digest) {
-			case 32:
-				checksumType = "md5"
-			case 40:
-				checksumType = "sha1"
-			case 64:
-				checksumType = "sha256"
-			default:
-				return "", "", errors.New("invalid checksum")
-			}
+func parseChecksum(checksum string) ([]byte, string, error) {
+	digest := make([]byte, 0)
+	var algorithm string
+	tokens := strings.Split(checksum, ":")
+	if len(tokens) > 1 {
+		algorithm = tokens[0]
+		var err error
+		digest, err = hex.DecodeString(tokens[1])
+		if err != nil {
+			errors.Wrap(err, "could not decode digest")
+		}
+	} else {
+		var err error
+		digest, err = hex.DecodeString(tokens[0])
+		if err != nil {
+			errors.Wrap(err, "could not decode digest")
+		}
+		switch len(digest) {
+		case md5.Size:
+			algorithm = "md5"
+		case sha1.Size:
+			algorithm = "sha1"
+		case sha256.Size:
+			algorithm = "sha256"
+		default:
+			return []byte{}, "", errors.New("invalid checksum")
 		}
 	}
-	return digest, checksumType, nil
+	return digest, algorithm, nil
 }
 
-func checkDigest(fileName, digest, checksumType string) error {
+func checkDigest(fileName string, digest []byte, algorithm string) error {
 	fin, err := os.Open(fileName)
 	if err != nil {
 		return errors.Wrap(
 			err, "could not open target file for reading")
 	}
 	defer fin.Close()
-	newDigest, err := computeHash(checksumType, fin)
+	newDigest, err := computeHash(algorithm, fin)
 	if err != nil {
 		return errors.Wrap(
 			err, "could not compute hash of target file")
 	}
 
-	if newDigest != digest {
+	if !bytes.Equal(newDigest, digest) {
 		return errors.New(
 			fmt.Sprintf("hash mismatch - expected: %v, found: %v\n",
 				digest, newDigest))
@@ -119,7 +131,7 @@ func checkDigest(fileName, digest, checksumType string) error {
 	return nil
 }
 
-func computeHash(algorithm string, in io.Reader) (string, error) {
+func computeHash(algorithm string, in io.Reader) ([]byte, error) {
 	var h hash.Hash
 	switch algorithm {
 	case "md5":
@@ -129,12 +141,12 @@ func computeHash(algorithm string, in io.Reader) (string, error) {
 	case "sha256":
 		h = sha256.New()
 	default:
-		return "", errors.New("invalid hash algorithm")
+		return []byte{}, errors.New("invalid hash algorithm")
 	}
 
 	if _, err := io.Copy(h, in); err != nil {
-		return "", errors.Wrap(err, "could not compute hash")
+		return []byte{}, errors.Wrap(err, "could not compute hash")
 	}
 
-	return hex.EncodeToString(h.Sum(nil)), nil
+	return h.Sum(nil), nil
 }
