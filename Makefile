@@ -1,7 +1,10 @@
 all: conveyor
 
 conveyor:
-	CGO_ENABLED=0 go build
+	go build
+
+test:
+	go test -v ./...
 
 clean:
 	go clean
