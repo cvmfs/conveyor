@@ -62,7 +62,7 @@ func (w *Worker) Loop() error {
 
 	for msg := range ch {
 		if err := w.handle(&msg); err != nil {
-			Log.Error().Err(err).Msg("Error in job handler")
+			Log.Error().Err(err).Msg("error in job handler")
 		}
 	}
 
@@ -102,17 +102,17 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 		}
 		if len(failed) > 0 {
 			err := fmt.Errorf("failed job dependencies: %v", failed)
-			Log.Error().Err(err).Msg("Error in job handler")
 			t := time.Now()
 			if err := w.postJobStatus(
 				&job, w.name, t, t, false, err.Error()); err != nil {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
 			}
+			return err
 		}
 	}
 
-	Log.Info().Str("job_id", job.ID.String()).Msg("Start publishing job")
+	Log.Info().Str("job_id", job.ID.String()).Msg("start publishing job")
 	startTime := time.Now()
 
 	task := func() error {
@@ -120,17 +120,16 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 	}
 
 	success := false
-	errMsg := ""
+	var returnErr error
 	retry := 0
 	for retry <= w.maxJobRetries {
 		err := runTransaction(job.Repository, job.LeasePath, task)
 		if err != nil {
-			errMsg = err.Error()
-			Log.Error().Err(err).Msg("Error in job handler")
+			returnErr = err
+			Log.Error().Err(err).Msg("transaction failed")
 			retry++
-			Log.Info().Msg("Transaction failed.")
 			if retry <= w.maxJobRetries {
-				Log.Info().Msgf(" Retrying: %v/%v\n", retry, w.maxJobRetries)
+				Log.Error().Msgf("retrying: %v/%v\n", retry, w.maxJobRetries)
 			}
 		} else {
 			success = true
@@ -142,7 +141,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 
 	// Publish the processed job status to the job server
 	if err := w.postJobStatus(
-		&job, w.name, startTime, finishTime, success, errMsg); err != nil {
+		&job, w.name, startTime, finishTime, success, returnErr.Error()); err != nil {
 		msg.Nack(false, true)
 		return errors.Wrap(err, "posting job status to server failed")
 	}
@@ -151,9 +150,9 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 	Log.Info().
 		Str("job_id", job.ID.String()).
 		Bool("success", success).
-		Msg("Finished publishing job")
+		Msg("finished publishing job")
 
-	return nil
+	return returnErr
 }
 
 func (w *Worker) postJobStatus(
@@ -171,11 +170,11 @@ func (w *Worker) postJobStatus(
 	// Post job status to the job server
 	pubStat, err := w.client.PostJobStatus(&processed)
 	if err != nil {
-		return errors.Wrap(err, "Could not post job status")
+		return errors.Wrap(err, "could not post job status")
 	}
 
 	if pubStat.Status != "ok" {
-		return fmt.Errorf("Posting job status request failed: %s", pubStat.Reason)
+		return fmt.Errorf("posting job status request failed: %s", pubStat.Reason)
 	}
 
 	return nil

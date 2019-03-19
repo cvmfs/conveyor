@@ -63,6 +63,8 @@ var submitCmd = &cobra.Command{
 
 		id := stat.ID
 
+		cvmfs.Log.Info().Str("job_id", id.String()).Msg("job submitted successfully")
+
 		// Optionally wait for completion of the job
 		if *subvs.wait {
 			stats, err := client.WaitForJobs(
@@ -74,15 +76,14 @@ var submitCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
+			cvmfs.Log.Info().
+				Str("job_id", id.String()).
+				Bool("success", stats[0].Successful).
+				Msg("job finished")
 			if !stats[0].Successful {
-				cvmfs.Log.Error().
-					Str("job_id", id.String()).
-					Msg("job dependency failed")
 				os.Exit(1)
 			}
 		}
-
-		cvmfs.Log.Info().Str("job_id", id.String()).Msg("job submitted successfully")
 	},
 }
 
