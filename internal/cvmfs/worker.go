@@ -72,7 +72,6 @@ func (w *Worker) Loop() error {
 // handle a job message received from the conveyor server; involves deserializing the job
 // description and processing the job
 func (w *Worker) handle(msg *amqp.Delivery) error {
-	startTime := time.Now()
 
 	var job UnprocessedJob
 	if err := json.Unmarshal(msg.Body, &job); err != nil {
@@ -83,8 +82,9 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 		// Wait for job dependencies to finish
 		depStatus, err := w.client.WaitForJobs(job.Dependencies, job.Repository, w.timeout)
 		if err != nil {
+			t := time.Now()
 			if err := w.postJobStatus(
-				&job, w.name, startTime, time.Now(), false, err.Error()); err != nil {
+				&job, w.name, t, t, false, err.Error()); err != nil {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
 			}
@@ -103,8 +103,9 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 		if len(failed) > 0 {
 			err := fmt.Errorf("failed job dependencies: %v", failed)
 			Log.Error().Err(err).Msg("Error in job handler")
+			t := time.Now()
 			if err := w.postJobStatus(
-				&job, w.name, startTime, time.Now(), false, err.Error()); err != nil {
+				&job, w.name, t, t, false, err.Error()); err != nil {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
 			}
@@ -112,6 +113,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 	}
 
 	Log.Info().Str("job_id", job.ID.String()).Msg("Start publishing job")
+	startTime := time.Now()
 
 	task := func() error {
 		return job.process(w.tempDir)
