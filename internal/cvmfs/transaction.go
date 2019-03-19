@@ -10,7 +10,7 @@ import (
 
 // runTransaction runs a CVMFS transaction on the specified repository, locking the
 // provided subpath. The body of the transaction is encoded in the "task" function
-func runTransaction(repository, subpath string, task func() error) error {
+func runTransaction(repository, subpath string, task func() (int, error)) (int, error) {
 	fullPath := path.Join(repository, subpath)
 
 	// Close any existing transactions
@@ -30,23 +30,23 @@ func runTransaction(repository, subpath string, task func() error) error {
 
 	if err := startTransaction(fullPath, true); err != nil {
 		abort = true
-		return errors.Wrap(err, "could not start CVMFS transaction")
+		return JobRetry, errors.Wrap(err, "could not start CVMFS transaction")
 	}
 
 	if !mock {
-		if err := task(); err != nil {
+		if ret, err := task(); err != nil {
 			abort = true
-			return errors.Wrap(err, "could not run task during transaction")
+			return ret, errors.Wrap(err, "could not run task during transaction")
 		}
 	}
 
 	Log.Info().Msg("Publishing CVMFS transaction")
 	if err := commitTransaction(repository, true); err != nil {
 		abort = true
-		return errors.Wrap(err, "could not commit CVMFS transaction")
+		return JobRetry, errors.Wrap(err, "could not commit CVMFS transaction")
 	}
 
-	return nil
+	return JobSuccess, nil
 }
 
 func startTransaction(path string, verbose bool) error {

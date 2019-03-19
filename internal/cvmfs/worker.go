@@ -116,7 +116,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 	Log.Info().Str("job_id", job.ID.String()).Msg("start publishing job")
 	startTime := time.Now()
 
-	task := func() error {
+	task := func() (int, error) {
 		return job.process(w.tempDir)
 	}
 
@@ -124,13 +124,17 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 	var returnErr error
 	retry := 0
 	for retry <= w.maxJobRetries {
-		err := runTransaction(job.Repository, job.LeasePath, task)
+		ret, err := runTransaction(job.Repository, job.LeasePath, task)
 		if err != nil {
 			returnErr = err
 			Log.Error().Err(err).Msg("transaction failed")
-			retry++
-			if retry <= w.maxJobRetries {
-				Log.Error().Msgf("retrying: %v/%v\n", retry, w.maxJobRetries)
+			if ret == JobRetry {
+				retry++
+				if retry <= w.maxJobRetries {
+					Log.Error().Msgf("retrying: %v/%v\n", retry, w.maxJobRetries)
+				}
+			} else {
+				break
 			}
 		} else {
 			success = true

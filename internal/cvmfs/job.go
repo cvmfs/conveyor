@@ -6,10 +6,20 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+)
+
+const (
+	// JobSuccess signals that a job was successfully processed
+	JobSuccess = iota
+	// JobRetry signals that a job that failed but should be retried
+	JobRetry
+	// JobFailure signals that a job failed and should not be retried
+	JobFailure
 )
 
 // JobSpecification contains all the parameters of a new job which is to be submitted
@@ -78,12 +88,13 @@ func (spec *JobSpecification) Prepare() {
 }
 
 // Process a job (download and unpack payload, run script etc.)
-func (j *UnprocessedJob) process(tempDir string) error {
+func (j *UnprocessedJob) process(tempDir string) (int, error) {
+	var ret = JobSuccess
 	if j.Payload != "" {
 		// Parse the payload string
 		tokens := strings.Split(j.Payload, "|")
 		if tokens[0] != "script" || len(tokens) < 2 {
-			return errors.New("invalid payload string")
+			return JobFailure, errors.New("invalid payload string")
 		}
 		scriptURL := tokens[1]
 		var scriptArg string
@@ -93,40 +104,53 @@ func (j *UnprocessedJob) process(tempDir string) error {
 
 		u, err := url.Parse(scriptURL)
 		if err != nil {
-			return errors.New("could not parse payload script URL")
+			return JobFailure, errors.New("could not parse payload script URL")
 		}
 		scriptFile := path.Join(tempDir, u.Path)
 
 		// Download the script into the temp directory
 		Log.Info().Str("url", scriptURL).Msg("downloading transaction script")
 		if err := downloadFile(tempDir, scriptURL, downloadTimeout); err != nil {
-			return errors.Wrap(err, "could not download payload")
+			return JobRetry, errors.Wrap(err, "could not download payload")
 		}
 
 		// Make downloaded script file executable
 		if err := os.Chmod(scriptFile, 0755); err != nil {
-			return errors.Wrap(err, "could not make transaction script executable")
+			return JobRetry, errors.Wrap(err, "could not make transaction script executable")
 		}
 
 		// Run the script from the root of the repository; the repository name,
 		// the lease path, and the optional argument from the payload strin are
 		// passed as arguments to the string
-		if err := runScript(scriptFile, j.Repository, j.LeasePath, scriptArg); err != nil {
-			return errors.Wrap(err, "running transaction script failed")
+		ret, err = runScript(scriptFile, j.Repository, j.LeasePath, scriptArg)
+		if err != nil {
+			return ret, errors.Wrap(err, "running transaction script failed")
 		}
 	}
 
-	return nil
+	return ret, nil
 }
 
-func runScript(script string, repo string, leasePath string, arg string) error {
+func runScript(script string, repo string, leasePath string, arg string) (int, error) {
 	cmd := exec.Command(script, repo, leasePath, arg)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Dir = path.Join("/cvmfs", repo)
 	if err := cmd.Run(); err != nil {
-		return err
+		if exitCode(err) < 0 {
+			return JobRetry, err
+		}
+		return JobFailure, err
 	}
 
-	return nil
+	return JobSuccess, nil
+}
+
+func exitCode(err error) int {
+	exitCode := 1
+	if exitError, ok := err.(*exec.ExitError); ok {
+		ws := exitError.Sys().(syscall.WaitStatus)
+		exitCode = ws.ExitStatus()
+	}
+	return exitCode
 }
