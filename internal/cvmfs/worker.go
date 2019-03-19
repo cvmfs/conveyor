@@ -108,6 +108,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 				msg.Nack(false, true)
 				return errors.Wrap(err, "posting job status to server failed")
 			}
+			msg.Nack(false, false)
 			return err
 		}
 	}
