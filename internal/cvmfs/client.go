@@ -106,7 +106,7 @@ L:
 				Str("source", "query").
 				Str("job_id", j.ID.String()).
 				Bool("success", j.Successful).
-				Msgf("(Query result) job finished: %v", j)
+				Msg("job finished")
 			if !j.Successful || len(ids) == len(jobStatuses) {
 				break L
 			}
