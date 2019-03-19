@@ -139,9 +139,13 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 
 	finishTime := time.Now()
 
+	var errMsg string
+	if returnErr != nil {
+		errMsg = returnErr.Error()
+	}
 	// Publish the processed job status to the job server
 	if err := w.postJobStatus(
-		&job, w.name, startTime, finishTime, success, returnErr.Error()); err != nil {
+		&job, w.name, startTime, finishTime, success, errMsg); err != nil {
 		msg.Nack(false, true)
 		return errors.Wrap(err, "posting job status to server failed")
 	}
