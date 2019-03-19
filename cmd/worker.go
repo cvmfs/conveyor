@@ -7,6 +7,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type workerCmdVars struct {
+	name    string
+	retries int
+	tempDir string
+}
+
+var wrkvs workerCmdVars
+
 var workerCmd = &cobra.Command{
 	Use:   "worker",
 	Short: "Run conveyor worker",
@@ -20,13 +28,21 @@ var workerCmd = &cobra.Command{
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
-		if rootCmd.PersistentFlags().Changed("timeout") {
+		if cmd.Flags().Changed("job-wait-timeout") {
 			cfg.JobWaitTimeout = jobWaitTimeout
+		}
+		if cmd.Flags().Changed("worker-name") {
+			cfg.Worker.Name = wrkvs.name
+		}
+		if cmd.Flags().Changed("job-retries") {
+			cfg.Worker.JobRetries = wrkvs.retries
+		}
+		if cmd.Flags().Changed("temp-dir") {
+			cfg.Worker.TempDir = wrkvs.tempDir
 		}
 
 		// Create temporary dir
 		tempDir := cfg.Worker.TempDir
-
 		os.RemoveAll(tempDir)
 		if err := os.MkdirAll(tempDir, 0755); err != nil {
 			cvmfs.Log.Error().Err(err).Msg("could not create temp dir")
@@ -48,4 +64,10 @@ var workerCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+}
+
+func init() {
+	workerCmd.Flags().StringVarP(&wrkvs.name, "worker-name", "n", "", "name of the worker daemon")
+	workerCmd.Flags().IntVarP(&wrkvs.retries, "job-retries", "R", 0, "number of times the transaction script should be retried")
+	workerCmd.Flags().StringVarP(&wrkvs.tempDir, "temp-dir", "T", "", "temporary directory used by the worker daemon")
 }
