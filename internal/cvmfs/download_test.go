@@ -100,7 +100,7 @@ func TestDownloadIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not create temp dir")
 	}
-	//defer os.RemoveAll(tmp)
+	defer os.RemoveAll(tmp)
 	testURL := "http://localhost:8080/msg.txt"
 	fname := path.Join(tmp, "msg.txt")
 	var h1 []byte
