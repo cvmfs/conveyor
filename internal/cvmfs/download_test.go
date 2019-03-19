@@ -1,6 +1,7 @@
 package cvmfs
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -90,6 +91,54 @@ func TestDownload(t *testing.T) {
 	}
 	if err := downloadFile(tmp, testURL, 10); err != nil {
 		t.Errorf("Could not download file: %v", err)
+	}
+}
+
+func TestDownloadIsIdempotent(t *testing.T) {
+	// New file
+	tmp, err := ioutil.TempDir("", "scratch")
+	if err != nil {
+		t.Fatalf("Could not create temp dir")
+	}
+	//defer os.RemoveAll(tmp)
+	testURL := "http://localhost:8080/msg.txt"
+	fname := path.Join(tmp, "msg.txt")
+	var h1 []byte
+	func() {
+		if err := downloadFile(tmp, testURL, 10); err != nil {
+			t.Errorf("Could not download file: %v", err)
+		}
+
+		fin1, err := os.Open(fname)
+		if err != nil {
+			t.Fatalf("could not open downloaded file for reading")
+		}
+		defer fin1.Close()
+		h1, err = computeHash("sha1", fin1)
+		if err != nil {
+			t.Fatalf("could not compute hash of downloaded file (first time)")
+		}
+	}()
+
+	var h2 []byte
+	func() {
+		if err := downloadFile(tmp, testURL, 10); err != nil {
+			t.Errorf("Could not download file: %v", err)
+		}
+
+		fin2, err := os.Open(fname)
+		if err != nil {
+			t.Fatalf("could not open downloaded file for reading")
+		}
+		defer fin2.Close()
+		h2, err = computeHash("sha1", fin2)
+		if err != nil {
+			t.Fatalf("could not compute hash of first downloaded file (second time)")
+		}
+	}()
+
+	if !bytes.Equal(h1, h2) {
+		t.Fatalf("downloaded file changed. - hash1: %v, hash2: %v", h1, h2)
 	}
 }
 

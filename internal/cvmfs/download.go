@@ -58,7 +58,7 @@ func downloadFile(destDir, src string, timeoutSec int) error {
 	}
 	defer rep.Body.Close()
 
-	fout, err := os.OpenFile(targetFile, os.O_RDWR|os.O_CREATE, 0755)
+	fout, err := os.OpenFile(targetFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return errors.Wrap(err, "could not create destination file")
 	}
