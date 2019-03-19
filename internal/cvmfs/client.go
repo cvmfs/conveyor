@@ -60,7 +60,7 @@ func (c *JobClient) SubscribeNewJobs(keyID string) (<-chan amqp.Delivery, error)
 // unique ids. The job status is obtained from the completed job notification channel
 // of the job queue and from the job server
 func (c *JobClient) WaitForJobs(
-	ids []string, repo string, timeout int) ([]JobStatus, error) {
+	ids []string, timeout int) ([]JobStatus, error) {
 	idMap := make(map[string]bool)
 	for _, id := range ids {
 		idMap[id] = false
@@ -79,7 +79,7 @@ func (c *JobClient) WaitForJobs(
 
 	// Query the job server for the status of completed jobs
 	queryResults := make(chan JobStatus)
-	ch := query(ids, c, repo, queryResults, quit)
+	ch := query(ids, c, queryResults, quit)
 
 	Log.Info().Msg("Waiting for jobs")
 
@@ -127,7 +127,7 @@ L:
 
 // GetJobStatus queries the status of a set of jobs from the server
 func (c *JobClient) GetJobStatus(
-	ids []string, repo string, full bool, quit <-chan struct{}) (*GetJobStatusReply, error) {
+	ids []string, full bool, quit <-chan struct{}) (*GetJobStatusReply, error) {
 
 	req, err := http.NewRequest("GET", c.endpoints.CompletedJobs(true), nil)
 	if err != nil {
@@ -328,7 +328,6 @@ func listen(
 func query(
 	ids []string,
 	client *JobClient,
-	repo string,
 	results chan<- JobStatus,
 	quit <-chan struct{}) chan error {
 
@@ -342,7 +341,7 @@ func query(
 				break L
 			default:
 			}
-			reply, err := client.GetJobStatus(ids, repo, false, quit)
+			reply, err := client.GetJobStatus(ids, false, quit)
 			if err != nil {
 				// Only forward the error value if there wasn't any cancellation
 				if _, cancellation := err.(*RequestCancelled); !cancellation {

@@ -21,18 +21,21 @@ var jobWaitTimeout int
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(
+	rootCmd.PersistentFlags().StringVarP(
 		&cfgFile,
 		"config",
+		"c",
 		"/etc/cvmfs/conveyor/config.toml",
 		"config file (TOML or JSON)")
-	logTimestamps = rootCmd.PersistentFlags().Bool(
+	logTimestamps = rootCmd.PersistentFlags().BoolP(
 		"log-timestamps",
+		"s",
 		false,
 		"include timestamps in logging output")
-	rootCmd.PersistentFlags().IntVar(
+	rootCmd.PersistentFlags().IntVarP(
 		&jobWaitTimeout,
 		"job-wait-timeout",
+		"t",
 		7200,
 		"timeout (in seconds) when waiting for jobs")
 	rootCmd.AddCommand(checkCmd)

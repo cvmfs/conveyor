@@ -67,8 +67,7 @@ var submitCmd = &cobra.Command{
 
 		// Optionally wait for completion of the job
 		if *subvs.wait {
-			stats, err := client.WaitForJobs(
-				[]string{id.String()}, spec.Repository, jobWaitTimeout)
+			stats, err := client.WaitForJobs([]string{id.String()}, jobWaitTimeout)
 			if err != nil {
 				cvmfs.Log.Error().
 					Err(err).
@@ -88,12 +87,12 @@ var submitCmd = &cobra.Command{
 }
 
 func init() {
-	submitCmd.Flags().StringVar(&subvs.jobName, "job-name", "", "name of the job")
-	submitCmd.Flags().StringVar(&subvs.repo, "repo", "", "target CVMFS repository")
+	submitCmd.Flags().StringVarP(&subvs.jobName, "job-name", "j", "", "name of the job")
+	submitCmd.Flags().StringVarP(&subvs.repo, "repo", "r", "", "target CVMFS repository")
 	submitCmd.MarkFlagRequired("repo")
-	submitCmd.Flags().StringVar(&subvs.payload, "payload", "", "payload URL")
-	submitCmd.Flags().StringVar(&subvs.leasePath, "lease-path", "/", "leased path inside the repository")
-	subvs.deps = submitCmd.Flags().StringSlice(
-		"deps", []string{}, "comma-separate list of job dependency UUIDs")
-	subvs.wait = submitCmd.Flags().Bool("wait", false, "wait for completion of the submitted job")
+	submitCmd.Flags().StringVarP(&subvs.payload, "payload", "p", "", "payload URL")
+	submitCmd.Flags().StringVarP(&subvs.leasePath, "lease-path", "l", "/", "leased path inside the repository")
+	subvs.deps = submitCmd.Flags().StringSliceP(
+		"deps", "d", []string{}, "comma-separate list of job dependency UUIDs")
+	subvs.wait = submitCmd.Flags().BoolP("wait", "w", false, "wait for completion of the submitted job")
 }

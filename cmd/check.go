@@ -13,7 +13,6 @@ import (
 
 type checkCmdVars struct {
 	ids      *[]string
-	repo     string
 	wait     *bool
 	extended *bool
 }
@@ -45,7 +44,7 @@ var checkCmd = &cobra.Command{
 
 		// Optionally wait for completion of the jobs
 		if *chkvs.wait {
-			_, err := client.WaitForJobs(*chkvs.ids, chkvs.repo, jobWaitTimeout)
+			_, err := client.WaitForJobs(*chkvs.ids, jobWaitTimeout)
 			if err != nil {
 				cvmfs.Log.Error().Err(err).Msg("waiting for job completion failed")
 				os.Exit(1)
@@ -53,14 +52,14 @@ var checkCmd = &cobra.Command{
 		}
 
 		quit := make(chan struct{})
-		stats, err := client.GetJobStatus(*chkvs.ids, chkvs.repo, *chkvs.extended, quit)
+		stats, err := client.GetJobStatus(*chkvs.ids, *chkvs.extended, quit)
 		if err != nil {
-			cvmfs.Log.Error().Err(err).Msg("error checking job status")
+			cvmfs.Log.Error().Err(err).Msg("job status check failed")
 			os.Exit(1)
 		}
 
 		if stats.Status != "ok" {
-			cvmfs.Log.Error().Err(errors.New(stats.Reason)).Msg("job failed")
+			cvmfs.Log.Error().Err(errors.New(stats.Reason)).Msg("job status check failed")
 			os.Exit(1)
 		}
 
@@ -89,11 +88,9 @@ func printStatus(id uuid.UUID, st interface{}) {
 }
 
 func init() {
-	chkvs.ids = checkCmd.Flags().StringSlice(
-		"ids", []string{}, "comma-separate list of job UUIDs to query")
+	chkvs.ids = checkCmd.Flags().StringSliceP(
+		"ids", "i", []string{}, "comma-separate list of job UUIDs to query")
 	checkCmd.MarkFlagRequired("ids")
-	checkCmd.Flags().StringVar(&chkvs.repo, "repo", "", "target CVMFS repository of the jobs ")
-	checkCmd.MarkFlagRequired("repo")
-	chkvs.wait = checkCmd.Flags().Bool("wait", false, "wait for completion of the queried jobs")
-	chkvs.extended = checkCmd.Flags().Bool("extended-status", false, "return the extended status of the job")
+	chkvs.wait = checkCmd.Flags().BoolP("wait", "w", false, "wait for completion of the queried jobs")
+	chkvs.extended = checkCmd.Flags().BoolP("extended-status", "e", false, "return the extended status of the job")
 }

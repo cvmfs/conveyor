@@ -80,7 +80,7 @@ func (w *Worker) handle(msg *amqp.Delivery) error {
 
 	if len(job.Dependencies) > 0 {
 		// Wait for job dependencies to finish
-		depStatus, err := w.client.WaitForJobs(job.Dependencies, job.Repository, w.timeout)
+		depStatus, err := w.client.WaitForJobs(job.Dependencies, w.timeout)
 		if err != nil {
 			t := time.Now()
 			if err := w.postJobStatus(
