@@ -75,11 +75,24 @@ var submitCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
-			cvmfs.Log.Info().
-				Str("job_id", id.String()).
-				Bool("success", stats[0].Successful).
-				Msg("job finished")
-			if !stats[0].Successful {
+			if stats[0].Successful {
+				cvmfs.Log.Info().
+					Str("job_id", id.String()).
+					Bool("success", stats[0].Successful).
+					Msg("job finished")
+			} else {
+				quit := make(chan struct{})
+				st, err := client.GetJobStatus([]string{id.String()}, true, quit)
+				if err != nil {
+					cvmfs.Log.Error().Err(err).Msg("job status check failed")
+					os.Exit(1)
+				}
+				job := st.Jobs[0]
+				cvmfs.Log.Error().
+					Str("job_id", id.String()).
+					Bool("success", job.Successful).
+					Str("error", job.ErrorMessage).
+					Msg("job finished")
 				os.Exit(1)
 			}
 		}
