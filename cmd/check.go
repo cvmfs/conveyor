@@ -63,7 +63,7 @@ var checkCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		cvmfs.Log.Info().Msg("Completed jobs:")
+		cvmfs.Log.Info().Msg("completed jobs:")
 		if *chkvs.fullStatus {
 			for _, j := range stats.Jobs {
 				printStatus(j.ID, j)

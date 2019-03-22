@@ -22,7 +22,7 @@ database = "UNSET"
 username = "UNSET"
 password = "UNSET"
 host = "UNSET"
-post = 5432
+port = 5432
 
 # Worker configuration
 [worker]

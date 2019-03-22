@@ -106,6 +106,6 @@ func init() {
 	submitCmd.Flags().StringVarP(&subvs.payload, "payload", "p", "", "payload URL")
 	submitCmd.Flags().StringVarP(&subvs.leasePath, "lease-path", "l", "/", "leased path inside the repository")
 	subvs.deps = submitCmd.Flags().StringSliceP(
-		"deps", "d", []string{}, "comma-separate list of job dependency UUIDs")
+		"deps", "d", []string{}, "comma-separated list of job dependency UUIDs")
 	subvs.wait = submitCmd.Flags().BoolP("wait", "w", false, "wait for completion of the submitted job")
 }
