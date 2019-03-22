@@ -12,9 +12,9 @@ import (
 )
 
 type checkCmdVars struct {
-	ids      *[]string
-	wait     *bool
-	extended *bool
+	ids        *[]string
+	wait       *bool
+	fullStatus *bool
 }
 
 var chkvs checkCmdVars
@@ -52,7 +52,7 @@ var checkCmd = &cobra.Command{
 		}
 
 		quit := make(chan struct{})
-		stats, err := client.GetJobStatus(*chkvs.ids, *chkvs.extended, quit)
+		stats, err := client.GetJobStatus(*chkvs.ids, *chkvs.fullStatus, quit)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("job status check failed")
 			os.Exit(1)
@@ -64,7 +64,7 @@ var checkCmd = &cobra.Command{
 		}
 
 		cvmfs.Log.Info().Msg("Completed jobs:")
-		if *chkvs.extended {
+		if *chkvs.fullStatus {
 			for _, j := range stats.Jobs {
 				printStatus(j.ID, j)
 			}
@@ -92,5 +92,5 @@ func init() {
 		"ids", "i", []string{}, "comma-separate list of job UUIDs to query")
 	checkCmd.MarkFlagRequired("ids")
 	chkvs.wait = checkCmd.Flags().BoolP("wait", "w", false, "wait for completion of the queried jobs")
-	chkvs.extended = checkCmd.Flags().BoolP("extended-status", "e", false, "return the extended status of the job")
+	chkvs.fullStatus = checkCmd.Flags().BoolP("full-status", "e", false, "return the full status of the job")
 }
