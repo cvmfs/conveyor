@@ -81,7 +81,7 @@ func (c *JobClient) WaitForJobs(
 	queryResults := make(chan JobStatus)
 	ch := query(ids, c, queryResults, quit)
 
-	Log.Info().Msg("Waiting for jobs")
+	Log.Debug().Msg("Waiting for jobs")
 
 L:
 	for {
@@ -92,7 +92,7 @@ L:
 			}
 		case j := <-notifications:
 			jobStatuses[j.ID] = j.Successful
-			Log.Info().
+			Log.Debug().
 				Str("source", "notification").
 				Str("job_id", j.ID.String()).
 				Bool("success", j.Successful).
@@ -102,7 +102,7 @@ L:
 			}
 		case j := <-queryResults:
 			jobStatuses[j.ID] = j.Successful
-			Log.Info().
+			Log.Debug().
 				Str("source", "query").
 				Str("job_id", j.ID.String()).
 				Bool("success", j.Successful).
@@ -115,7 +115,7 @@ L:
 		}
 	}
 
-	Log.Info().Msg("All jobs complete. Continuing")
+	Log.Debug().Msg("All jobs complete. Continuing")
 
 	st := []JobStatus{}
 	for k, v := range jobStatuses {

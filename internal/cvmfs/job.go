@@ -98,7 +98,7 @@ func (j *UnprocessedJob) process(tempDir string) error {
 		scriptFile := path.Join(tempDir, u.Path)
 
 		// Download the script into the temp directory
-		Log.Info().Str("url", scriptURL).Msg("downloading transaction script")
+		Log.Debug().Str("url", scriptURL).Msg("downloading transaction script")
 		if err := downloadFile(tempDir, scriptURL, downloadTimeout); err != nil {
 			return errors.Wrap(err, "could not download payload")
 		}
