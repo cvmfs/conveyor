@@ -25,7 +25,7 @@ var submitCmd = &cobra.Command{
 	Long:  "Submit a publishing job to a queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stdout, *logTimestamps)
+		cvmfs.InitLogging(os.Stdout, logTimestamps, debug)
 
 		cfg, err := cvmfs.ReadConfig(cvmfs.ClientProfile)
 		if err != nil {

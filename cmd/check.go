@@ -12,9 +12,9 @@ import (
 )
 
 type checkCmdVars struct {
-	ids        *[]string
-	wait       *bool
-	fullStatus *bool
+	ids        []string
+	wait       bool
+	fullStatus bool
 }
 
 var chkvs checkCmdVars
@@ -25,7 +25,7 @@ var checkCmd = &cobra.Command{
 	Long:  "check the status of a submitted job",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stdout, *logTimestamps)
+		cvmfs.InitLogging(os.Stdout, logTimestamps, debug)
 
 		cfg, err := cvmfs.ReadConfig(cvmfs.ClientProfile)
 		if err != nil {
@@ -43,8 +43,8 @@ var checkCmd = &cobra.Command{
 		}
 
 		// Optionally wait for completion of the jobs
-		if *chkvs.wait {
-			_, err := client.WaitForJobs(*chkvs.ids, jobWaitTimeout)
+		if chkvs.wait {
+			_, err := client.WaitForJobs(chkvs.ids, jobWaitTimeout)
 			if err != nil {
 				cvmfs.Log.Error().Err(err).Msg("waiting for job completion failed")
 				os.Exit(1)
@@ -52,7 +52,7 @@ var checkCmd = &cobra.Command{
 		}
 
 		quit := make(chan struct{})
-		stats, err := client.GetJobStatus(*chkvs.ids, *chkvs.fullStatus, quit)
+		stats, err := client.GetJobStatus(chkvs.ids, chkvs.fullStatus, quit)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("job status check failed")
 			os.Exit(1)
@@ -64,7 +64,7 @@ var checkCmd = &cobra.Command{
 		}
 
 		cvmfs.Log.Info().Msg("completed jobs:")
-		if *chkvs.fullStatus {
+		if chkvs.fullStatus {
 			for _, j := range stats.Jobs {
 				printStatus(j.ID, j)
 			}
@@ -88,9 +88,9 @@ func printStatus(id uuid.UUID, st interface{}) {
 }
 
 func init() {
-	chkvs.ids = checkCmd.Flags().StringSliceP(
-		"ids", "i", []string{}, "comma-separate list of job UUIDs to query")
+	checkCmd.Flags().StringSliceVarP(
+		&chkvs.ids, "ids", "i", []string{}, "comma-separate list of job UUIDs to query")
 	checkCmd.MarkFlagRequired("ids")
-	chkvs.wait = checkCmd.Flags().BoolP("wait", "w", false, "wait for completion of the queried jobs")
-	chkvs.fullStatus = checkCmd.Flags().BoolP("full-status", "e", false, "return the full status of the job")
+	checkCmd.Flags().BoolVarP(&chkvs.wait, "wait", "w", false, "wait for completion of the queried jobs")
+	checkCmd.Flags().BoolVarP(&chkvs.fullStatus, "full-status", "e", false, "return the full status of the job")
 }

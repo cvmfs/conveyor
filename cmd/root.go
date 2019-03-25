@@ -16,7 +16,8 @@ var rootCmd = &cobra.Command{
 }
 
 var cfgFile string
-var logTimestamps *bool
+var debug bool
+var logTimestamps bool
 var jobWaitTimeout int
 
 func init() {
@@ -27,7 +28,13 @@ func init() {
 		"c",
 		"/etc/cvmfs/conveyor/config.toml",
 		"config file (TOML or JSON)")
-	logTimestamps = rootCmd.PersistentFlags().BoolP(
+	rootCmd.PersistentFlags().BoolVar(
+		&debug,
+		"debug",
+		false,
+		"enable debug logging")
+	rootCmd.PersistentFlags().BoolVarP(
+		&logTimestamps,
 		"log-timestamps",
 		"s",
 		false,
