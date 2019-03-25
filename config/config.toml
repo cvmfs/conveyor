@@ -30,4 +30,4 @@ port = 5432
 [worker]
 # name = defaults to hostname
 job_retries = 3
-temp_dir = "/tmp/conveyor-worker"
+# temp_dir = defaults to "/tmp/conveyor-worker-<WORKER NAME>"

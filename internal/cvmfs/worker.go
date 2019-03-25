@@ -14,7 +14,7 @@ var mock bool
 
 func init() {
 	mock = false
-	v := os.Getenv("CONVEYOR_MOCK_WORKER")
+	v := os.Getenv("CONVEYOR_MOCK")
 	if v == "true" || v == "yes" || v == "on" {
 		mock = true
 	}

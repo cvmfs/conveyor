@@ -209,7 +209,7 @@ func newConfig() (*Config, error) {
 	cfg.Worker.Name = name
 
 	// default temporary dir used for handling job artifacts
-	cfg.Worker.TempDir = "/tmp/conveyor-worker"
+	cfg.Worker.TempDir = "/tmp/conveyor-worker-" + name
 
 	// maximum number of retries for processing a job before giving up
 	// and recording it as a failed job

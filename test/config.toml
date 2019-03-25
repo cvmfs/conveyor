@@ -1,0 +1,14 @@
+[server]
+host = "localhost"
+port = 8080
+
+[queue]
+host = "localhost"
+port = 5672
+vhost = "/"
+
+[db]
+type = "postgres"
+database = "testcvmfs"
+host = "localhost"
+port = 5432
