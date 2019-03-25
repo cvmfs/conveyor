@@ -95,7 +95,7 @@ Required by all commands.
 * `shared_key` - (string) This secret is shared between all participants (client, server, and worker) to sign and verify HTTP requests between them
 * `job_wait_timeout` - (integer) Maximum number of seconds a publication job is allowed to take. Default to 7200s
 * `debug` - (bool) Enable debug logging
-* `log-timestamps` Include timestamps in logging output
+* `log_timestamps` Include timestamps in logging output
 
 #### [server]
 

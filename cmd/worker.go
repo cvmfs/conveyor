@@ -21,7 +21,7 @@ var workerCmd = &cobra.Command{
 	Long:  "Run the conveyor worker daemon",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stderr, logTimestamps)
+		cvmfs.InitLogging(os.Stderr)
 
 		cfg, err := cvmfs.ReadConfig(cmd, cvmfs.WorkerProfile)
 		if err != nil {
@@ -38,7 +38,7 @@ var workerCmd = &cobra.Command{
 			cfg.Worker.TempDir = wrkvs.tempDir
 		}
 
-		cvmfs.EnableDebugLogging(cfg.Debug)
+		cvmfs.ConfigLogging(cfg)
 
 		// Create temporary dir
 		tempDir := cfg.Worker.TempDir

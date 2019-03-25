@@ -13,7 +13,7 @@ var serverCmd = &cobra.Command{
 	Long:  "Start the job server",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stderr, logTimestamps)
+		cvmfs.InitLogging(os.Stderr)
 
 		cfg, err := cvmfs.ReadConfig(cmd, cvmfs.ServerProfile)
 		if err != nil {
@@ -21,7 +21,7 @@ var serverCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		cvmfs.EnableDebugLogging(cfg.Debug)
+		cvmfs.ConfigLogging(cfg)
 
 		cvmfs.Log.Info().Msg("CVMFS job server starting")
 

@@ -10,19 +10,18 @@ import (
 var Log zerolog.Logger
 
 // InitLogging initializes the logger
-func InitLogging(sink io.Writer, logTimestamps bool) {
-	l := zerolog.New(sink)
-	if logTimestamps {
-		Log = l.With().Timestamp().Logger()
-	} else {
-		Log = l
-	}
+func InitLogging(sink io.Writer) {
+	Log = zerolog.New(sink)
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
-// EnableDebugLogging is self explanatory
-func EnableDebugLogging(debug bool) {
-	if debug {
+// ConfigLogging updates the logging settings with
+// values from a Config object (Meant to be called after ReadConfig)
+func ConfigLogging(cfg *Config) {
+	if cfg.LogTimestamps {
+		Log = Log.With().Timestamp().Logger()
+	}
+	if cfg.Debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 }

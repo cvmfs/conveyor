@@ -1,6 +1,8 @@
 # Options common to multiple components (worker, server, etc.)
 shared_key = "UNSET" # api key shared by server, worker, submit.
 job_wait_timeout = 7200 # max number of seconds to wait for jobs to complete
+debug = false # enable debug logging
+log_timestamps = false # include timestamps in logging output
 
 # Job server configuration is used by conveyor {submit, consumer, server}
 [server]

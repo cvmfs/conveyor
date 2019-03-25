@@ -59,7 +59,7 @@ type Config struct {
 	SharedKey      string `mapstructure:"shared_key"`
 	JobWaitTimeout int    `mapstructure:"job_wait_timeout"`
 	Debug          bool
-	LogTimestamps  bool `mapstructure:"log-timestamps"`
+	LogTimestamps  bool `mapstructure:"log_timestamps"`
 	Server         ServerConfig
 	Queue          QueueConfig
 	Backend        BackendConfig

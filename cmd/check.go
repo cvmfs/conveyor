@@ -25,7 +25,7 @@ var checkCmd = &cobra.Command{
 	Long:  "check the status of a submitted job",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stdout, logTimestamps)
+		cvmfs.InitLogging(os.Stdout)
 
 		cfg, err := cvmfs.ReadConfig(cmd, cvmfs.ClientProfile)
 		if err != nil {
@@ -33,7 +33,7 @@ var checkCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		cvmfs.EnableDebugLogging(cfg.Debug)
+		cvmfs.ConfigLogging(cfg)
 
 		client, err := cvmfs.NewJobClient(cfg)
 		if err != nil {
