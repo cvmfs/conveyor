@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -57,6 +58,8 @@ type ServerConfig struct {
 type Config struct {
 	SharedKey      string `mapstructure:"shared_key"`
 	JobWaitTimeout int    `mapstructure:"job_wait_timeout"`
+	Debug          bool
+	LogTimestamps  bool `mapstructure:"log-timestamps"`
 	Server         ServerConfig
 	Queue          QueueConfig
 	Backend        BackendConfig
@@ -107,11 +110,11 @@ func (c *Config) HTTPEndpoints() HTTPEndpoints {
 // ReadConfig - populate the config object using the global viper object
 // and the config file, based on profile (client, worker, or server).
 // The different sections may not needed in all profiles
-func ReadConfig(profile int) (*Config, error) {
-	return readConfigFromViper(viper.GetViper(), profile)
+func ReadConfig(cmd *cobra.Command, profile int) (*Config, error) {
+	return readConfigFromViper(viper.GetViper(), cmd, profile)
 }
 
-func readConfigFromViper(v *viper.Viper, profile int) (*Config, error) {
+func readConfigFromViper(v *viper.Viper, cmd *cobra.Command, profile int) (*Config, error) {
 	// Create new config object with default values
 	cfg, err := newConfig()
 	if err != nil {
@@ -159,6 +162,9 @@ func readConfigFromViper(v *viper.Viper, profile int) (*Config, error) {
 	// Apply overrides from environment variables (for credentials)
 	overrideWithEnvVars(cfg, profile)
 
+	// Apple overrides from command-line flags
+	overrideWithFlags(cfg, cmd)
+
 	// Check that all mandatory parameters are set
 	if err := validateConfig(cfg, profile); err != nil {
 		return nil, errors.Wrap(err, "invalid configuration")
@@ -181,6 +187,9 @@ func newConfig() (*Config, error) {
 
 	cfg.SharedKey = "UNSET"
 	cfg.JobWaitTimeout = 7200
+
+	cfg.Debug = false
+	cfg.LogTimestamps = false
 
 	cfg.Server.Port = 8080
 
@@ -216,6 +225,17 @@ func overrideWithEnvVars(cfg *Config, profile int) {
 	if profile == ServerProfile {
 		setFromEnvVar(&cfg.Backend.Username, "CONVEYOR_DB_USER")
 		setFromEnvVar(&cfg.Backend.Password, "CONVEYOR_DB_PASS")
+	}
+}
+
+func overrideWithFlags(cfg *Config, cmd *cobra.Command) {
+	if cmd != nil {
+		if cmd.Flags().Changed("debug") {
+			cfg.Debug = true
+		}
+		if cmd.Flags().Changed("log-timestamps") {
+			cfg.LogTimestamps = true
+		}
 	}
 }
 

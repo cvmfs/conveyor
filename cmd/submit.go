@@ -13,8 +13,8 @@ type submitCmdVars struct {
 	repo      string
 	payload   string
 	leasePath string
-	deps      *[]string
-	wait      *bool
+	deps      []string
+	wait      bool
 }
 
 var subvs submitCmdVars
@@ -25,20 +25,19 @@ var submitCmd = &cobra.Command{
 	Long:  "Submit a publishing job to a queue",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stdout, logTimestamps, debug)
+		cvmfs.InitLogging(os.Stdout, logTimestamps)
 
-		cfg, err := cvmfs.ReadConfig(cvmfs.ClientProfile)
+		cfg, err := cvmfs.ReadConfig(cmd, cvmfs.ClientProfile)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
-		if rootCmd.PersistentFlags().Changed("timeout") {
-			cfg.JobWaitTimeout = jobWaitTimeout
-		}
+
+		cvmfs.EnableDebugLogging(cfg.Debug)
 
 		spec := &cvmfs.JobSpecification{
 			JobName: subvs.jobName, Repository: subvs.repo, Payload: subvs.payload,
-			LeasePath: subvs.leasePath, Dependencies: *subvs.deps}
+			LeasePath: subvs.leasePath, Dependencies: subvs.deps}
 
 		spec.Prepare()
 
@@ -66,8 +65,8 @@ var submitCmd = &cobra.Command{
 		cvmfs.Log.Info().Str("job_id", id.String()).Msg("job submitted successfully")
 
 		// Optionally wait for completion of the job
-		if *subvs.wait {
-			stats, err := client.WaitForJobs([]string{id.String()}, jobWaitTimeout)
+		if subvs.wait {
+			stats, err := client.WaitForJobs([]string{id.String()}, cfg.JobWaitTimeout)
 			if err != nil {
 				cvmfs.Log.Error().
 					Err(err).
@@ -105,7 +104,7 @@ func init() {
 	submitCmd.MarkFlagRequired("repo")
 	submitCmd.Flags().StringVarP(&subvs.payload, "payload", "p", "", "payload URL")
 	submitCmd.Flags().StringVarP(&subvs.leasePath, "lease-path", "l", "/", "leased path inside the repository")
-	subvs.deps = submitCmd.Flags().StringSliceP(
-		"deps", "d", []string{}, "comma-separated list of job dependency UUIDs")
-	subvs.wait = submitCmd.Flags().BoolP("wait", "w", false, "wait for completion of the submitted job")
+	submitCmd.Flags().StringSliceVarP(
+		&subvs.deps, "deps", "d", []string{}, "comma-separated list of job dependency UUIDs")
+	submitCmd.Flags().BoolVarP(&subvs.wait, "wait", "w", false, "wait for completion of the submitted job")
 }

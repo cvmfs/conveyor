@@ -10,7 +10,7 @@ import (
 var Log zerolog.Logger
 
 // InitLogging initializes the logger
-func InitLogging(sink io.Writer, logTimestamps, debug bool) {
+func InitLogging(sink io.Writer, logTimestamps bool) {
 	l := zerolog.New(sink)
 	if logTimestamps {
 		Log = l.With().Timestamp().Logger()
@@ -18,6 +18,10 @@ func InitLogging(sink io.Writer, logTimestamps, debug bool) {
 		Log = l
 	}
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+}
+
+// EnableDebugLogging is self explanatory
+func EnableDebugLogging(debug bool) {
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}

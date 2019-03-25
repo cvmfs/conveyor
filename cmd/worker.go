@@ -21,15 +21,12 @@ var workerCmd = &cobra.Command{
 	Long:  "Run the conveyor worker daemon",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stderr, logTimestamps, debug)
+		cvmfs.InitLogging(os.Stderr, logTimestamps)
 
-		cfg, err := cvmfs.ReadConfig(cvmfs.WorkerProfile)
+		cfg, err := cvmfs.ReadConfig(cmd, cvmfs.WorkerProfile)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
-		}
-		if cmd.Flags().Changed("job-wait-timeout") {
-			cfg.JobWaitTimeout = jobWaitTimeout
 		}
 		if cmd.Flags().Changed("worker-name") {
 			cfg.Worker.Name = wrkvs.name
@@ -40,6 +37,8 @@ var workerCmd = &cobra.Command{
 		if cmd.Flags().Changed("temp-dir") {
 			cfg.Worker.TempDir = wrkvs.tempDir
 		}
+
+		cvmfs.EnableDebugLogging(cfg.Debug)
 
 		// Create temporary dir
 		tempDir := cfg.Worker.TempDir

@@ -25,16 +25,15 @@ var checkCmd = &cobra.Command{
 	Long:  "check the status of a submitted job",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stdout, logTimestamps, debug)
+		cvmfs.InitLogging(os.Stdout, logTimestamps)
 
-		cfg, err := cvmfs.ReadConfig(cvmfs.ClientProfile)
+		cfg, err := cvmfs.ReadConfig(cmd, cvmfs.ClientProfile)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
-		if rootCmd.PersistentFlags().Changed("timeout") {
-			cfg.JobWaitTimeout = jobWaitTimeout
-		}
+
+		cvmfs.EnableDebugLogging(cfg.Debug)
 
 		client, err := cvmfs.NewJobClient(cfg)
 		if err != nil {
@@ -44,7 +43,7 @@ var checkCmd = &cobra.Command{
 
 		// Optionally wait for completion of the jobs
 		if chkvs.wait {
-			_, err := client.WaitForJobs(chkvs.ids, jobWaitTimeout)
+			_, err := client.WaitForJobs(chkvs.ids, cfg.JobWaitTimeout)
 			if err != nil {
 				cvmfs.Log.Error().Err(err).Msg("waiting for job completion failed")
 				os.Exit(1)

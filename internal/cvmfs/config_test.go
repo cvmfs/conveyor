@@ -118,7 +118,7 @@ func TestReadClientConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	cfg, err := readConfigFromViper(v, ClientProfile)
+	cfg, err := readConfigFromViper(v, nil, ClientProfile)
 	if err != nil {
 		t.Errorf("Could not read config from Viper object")
 	}
@@ -140,7 +140,7 @@ func TestReadServerConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	cfg, err := readConfigFromViper(v, ServerProfile)
+	cfg, err := readConfigFromViper(v, nil, ServerProfile)
 	if err != nil {
 		t.Errorf("Could not read config from Viper object")
 	}
@@ -167,7 +167,7 @@ func TestReadWorkerConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	cfg, err := readConfigFromViper(v, WorkerProfile)
+	cfg, err := readConfigFromViper(v, nil, WorkerProfile)
 	if err != nil {
 		t.Errorf("Could not read config from Viper object")
 	}

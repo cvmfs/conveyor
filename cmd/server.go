@@ -13,16 +13,16 @@ var serverCmd = &cobra.Command{
 	Long:  "Start the job server",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		cvmfs.InitLogging(os.Stderr, logTimestamps, debug)
+		cvmfs.InitLogging(os.Stderr, logTimestamps)
 
-		cfg, err := cvmfs.ReadConfig(cvmfs.ServerProfile)
+		cfg, err := cvmfs.ReadConfig(cmd, cvmfs.ServerProfile)
 		if err != nil {
 			cvmfs.Log.Error().Err(err).Msg("config error")
 			os.Exit(1)
 		}
-		if rootCmd.PersistentFlags().Changed("timeout") {
-			cfg.JobWaitTimeout = jobWaitTimeout
-		}
+
+		cvmfs.EnableDebugLogging(cfg.Debug)
+
 		cvmfs.Log.Info().Msg("CVMFS job server starting")
 
 		if err := cvmfs.StartServer(cfg); err != nil {

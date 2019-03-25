@@ -18,7 +18,6 @@ var rootCmd = &cobra.Command{
 var cfgFile string
 var debug bool
 var logTimestamps bool
-var jobWaitTimeout int
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -33,24 +32,15 @@ func init() {
 		"debug",
 		false,
 		"enable debug logging")
-	rootCmd.PersistentFlags().BoolVarP(
+	rootCmd.PersistentFlags().BoolVar(
 		&logTimestamps,
 		"log-timestamps",
-		"s",
 		false,
 		"include timestamps in logging output")
-	rootCmd.PersistentFlags().IntVarP(
-		&jobWaitTimeout,
-		"job-wait-timeout",
-		"t",
-		7200,
-		"timeout (in seconds) when waiting for jobs")
 	rootCmd.AddCommand(checkCmd)
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(submitCmd)
 	rootCmd.AddCommand(workerCmd)
-
-	viper.BindPFlag("log-timestamps", rootCmd.PersistentFlags().Lookup("log-timestamps"))
 }
 
 func initConfig() {
