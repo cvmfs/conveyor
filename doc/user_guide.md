@@ -131,6 +131,27 @@ Only required by `conveyor worker`.
 * `job_retries` - (int) The number of times a failing job is retried. Default is 3.
 * `temp_dir` - (string) Temporary directory where payload scripts are downloaded during transactions. Default is `/tmp/conveyor-worker`.
 
+### Server and worker daemons
+
+Systemd service files are provided for the two long-running daemons, `conveyor server` and `conveyor worker`.
+The service files take as parameter the user under which to run the Conveyor executable. For example:
+
+```bash
+$ systemctl enable conveyor-server@sftnight
+$ systemctl start conveyor-server@sftnight
+$ systemctl enable conveyor-worker@sftnight
+$ systemctl start conveyor-worker@sftnight
+...
+```
+
+This allows running the daemons under the user who owns the CernVM-FS repository.
+
+The logs of these two services can be consulted with the `journalctl` command:
+
+```bash
+$ journalctl -u conveyor-worker@sftnight
+```
+
 ## Submitting jobs
 
 Jobs can be submitted with the `conveyor submit` command which takes the following parameters:
