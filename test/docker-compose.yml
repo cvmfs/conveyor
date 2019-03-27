@@ -2,16 +2,28 @@ version: "3"
 services:
   pg:
     image: postgres:11
-    environment:
-      - "POSTGRES_PASSWORD=password"
+    env_file:
+      - test.env
     ports:
       - "5432:5432"
   rmq:
     image: rabbitmq:3-management
     hostname: rabbit00
-    environment:
-      - "RABBITMQ_ERLANG_COOKIE=secret"
-      - "RABBITMQ_NODENAME=rabbit@rabbit00"
+    env_file:
+      - test.env
     ports:
-      - "15672:15672"
       - "5672:5672"
+  minio:
+    image: minio/minio
+    env_file:
+      - test.env
+    ports:
+      - "9000:9000"
+    command: server /data
+  gw:
+    image: radupopescu/cvmfs-gateway
+    privileged: true
+    env_file:
+      - test.env
+    volumes:
+      - "$CONVEYOR_TEST_WORKSPACE/gateway:/shared"
