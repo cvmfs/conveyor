@@ -20,7 +20,7 @@ mkdir -p $CONVEYOR_TEST_WORKSPACE/gateway
 chmod g+s $CONVEYOR_TEST_WORKSPACE/gateway
 
 # Start containers with the backing services (PostgreSQL, RabbitMQ, Minio, cvmfs-gateway)\
-docker-compose up -d
+docker-compose up
 
 # Start a container with conveyor-server
 
@@ -31,7 +31,7 @@ docker-compose up -d
 # Cleanup
 cleanup () {
     cd $SCRIPT_LOCATION
-    docker-compose down
+    docker-compose down -v
     rm -rf $CONVEYOR_TEST_WORKSPACE
 }
-trap cleanup EXIT HUP INT TERM || return $?
+#trap cleanup EXIT HUP INT TERM || return $?

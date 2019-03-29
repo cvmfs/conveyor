@@ -1,18 +1,18 @@
 version: "3"
 services:
-  pg:
-    image: postgres:11
-    env_file:
-      - test.env
-    ports:
-      - "5432:5432"
-  rmq:
-    image: rabbitmq:3-management
-    hostname: rabbit00
-    env_file:
-      - test.env
-    ports:
-      - "5672:5672"
+  # pg:
+  #   image: postgres:11
+  #   env_file:
+  #     - test.env
+  #   ports:
+  #     - "5432:5432"
+  # rmq:
+  #   image: rabbitmq:3-management
+  #   hostname: rabbit00
+  #   env_file:
+  #     - test.env
+  #   ports:
+  #     - "5672:5672"
   minio:
     image: minio/minio
     env_file:
@@ -20,10 +20,13 @@ services:
     ports:
       - "9000:9000"
     command: server /data
-  gw:
-    image: radupopescu/cvmfs-gateway
-    privileged: true
-    env_file:
-      - test.env
-    volumes:
-      - "$CONVEYOR_TEST_WORKSPACE/gateway:/shared"
+  # gw:
+  #   image: radupopescu/cvmfs-gateway
+  #   depends_on:
+  #     - minio
+  #   privileged: true
+  #   env_file:
+  #     - test.env
+  #   volumes:
+  #     - "$CONVEYOR_TEST_WORKSPACE/gateway:/shared"
+  #   command: test.cern.ch
