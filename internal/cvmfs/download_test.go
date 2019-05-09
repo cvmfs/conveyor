@@ -94,6 +94,19 @@ func TestDownload(t *testing.T) {
 	}
 }
 
+func TestDownloadFromDeepPath(t *testing.T) {
+	// New file
+	tmp, err := ioutil.TempDir("", "scratch")
+	if err != nil {
+		t.Fatalf("Could not create temp dir")
+	}
+	defer os.RemoveAll(tmp)
+	testURL := "http://localhost:8080/sub/dir/msg.txt"
+	if err := downloadFile(tmp, testURL, 10); err != nil {
+		t.Errorf("Could not download file: %v", err)
+	}
+}
+
 func TestDownloadIsIdempotent(t *testing.T) {
 	// New file
 	tmp, err := ioutil.TempDir("", "scratch")

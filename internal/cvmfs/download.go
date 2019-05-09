@@ -29,6 +29,11 @@ func downloadFile(destDir, src string, timeoutSec int) error {
 		return errors.Wrap(err, "could not parse source URL")
 	}
 	fileName := srcURL.Path
+	targetDir := path.Join(destDir, path.Dir(fileName))
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return errors.Wrap(err, "could not create target dirs")
+	}
+
 	targetFile := path.Join(destDir, fileName)
 
 	checksum := srcURL.Query().Get("checksum")
